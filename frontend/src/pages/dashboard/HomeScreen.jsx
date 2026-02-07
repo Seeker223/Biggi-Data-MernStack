@@ -612,7 +612,7 @@ const fadeInUp = keyframes`
 // Styled Components
 const PageContainer = styled.div`
   min-height: 100vh;
-  background-color: #000;
+  background-color: #fff;
   display: flex;
   justify-content: center;
   align-items: flex-start;
