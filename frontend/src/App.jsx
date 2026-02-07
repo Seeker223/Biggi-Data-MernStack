@@ -9,6 +9,7 @@ import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import HomeScreen from './pages/dashboard/HomeScreen';
+import DepositScreen from './pages/dashboard/DepositScreen';
 
 function App() {
   return (
@@ -25,6 +26,18 @@ function App() {
             {/* Protected Routes */}
             <Route element={<ProtectedRoute />}>
               <Route path="/" element={<HomeScreen />} />
+            </Route>
+            <Route element={<ProtectedRoute />}>
+              <Route path="/deposit" element={<DepositScreen />} />
+            </Route>
+            <Route element={<ProtectedRoute />}>
+              <Route path="/withdraw" element={<WithdrawScreen />} />
+            </Route>
+            <Route element={<ProtectedRoute />}>
+              <Route path="/buy-data" element={<BuyDataScreen />} />
+            </Route>
+            <Route element={<ProtectedRoute />}>
+              <Route path="/redeem" element={<RedeemScreen />} />
             </Route>
             
             {/* Redirect */}

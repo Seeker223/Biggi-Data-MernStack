@@ -1,3 +1,5 @@
+//frontend/src/pages/dashboard/HomeScreen.jsx
+// This is the HomeScreen component for the dashboard, providing an overview of the user's account, balances, and access to games and features.
 import React, { useContext, useCallback, useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled, { keyframes, css } from 'styled-components';
@@ -124,7 +126,7 @@ const HomeScreen = () => {
   const rewardBalance = Number(user.rewardBalance || 0);
   const tickets = Number(user.tickets || 0);
 
-  const goToDeposit = () => navigate('/deposit');
+  const goToDeposit = () => navigate('./deposit');
   const goToWithdraw = () => navigate('/withdraw');
   const goToBundle = () => navigate('/buy-data');
   const goToRedeem = () => navigate('/redeem');
