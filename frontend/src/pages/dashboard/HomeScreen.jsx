@@ -612,7 +612,7 @@ const fadeInUp = keyframes`
 // Styled Components
 const PageContainer = styled.div`
   min-height: 100vh;
-  background-color: #fff;
+  background-color: #ffffff; /* Changed to white */
   display: flex;
   justify-content: center;
   align-items: flex-start;
@@ -639,7 +639,7 @@ const LoadingContainer = styled.div`
   justify-content: center;
   align-items: center;
   height: 100vh;
-  background-color: #000;
+  background-color: #ffffff;
   width: 100%;
 `;
 
@@ -657,7 +657,7 @@ const SpinningRefresh = styled(RefreshCw)`
 `;
 
 const LoadingText = styled.div`
-  color: #fff;
+  color: #333;
   margin-top: 10px;
   font-size: 14px;
 `;
@@ -726,7 +726,7 @@ const UserText = styled.div`
 `;
 
 const WelcomeText = styled.h2`
-  color: #fff;
+  color: #000; /* Changed to black for contrast on white */
   font-size: 20px;
   font-weight: 700;
   margin: 0;
@@ -737,7 +737,7 @@ const WelcomeText = styled.h2`
 `;
 
 const SubText = styled.p`
-  color: #bbb;
+  color: #666; /* Darker gray for contrast */
   font-size: 14px;
   margin: 4px 0 0 0;
 
@@ -747,12 +747,12 @@ const SubText = styled.p`
 `;
 
 const BellButton = styled.button`
-  background-color: #fff;
+  background-color: #f8f9fa;
   padding: 12px;
   border-radius: 30px;
-  border: none;
+  border: 1px solid #e0e0e0;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   transition: all 0.2s;
   display: flex;
   align-items: center;
@@ -760,7 +760,8 @@ const BellButton = styled.button`
 
   &:hover {
     transform: scale(1.05);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+    background-color: #fff;
   }
 
   &:active {
@@ -790,7 +791,7 @@ const NotificationBadge = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  border: 2px solid #000;
+  border: 2px solid #fff;
   z-index: 10;
 `;
 
@@ -914,7 +915,7 @@ const Divider = styled.div`
 `;
 
 const TicketText = styled.div`
-  color: #fff;
+  color: #000; /* Changed to black for contrast */
   font-size: 16px;
   text-align: center;
   margin: 0 0 8px 0;
@@ -931,7 +932,7 @@ const TicketCount = styled.span`
 `;
 
 const InfoText = styled.div`
-  color: #fff;
+  color: #333; /* Darker gray for contrast */
   font-size: 14px;
   margin: 0 0 24px 0;
   text-align: center;
@@ -943,16 +944,17 @@ const InfoText = styled.div`
 `;
 
 const ContentSection = styled.div`
-  background-color: #fff;
-  border-radius: 24px 24px 0 0;
+  background-color: #f8f9fa; /* Light gray background for content section */
+  border-radius: 24px;
   padding: 24px 16px 40px;
   margin-top: 20px;
   width: 100%;
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e0e0e0;
 
   @media (max-width: 480px) {
     padding: 20px 12px 40px;
-    border-radius: 20px 20px 0 0;
+    border-radius: 20px;
   }
 `;
 
@@ -1124,7 +1126,7 @@ const BundleDesc = styled.p`
 `;
 
 const GameCard = styled.div`
-  background-color: #222;
+  background: linear-gradient(135deg, #222 0%, #333 100%);
   border-radius: 16px;
   padding: 20px;
   display: flex;
@@ -1133,7 +1135,7 @@ const GameCard = styled.div`
   margin: 0 0 20px 0;
   animation: ${fadeInUp} 0.7s ease-out 0.2s both;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-  border: 1px solid #333;
+  border: 1px solid #444;
 
   @media (max-width: 480px) {
     padding: 16px;
@@ -1209,7 +1211,7 @@ const PlayText = styled.span`
 `;
 
 const MonthlyGameCard = styled.div`
-  background-color: #2B006A;
+  background: linear-gradient(135deg, #2B006A 0%, #4A00A3 100%);
   border-radius: 16px;
   padding: 20px;
   animation: ${fadeInUp} 0.7s ease-out 0.3s both;
@@ -1217,7 +1219,7 @@ const MonthlyGameCard = styled.div`
     animation: ${pulse} 1.5s ease-in-out infinite, ${fadeInUp} 0.7s ease-out 0.3s both;
   `}
   box-shadow: 0 8px 24px rgba(43, 0, 106, 0.3);
-  border: 1px solid #3A008F;
+  border: 1px solid #5A00C3;
 
   @media (max-width: 480px) {
     padding: 16px;
@@ -1252,6 +1254,7 @@ const EligibleBadge = styled.div`
   background-color: #4CAF50;
   padding: 6px 12px;
   border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
 `;
 
 const EligibleText = styled.span`
