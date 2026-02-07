@@ -1,40 +1,20 @@
 /*index.css*/
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-:root {
-  --primary: #3B82F6;
-  --secondary: #10B981;
-  --accent: #8B5CF6;
-}
-
-@theme {
-  --color-primary: #3B82F6;
-  --color-secondary: #10B981;
-  --color-accent: #8B5CF6;
-  
-  --animate-fade-in: fade-in 0.5s ease-in-out;
-  --animate-slide-up: slide-up 0.3s ease-out;
-  
-  @keyframes fade-in {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-  
-  @keyframes slide-up {
-    from { transform: translateY(20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
+@layer base {
+  body {
+    @apply antialiased;
   }
 }
 
-body {
-  @apply antialiased;
-}
-
-/* Custom components */
-.btn {
-  @apply px-4 py-2 rounded-lg font-medium transition-colors;
-}
-
-.btn-primary {
-  @apply btn bg-primary text-white hover:bg-primary/90;
+@layer components {
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-colors;
+  }
+  
+  .btn-primary {
+    @apply btn bg-primary text-white hover:bg-primary/90;
+  }
 }
