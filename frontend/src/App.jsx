@@ -1,3 +1,4 @@
+// frontend/src/App.jsx
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
@@ -10,6 +11,9 @@ import Signup from './pages/auth/Signup';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import HomeScreen from './pages/dashboard/HomeScreen';
 import DepositScreen from './pages/dashboard/DepositScreen';
+import WithdrawScreen from './pages/dashboard/WithdrawScreen';// Add this import
+import BuyDataScreen from './pages/dashboard/BuyDataScreen'; // Add this import (create this file)
+import RedeemScreen from './pages/dashboard/RedeemScreen'; // Add this import (create this file)
 
 function App() {
   return (

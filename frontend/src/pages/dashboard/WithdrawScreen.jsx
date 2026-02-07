@@ -15,7 +15,7 @@ import {
   Search,
   X,
   Building,
-  Flash
+  Zap // Changed from Flash to Zap
 } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import { FEATURE_FLAGS } from '../../constants/featureFlags';
@@ -299,7 +299,7 @@ const WithdrawScreen = () => {
           {/* FLUTTERWAVE LOGO */}
           <FlutterwaveBadge>
             <FlutterwaveLogo>
-              <Flash size={20} color="#F5A623" />
+              <Zap size={20} color="#F5A623" /> {/* Changed from Flash to Zap */}
               <FlutterwaveText>Flutterwave</FlutterwaveText>
             </FlutterwaveLogo>
             <FlutterwaveSubtext>Secure Payouts</FlutterwaveSubtext>

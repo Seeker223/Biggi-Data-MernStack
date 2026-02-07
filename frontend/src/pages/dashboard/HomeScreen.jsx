@@ -1,5 +1,4 @@
-//frontend/src/pages/dashboard/HomeScreen.jsx
-// This is the HomeScreen component for the dashboard, providing an overview of the user's account, balances, and access to games and features.
+// frontend/src/pages/dashboard/HomeScreen.jsx
 import React, { useContext, useCallback, useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled, { keyframes, css } from 'styled-components';
@@ -115,10 +114,14 @@ const HomeScreen = () => {
 
   if (authLoading || !user) {
     return (
-      <LoadingContainer>
-        <Spinner />
-        <LoadingText>Loading...</LoadingText>
-      </LoadingContainer>
+      <PageContainer>
+        <ContentContainer>
+          <LoadingContainer>
+            <Spinner />
+            <LoadingText>Loading...</LoadingText>
+          </LoadingContainer>
+        </ContentContainer>
+      </PageContainer>
     );
   }
 
@@ -207,115 +210,115 @@ const HomeScreen = () => {
   };
 
   return (
-    <Container>
-      {/* Hidden file inputs */}
-      <input
-        type="file"
-        id="camera-input"
-        accept="image/*"
-        capture="environment"
-        onChange={handleImageUpload}
-        style={{ display: 'none' }}
-      />
-      <input
-        type="file"
-        id="gallery-input"
-        accept="image/*"
-        onChange={handleImageUpload}
-        style={{ display: 'none' }}
-      />
+    <PageContainer>
+      <ContentContainer>
+        {/* Hidden file inputs */}
+        <input
+          type="file"
+          id="camera-input"
+          accept="image/*"
+          capture="environment"
+          onChange={handleImageUpload}
+          style={{ display: 'none' }}
+        />
+        <input
+          type="file"
+          id="gallery-input"
+          accept="image/*"
+          onChange={handleImageUpload}
+          style={{ display: 'none' }}
+        />
 
-      <ScrollContainer>
-        {/* HEADER */}
-        <Header>
-          <UserInfo>
-            <AvatarContainer>
-              <Avatar 
-                src={user?.photo || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} 
-                alt="Profile"
-              />
-              <AvatarOverlay 
-                onClick={() => {
-                  setPermissionModalData({
-                    title: "Update Photo",
-                    message: "Choose an option",
-                    type: "choice",
-                    choices: [
-                      { text: "Take Photo", action: () => handlePhotoAction('camera') },
-                      { text: "Choose from Gallery", action: () => handlePhotoAction('gallery') },
-                      { text: "Cancel", action: () => setPermissionModalVisible(false) }
-                    ]
-                  });
-                  setPermissionModalVisible(true);
-                }}
+        <ScrollContainer>
+          {/* HEADER */}
+          <Header>
+            <UserInfo>
+              <AvatarContainer>
+                <Avatar 
+                  src={user?.photo || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} 
+                  alt="Profile"
+                />
+                <AvatarOverlay 
+                  onClick={() => {
+                    setPermissionModalData({
+                      title: "Update Photo",
+                      message: "Choose an option",
+                      type: "choice",
+                      choices: [
+                        { text: "Take Photo", action: () => handlePhotoAction('camera') },
+                        { text: "Choose from Gallery", action: () => handlePhotoAction('gallery') },
+                        { text: "Cancel", action: () => setPermissionModalVisible(false) }
+                      ]
+                    });
+                    setPermissionModalVisible(true);
+                  }}
+                >
+                  {uploadingPhoto ? <SpinningRefresh size={20} /> : <Camera size={20} />}
+                </AvatarOverlay>
+              </AvatarContainer>
+              <UserText>
+                <WelcomeText>Hi, {user.username}</WelcomeText>
+                <SubText>Welcome back</SubText>
+              </UserText>
+            </UserInfo>
+            
+            {/* NOTIFICATION BELL WITH BADGE */}
+            <BellButton onClick={goToNotification}>
+              <BellContainer>
+                <BellIcon size={26} />
+                {notificationCount > 0 && (
+                  <NotificationBadge>
+                    <NotificationBadgeText>
+                      {notificationCount > 9 ? "9+" : notificationCount}
+                    </NotificationBadgeText>
+                  </NotificationBadge>
+                )}
+              </BellContainer>
+            </BellButton>
+          </Header>
+
+          {/* WALLET CARD */}
+          <WalletCard>
+            <BalanceRow>
+              <div>
+                <BalanceLabel>Main Balance</BalanceLabel>
+                <Balance>₦{mainBalance.toLocaleString()}</Balance>
+              </div>
+              <ActionButtons>
+                <ActionBtn onClick={goToDeposit}>
+                  <ActionText>Deposit</ActionText>
+                </ActionBtn>
+                <ActionBtn onClick={goToWithdraw}>
+                  <ActionText>Withdraw</ActionText>
+                </ActionBtn>
+              </ActionButtons>
+            </BalanceRow>
+            <Divider />
+            <BalanceRow>
+              <div>
+                <BalanceLabel>Reward Balance</BalanceLabel>
+                <Balance>₦{rewardBalance.toLocaleString()}</Balance>
+              </div>
+              <RedeemBtn 
+                onClick={goToRedeem} 
+                disabled={FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM}
               >
-                {uploadingPhoto ? <SpinningRefresh size={20} /> : <Camera size={20} />}
-              </AvatarOverlay>
-            </AvatarContainer>
-            <UserText>
-              <WelcomeText>Hi, {user.username}</WelcomeText>
-              <SubText>Welcome back</SubText>
-            </UserText>
-          </UserInfo>
-          
-          {/* NOTIFICATION BELL WITH BADGE */}
-          <BellButton onClick={goToNotification}>
-            <BellContainer>
-              <BellIcon size={26} />
-              {notificationCount > 0 && (
-                <NotificationBadge>
-                  <NotificationBadgeText>
-                    {notificationCount > 9 ? "9+" : notificationCount}
-                  </NotificationBadgeText>
-                </NotificationBadge>
-              )}
-            </BellContainer>
-          </BellButton>
-        </Header>
+                <ActionText>Redeem</ActionText>
+              </RedeemBtn>
+            </BalanceRow>
+          </WalletCard>
 
-        {/* WALLET CARD */}
-        <WalletCard>
-          <BalanceRow>
-            <div>
-              <BalanceLabel>Main Balance</BalanceLabel>
-              <Balance>₦{mainBalance.toLocaleString()}</Balance>
-            </div>
-            <ActionButtons>
-              <ActionBtn onClick={goToDeposit}>
-                <ActionText>Deposit</ActionText>
-              </ActionBtn>
-              <ActionBtn onClick={goToWithdraw}>
-                <ActionText>Withdraw</ActionText>
-              </ActionBtn>
-            </ActionButtons>
-          </BalanceRow>
-          <Divider />
-          <BalanceRow>
-            <div>
-              <BalanceLabel>Reward Balance</BalanceLabel>
-              <Balance>₦{rewardBalance.toLocaleString()}</Balance>
-            </div>
-            <RedeemBtn 
-              onClick={goToRedeem} 
-              disabled={FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM}
-            >
-              <ActionText>Redeem</ActionText>
-            </RedeemBtn>
-          </BalanceRow>
-        </WalletCard>
+          {/* TICKETS */}
+          <TicketText>
+            🎫 Available Tickets:{" "}
+            <TicketCount>{tickets}</TicketCount>
+          </TicketText>
+          <InfoText>
+            ✅ Buy Any Bundle → Unlock Daily Games + Monthly Draw
+          </InfoText>
 
-        {/* TICKETS */}
-        <TicketText>
-          🎫 Available Tickets:{" "}
-          <TicketCount>{tickets}</TicketCount>
-        </TicketText>
-        <InfoText>
-          ✅ Buy Any Bundle → Unlock Daily Games + Monthly Draw
-        </InfoText>
-
-        {/* WHITE SECTION */}
-        <WhiteWrapper>
-          <WhiteSection>
+          {/* CONTENT SECTION */}
+          <ContentSection>
             {/* BUNDLE CARD */}
             <BundleCard>
               <BundleGlowOverlay />
@@ -409,144 +412,144 @@ const HomeScreen = () => {
                 )}
               </MonthlyBtn>
             </MonthlyGameCard>
-          </WhiteSection>
-        </WhiteWrapper>
-      </ScrollContainer>
+          </ContentSection>
+        </ScrollContainer>
 
-      {/* PHOTO PREVIEW MODAL */}
-      {previewVisible && (
-        <ModalOverlay>
-          <PreviewBox>
-            <PreviewTitle>Preview Photo</PreviewTitle>
-            <PreviewImage src={selectedImage} alt="Preview" />
-            <PreviewBtns>
-              <ModalBtn $secondary onClick={() => setPreviewVisible(false)}>
+        {/* PHOTO PREVIEW MODAL */}
+        {previewVisible && (
+          <ModalOverlay>
+            <PreviewBox>
+              <PreviewTitle>Preview Photo</PreviewTitle>
+              <PreviewImage src={selectedImage} alt="Preview" />
+              <PreviewBtns>
+                <ModalBtn $secondary onClick={() => setPreviewVisible(false)}>
+                  <ModalBtnText>Cancel</ModalBtnText>
+                </ModalBtn>
+                <ModalBtn onClick={uploadPhoto} disabled={isUploading}>
+                  {isUploading ? (
+                    <Spinner size={20} />
+                  ) : (
+                    <ModalBtnText>Upload</ModalBtnText>
+                  )}
+                </ModalBtn>
+              </PreviewBtns>
+            </PreviewBox>
+          </ModalOverlay>
+        )}
+
+        {/* TICKETS MODAL */}
+        {ticketModalVisible && (
+          <ModalOverlay>
+            <ModalBox>
+              <AlertCircle size={42} color="#FF7A00" />
+              <ModalTitle>No Tickets Available</ModalTitle>
+              <ModalMsg>You need at least 1 ticket to play daily games.</ModalMsg>
+              <ModalBtn onClick={goToBundle}>
+                <ModalBtnText>Buy Data Bundle</ModalBtnText>
+              </ModalBtn>
+              <ModalBtn $secondary onClick={() => setTicketModalVisible(false)}>
                 <ModalBtnText>Cancel</ModalBtnText>
               </ModalBtn>
-              <ModalBtn onClick={uploadPhoto} disabled={isUploading}>
-                {isUploading ? (
-                  <Spinner size={20} />
-                ) : (
-                  <ModalBtnText>Upload</ModalBtnText>
-                )}
-              </ModalBtn>
-            </PreviewBtns>
-          </PreviewBox>
-        </ModalOverlay>
-      )}
+            </ModalBox>
+          </ModalOverlay>
+        )}
 
-      {/* TICKETS MODAL */}
-      {ticketModalVisible && (
-        <ModalOverlay>
-          <ModalBox>
-            <AlertCircle size={42} color="#FF7A00" />
-            <ModalTitle>No Tickets Available</ModalTitle>
-            <ModalMsg>You need at least 1 ticket to play daily games.</ModalMsg>
-            <ModalBtn onClick={goToBundle}>
-              <ModalBtnText>Buy Data Bundle</ModalBtnText>
-            </ModalBtn>
-            <ModalBtn $secondary onClick={() => setTicketModalVisible(false)}>
-              <ModalBtnText>Cancel</ModalBtnText>
-            </ModalBtn>
-          </ModalBox>
-        </ModalOverlay>
-      )}
+        {/* PERMISSION MODAL */}
+        {permissionModalVisible && (
+          <ModalOverlay>
+            <ModalBox>
+              {permissionModalData.type === "error" ? (
+                <X size={42} color="#FF3B30" />
+              ) : (
+                <Info size={42} color="#FF7A00" />
+              )}
+              <ModalTitle>{permissionModalData.title}</ModalTitle>
+              <ModalMsg>{permissionModalData.message}</ModalMsg>
+              
+              {permissionModalData.type === "choice" ? (
+                <ModalChoiceContainer>
+                  {permissionModalData.choices?.map((choice, index) => (
+                    <ModalBtn
+                      key={index}
+                      $secondary={choice.text === "Cancel"}
+                      onClick={() => {
+                        setPermissionModalVisible(false);
+                        choice.action && choice.action();
+                      }}
+                    >
+                      <ModalBtnText>{choice.text}</ModalBtnText>
+                    </ModalBtn>
+                  ))}
+                </ModalChoiceContainer>
+              ) : (
+                <ModalBtn onClick={() => setPermissionModalVisible(false)}>
+                  <ModalBtnText>OK</ModalBtnText>
+                </ModalBtn>
+              )}
+            </ModalBox>
+          </ModalOverlay>
+        )}
 
-      {/* PERMISSION MODAL */}
-      {permissionModalVisible && (
-        <ModalOverlay>
-          <ModalBox>
-            {permissionModalData.type === "error" ? (
-              <X size={42} color="#FF3B30" />
-            ) : (
-              <Info size={42} color="#FF7A00" />
-            )}
-            <ModalTitle>{permissionModalData.title}</ModalTitle>
-            <ModalMsg>{permissionModalData.message}</ModalMsg>
-            
-            {permissionModalData.type === "choice" ? (
-              <ModalChoiceContainer>
-                {permissionModalData.choices?.map((choice, index) => (
-                  <ModalBtn
-                    key={index}
-                    $secondary={choice.text === "Cancel"}
-                    onClick={() => {
-                      setPermissionModalVisible(false);
-                      choice.action && choice.action();
-                    }}
-                  >
-                    <ModalBtnText>{choice.text}</ModalBtnText>
-                  </ModalBtn>
-                ))}
-              </ModalChoiceContainer>
-            ) : (
-              <ModalBtn onClick={() => setPermissionModalVisible(false)}>
+        {/* MONTHLY GAME MODAL */}
+        {monthlyGameModalVisible && (
+          <ModalOverlay>
+            <ModalBox>
+              {monthlyGameModalData.isEligible ? (
+                <Trophy size={42} color="#FFD700" />
+              ) : (
+                <Info size={42} color="#FF7A00" />
+              )}
+              <ModalTitle>{monthlyGameModalData.title}</ModalTitle>
+              <ModalMsg style={{ whiteSpace: 'pre-line' }}>
+                {monthlyGameModalData.message}
+              </ModalMsg>
+              <ModalBtnContainer>
+                <ModalBtn 
+                  onClick={() => {
+                    setMonthlyGameModalVisible(false);
+                    if (monthlyGameModalData.isEligible) {
+                      goToDraws();
+                    } else {
+                      goToBundle();
+                    }
+                  }}
+                >
+                  <ModalBtnText>
+                    {monthlyGameModalData.isEligible ? "View Draws" : "Buy Data"}
+                  </ModalBtnText>
+                </ModalBtn>
+                <ModalBtn $secondary onClick={() => setMonthlyGameModalVisible(false)}>
+                  <ModalBtnText>Close</ModalBtnText>
+                </ModalBtn>
+              </ModalBtnContainer>
+            </ModalBox>
+          </ModalOverlay>
+        )}
+
+        {/* UPLOAD RESULT MODAL */}
+        {uploadModalVisible && (
+          <ModalOverlay>
+            <ModalBox>
+              {uploadModalData.type === "success" ? (
+                <CheckCircle size={42} color="#4CAF50" />
+              ) : (
+                <X size={42} color="#FF3B30" />
+              )}
+              <ModalTitle>{uploadModalData.title}</ModalTitle>
+              <ModalMsg>{uploadModalData.message}</ModalMsg>
+              <ModalBtn 
+                $color={uploadModalData.type === "success" ? "#4CAF50" : "#FF3B30"}
+                onClick={() => setUploadModalVisible(false)}
+              >
                 <ModalBtnText>OK</ModalBtnText>
               </ModalBtn>
-            )}
-          </ModalBox>
-        </ModalOverlay>
-      )}
+            </ModalBox>
+          </ModalOverlay>
+        )}
 
-      {/* MONTHLY GAME MODAL */}
-      {monthlyGameModalVisible && (
-        <ModalOverlay>
-          <ModalBox>
-            {monthlyGameModalData.isEligible ? (
-              <Trophy size={42} color="#FFD700" />
-            ) : (
-              <Info size={42} color="#FF7A00" />
-            )}
-            <ModalTitle>{monthlyGameModalData.title}</ModalTitle>
-            <ModalMsg style={{ whiteSpace: 'pre-line' }}>
-              {monthlyGameModalData.message}
-            </ModalMsg>
-            <ModalBtnContainer>
-              <ModalBtn 
-                onClick={() => {
-                  setMonthlyGameModalVisible(false);
-                  if (monthlyGameModalData.isEligible) {
-                    goToDraws();
-                  } else {
-                    goToBundle();
-                  }
-                }}
-              >
-                <ModalBtnText>
-                  {monthlyGameModalData.isEligible ? "View Draws" : "Buy Data"}
-                </ModalBtnText>
-              </ModalBtn>
-              <ModalBtn $secondary onClick={() => setMonthlyGameModalVisible(false)}>
-                <ModalBtnText>Close</ModalBtnText>
-              </ModalBtn>
-            </ModalBtnContainer>
-          </ModalBox>
-        </ModalOverlay>
-      )}
-
-      {/* UPLOAD RESULT MODAL */}
-      {uploadModalVisible && (
-        <ModalOverlay>
-          <ModalBox>
-            {uploadModalData.type === "success" ? (
-              <CheckCircle size={42} color="#4CAF50" />
-            ) : (
-              <X size={42} color="#FF3B30" />
-            )}
-            <ModalTitle>{uploadModalData.title}</ModalTitle>
-            <ModalMsg>{uploadModalData.message}</ModalMsg>
-            <ModalBtn 
-              $color={uploadModalData.type === "success" ? "#4CAF50" : "#FF3B30"}
-              onClick={() => setUploadModalVisible(false)}
-            >
-              <ModalBtnText>OK</ModalBtnText>
-            </ModalBtn>
-          </ModalBox>
-        </ModalOverlay>
-      )}
-
-      <FloatingBottomNav />
-    </Container>
+        <FloatingBottomNav />
+      </ContentContainer>
+    </PageContainer>
   );
 };
 
@@ -607,11 +610,27 @@ const fadeInUp = keyframes`
 `;
 
 // Styled Components
-const Container = styled.div`
+const PageContainer = styled.div`
   min-height: 100vh;
   background-color: #000;
-  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 20px;
   overflow-x: hidden;
+
+  @media (min-height: 700px) {
+    align-items: center;
+    padding: 40px 20px;
+  }
+`;
+
+const ContentContainer = styled.div`
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
 `;
 
 const LoadingContainer = styled.div`
@@ -621,6 +640,7 @@ const LoadingContainer = styled.div`
   align-items: center;
   height: 100vh;
   background-color: #000;
+  width: 100%;
 `;
 
 const Spinner = styled.div`
@@ -643,26 +663,24 @@ const LoadingText = styled.div`
 `;
 
 const ScrollContainer = styled.div`
-  padding-bottom: 180px;
+  padding-bottom: 100px;
   min-height: 100vh;
+  width: 100%;
 `;
 
 const Header = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin: 20px 16px;
+  margin: 0 0 24px 0;
   padding: 0 4px;
-
-  @media (max-width: 480px) {
-    margin: 16px;
-  }
+  width: 100%;
 `;
 
 const UserInfo = styled.div`
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 `;
 
 const AvatarContainer = styled.div`
@@ -721,7 +739,7 @@ const WelcomeText = styled.h2`
 const SubText = styled.p`
   color: #bbb;
   font-size: 14px;
-  margin: 0;
+  margin: 4px 0 0 0;
 
   @media (max-width: 480px) {
     font-size: 13px;
@@ -735,10 +753,14 @@ const BellButton = styled.button`
   border: none;
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   &:hover {
     transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
   }
 
   &:active {
@@ -781,22 +803,19 @@ const NotificationBadgeText = styled.span`
 
 const WalletCard = styled.div`
   background-color: #FFA500;
-  border-radius: 15px;
-  padding: 16px;
-  margin: 0 16px 20px;
+  border-radius: 16px;
+  padding: 20px;
+  margin: 0 0 20px 0;
   animation: ${fadeInUp} 0.8s ease-out;
-
-  @media (max-width: 480px) {
-    margin: 0 12px 16px;
-    padding: 14px;
-  }
+  box-shadow: 0 8px 24px rgba(255, 165, 0, 0.3);
+  width: 100%;
 `;
 
 const BalanceRow = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 
   &:last-of-type {
     margin-bottom: 0;
@@ -807,7 +826,7 @@ const BalanceLabel = styled.div`
   color: #222;
   font-weight: 600;
   font-size: 14px;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 
   @media (max-width: 480px) {
     font-size: 13px;
@@ -831,27 +850,30 @@ const Balance = styled.div`
 const ActionButtons = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
 `;
 
 const ActionBtn = styled.button`
   background-color: #000;
-  padding: 6px 20px;
-  border-radius: 8px;
+  padding: 8px 24px;
+  border-radius: 10px;
   border: none;
   cursor: pointer;
   transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 
   &:hover {
     background-color: #333;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   }
 
   &:active {
-    transform: scale(0.98);
+    transform: translateY(0);
   }
 
   @media (max-width: 480px) {
-    padding: 5px 16px;
+    padding: 8px 20px;
   }
 `;
 
@@ -879,6 +901,8 @@ const RedeemBtn = styled(ActionBtn)`
 
     &:hover {
       background-color: #999;
+      transform: none;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     }
   }
 `;
@@ -886,77 +910,64 @@ const RedeemBtn = styled(ActionBtn)`
 const Divider = styled.div`
   height: 1px;
   background-color: rgba(0, 0, 0, 0.2);
-  margin: 10px 0;
+  margin: 16px 0;
 `;
 
 const TicketText = styled.div`
   color: #fff;
-  font-size: 15px;
+  font-size: 16px;
   text-align: center;
-  margin-top: 10px;
+  margin: 0 0 8px 0;
   font-weight: 600;
 
   @media (max-width: 480px) {
-    font-size: 14px;
+    font-size: 15px;
   }
 `;
 
 const TicketCount = styled.span`
   color: #FF7A00;
-  font-weight: bold;
+  font-weight: 800;
 `;
 
 const InfoText = styled.div`
   color: #fff;
-  font-size: 13px;
-  margin-top: 8px;
+  font-size: 14px;
+  margin: 0 0 24px 0;
   text-align: center;
+  opacity: 0.9;
 
   @media (max-width: 480px) {
-    font-size: 12px;
-    margin: 8px 16px;
+    font-size: 13px;
   }
 `;
 
-const WhiteWrapper = styled.div`
-  margin-top: 20px;
+const ContentSection = styled.div`
   background-color: #fff;
-  border-top-left-radius: 40px;
-  border-top-right-radius: 40px;
-  overflow: hidden;
+  border-radius: 24px 24px 0 0;
+  padding: 24px 16px 40px;
+  margin-top: 20px;
   width: 100%;
-
-  @media (max-width: 480px) {
-    border-top-left-radius: 30px;
-    border-top-right-radius: 30px;
-  }
-`;
-
-const WhiteSection = styled.div`
-  background: linear-gradient(180deg, #ffffff 0%, #f7f7f7 100%);
-  padding-top: 25px;
-  padding-bottom: 40px;
-  min-height: 500px;
-  padding-left: 16px;
-  padding-right: 16px;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
 
   @media (max-width: 480px) {
     padding: 20px 12px 40px;
-    min-height: 400px;
+    border-radius: 20px 20px 0 0;
   }
 `;
 
 const BundleCard = styled.div`
   background-color: #fff;
   border-radius: 20px;
-  padding: 18px;
-  margin-top: 8px;
+  padding: 20px;
+  margin: 0 0 20px 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
   position: relative;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
   animation: ${fadeInUp} 0.7s ease-out 0.1s both;
+  border: 1px solid #f0f0f0;
 
   @media (max-width: 480px) {
     flex-direction: column;
@@ -990,49 +1001,51 @@ const BundleLeft = styled.div`
 
 const WifiIcon = styled(Wifi)`
   color: #FF7A00;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 `;
 
 const BundleTitle = styled.h3`
   font-weight: 700;
-  margin: 6px 0;
-  font-size: 15px;
+  margin: 0 0 12px 0;
+  font-size: 16px;
   color: #000;
 
   @media (max-width: 480px) {
-    font-size: 14px;
+    font-size: 15px;
   }
 `;
 
 const SmallBtn = styled.button`
   background-color: #000;
-  border-radius: 8px;
-  padding: 5px 14px;
-  margin-top: 4px;
+  border-radius: 10px;
+  padding: 8px 20px;
   border: none;
   cursor: pointer;
   transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 
   &:hover {
     background-color: #333;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   }
 
   &:active {
-    transform: scale(0.98);
+    transform: translateY(0);
   }
 `;
 
 const SmallBtnText = styled.span`
-  font-size: 12px;
+  font-size: 13px;
   color: #fff;
-  font-weight: 500;
+  font-weight: 600;
 `;
 
 const DividerVertical = styled.div`
   width: 1px;
   height: 80px;
-  background-color: #ddd;
-  margin: 0 10px;
+  background-color: #eee;
+  margin: 0 16px;
 
   @media (max-width: 480px) {
     width: 80%;
@@ -1055,19 +1068,19 @@ const BundleRight = styled.div`
 
 const TicketIconContainer = styled.div`
   position: relative;
-  width: 35px;
-  height: 35px;
+  width: 40px;
+  height: 40px;
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 `;
 
 const TicketGlow = styled.div`
   position: absolute;
-  width: 40px;
-  height: 40px;
-  border-radius: 20px;
+  width: 45px;
+  height: 45px;
+  border-radius: 23px;
   background-color: #FF7A00;
   opacity: 0.2;
   animation: ${ticketGlowAnim} 1.8s ease-in-out infinite;
@@ -1085,8 +1098,8 @@ const TicketBadge = styled.div`
   right: -12px;
   background-color: #FF7A00;
   border-radius: 12px;
-  padding: 2px 6px;
-  min-width: 24px;
+  padding: 4px 8px;
+  min-width: 28px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -1096,113 +1109,118 @@ const TicketBadge = styled.div`
 const TicketBadgeText = styled.span`
   color: #fff;
   font-weight: bold;
-  font-size: 12px;
+  font-size: 13px;
 `;
 
 const BundleDesc = styled.p`
-  font-size: 13px;
-  color: #333;
-  line-height: 18px;
-  margin: 0;
-
-  @media (max-width: 480px) {
-    font-size: 12px;
-  }
-`;
-
-const GameCard = styled.div`
-  background-color: #222;
-  border-radius: 16px;
-  padding: 18px;
-  align-items: center;
-  margin-top: 18px;
-  display: flex;
-  flex-direction: column;
-  animation: ${fadeInUp} 0.7s ease-out 0.2s both;
-  animation: ${pulse} 1.8s ease-in-out infinite;
-
-  @media (max-width: 480px) {
-    padding: 16px;
-    margin-top: 16px;
-  }
-`;
-
-const GamepadIcon = styled(Gamepad2)`
-  color: #fff;
-  margin-bottom: 10px;
-`;
-
-const GameTitle = styled.h3`
-  color: #fff;
-  font-weight: 700;
-  text-align: center;
-  margin: 4px 0;
-  font-size: 16px;
-
-  @media (max-width: 480px) {
-    font-size: 15px;
-  }
-`;
-
-const GameSubtitle = styled.p`
-  color: #FFD700;
-  font-size: 12px;
-  margin-bottom: 8px;
-  text-align: center;
-
-  @media (max-width: 480px) {
-    font-size: 11px;
-  }
-`;
-
-const PlayBtn = styled.button`
-  background-color: #FF7A00;
-  border-radius: 8px;
-  padding: 8px 24px;
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s;
-  width: 100%;
-  max-width: 200px;
-
-  &:hover:not(:disabled) {
-    background-color: #E56A00;
-  }
-
-  &:active:not(:disabled) {
-    transform: scale(0.98);
-  }
-
-  &:disabled {
-    background-color: #999;
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-`;
-
-const PlayText = styled.span`
-  color: #fff;
-  font-weight: 700;
   font-size: 14px;
+  color: #333;
+  line-height: 20px;
+  margin: 0;
 
   @media (max-width: 480px) {
     font-size: 13px;
   }
 `;
 
-const MonthlyGameCard = styled.div`
-  background-color: #2B006A;
+const GameCard = styled.div`
+  background-color: #222;
   border-radius: 16px;
-  padding: 18px;
-  margin-top: 18px;
-  animation: ${fadeInUp} 0.7s ease-out 0.3s both;
-  ${props => props.$pulse && css`
-    animation: ${pulse} 1.5s ease-in-out infinite;
-  `}
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0 0 20px 0;
+  animation: ${fadeInUp} 0.7s ease-out 0.2s both;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  border: 1px solid #333;
 
   @media (max-width: 480px) {
     padding: 16px;
-    margin-top: 16px;
+  }
+`;
+
+const GamepadIcon = styled(Gamepad2)`
+  color: #fff;
+  margin-bottom: 12px;
+`;
+
+const GameTitle = styled.h3`
+  color: #fff;
+  font-weight: 700;
+  text-align: center;
+  margin: 0 0 8px 0;
+  font-size: 18px;
+
+  @media (max-width: 480px) {
+    font-size: 16px;
+  }
+`;
+
+const GameSubtitle = styled.p`
+  color: #FFD700;
+  font-size: 14px;
+  margin: 0 0 16px 0;
+  text-align: center;
+  font-weight: 600;
+
+  @media (max-width: 480px) {
+    font-size: 13px;
+  }
+`;
+
+const PlayBtn = styled.button`
+  background-color: #FF7A00;
+  border-radius: 10px;
+  padding: 12px 32px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+  max-width: 240px;
+  box-shadow: 0 4px 16px rgba(255, 122, 0, 0.3);
+
+  &:hover:not(:disabled) {
+    background-color: #E56A00;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(255, 122, 0, 0.4);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  &:disabled {
+    background-color: #999;
+    opacity: 0.6;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+`;
+
+const PlayText = styled.span`
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+
+  @media (max-width: 480px) {
+    font-size: 14px;
+  }
+`;
+
+const MonthlyGameCard = styled.div`
+  background-color: #2B006A;
+  border-radius: 16px;
+  padding: 20px;
+  animation: ${fadeInUp} 0.7s ease-out 0.3s both;
+  ${props => props.$pulse && css`
+    animation: ${pulse} 1.5s ease-in-out infinite, ${fadeInUp} 0.7s ease-out 0.3s both;
+  `}
+  box-shadow: 0 8px 24px rgba(43, 0, 106, 0.3);
+  border: 1px solid #3A008F;
+
+  @media (max-width: 480px) {
+    padding: 16px;
   }
 `;
 
@@ -1210,9 +1228,9 @@ const MonthlyHeader = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 10px;
+  margin-bottom: 16px;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
 `;
 
 const TrophyIcon = styled(Trophy)`
@@ -1223,25 +1241,25 @@ const MonthlyTitle = styled.h3`
   color: #fff;
   font-size: 18px;
   font-weight: 700;
-  margin-left: 8px;
+  margin: 0;
 
   @media (max-width: 480px) {
     font-size: 16px;
-    margin-left: 4px;
   }
 `;
 
 const EligibleBadge = styled.div`
   background-color: #4CAF50;
-  padding: 4px 8px;
-  border-radius: 10px;
+  padding: 6px 12px;
+  border-radius: 12px;
 `;
 
 const EligibleText = styled.span`
   color: #fff;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
 `;
 
 const MonthlyPrize = styled.h1`
@@ -1249,7 +1267,8 @@ const MonthlyPrize = styled.h1`
   font-size: 32px;
   font-weight: 900;
   text-align: center;
-  margin: 10px 0;
+  margin: 16px 0;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 
   @media (max-width: 480px) {
     font-size: 28px;
@@ -1261,10 +1280,11 @@ const MonthlyPrize = styled.h1`
 `;
 
 const MonthlySubtitle = styled.p`
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(255, 255, 255, 0.85);
   text-align: center;
   font-size: 14px;
-  margin-bottom: 15px;
+  margin: 0 0 20px 0;
+  font-weight: 500;
 
   @media (max-width: 480px) {
     font-size: 13px;
@@ -1272,58 +1292,59 @@ const MonthlySubtitle = styled.p`
 `;
 
 const ProgressContainer = styled.div`
-  margin-bottom: 15px;
+  margin-bottom: 20px;
 `;
 
 const ProgressLabels = styled.div`
   display: flex;
   justify-content: space-between;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 `;
 
 const ProgressText = styled.span`
   color: #fff;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
 
   @media (max-width: 480px) {
-    font-size: 11px;
+    font-size: 12px;
   }
 `;
 
 const ProgressPercent = styled.span`
   color: #FFD700;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
 
   @media (max-width: 480px) {
-    font-size: 11px;
+    font-size: 12px;
   }
 `;
 
 const ProgressBar = styled.div`
-  height: 6px;
-  background-color: rgba(255, 255, 255, 0.2);
-  border-radius: 3px;
+  height: 8px;
+  background-color: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
   overflow: hidden;
+  margin-bottom: 8px;
 `;
 
 const ProgressFill = styled.div`
   height: 100%;
-  border-radius: 3px;
+  border-radius: 4px;
   width: ${props => props.$width}%;
   background-color: ${props => props.$color};
   transition: width 0.5s ease;
 `;
 
 const DaysLeftText = styled.p`
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 11px;
-  margin-top: 6px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  margin: 0;
   text-align: center;
 
   @media (max-width: 480px) {
-    font-size: 10px;
+    font-size: 11px;
   }
 `;
 
@@ -1331,31 +1352,34 @@ const MonthlyBtn = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
-  padding: 10px;
+  border-radius: 10px;
+  padding: 14px;
   border: none;
   cursor: pointer;
   transition: all 0.2s;
   width: 100%;
-  gap: 6px;
+  gap: 8px;
   background-color: ${props => props.$eligible ? '#4CAF50' : '#8E2DE2'};
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 
   &:hover {
     opacity: 0.9;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
   }
 
   &:active {
-    transform: scale(0.98);
+    transform: translateY(0);
   }
 `;
 
 const MonthlyBtnText = styled.span`
   color: #fff;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 15px;
 
   @media (max-width: 480px) {
-    font-size: 13px;
+    font-size: 14px;
   }
 `;
 
@@ -1386,14 +1410,15 @@ const ModalOverlay = styled.div`
 
 const ModalBox = styled.div`
   background-color: #fff;
-  padding: 25px;
-  border-radius: 14px;
+  padding: 28px 24px;
+  border-radius: 16px;
   width: 85%;
   max-width: 400px;
   display: flex;
   flex-direction: column;
   align-items: center;
   animation: slideUp 0.3s ease-out;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2);
 
   @keyframes slideUp {
     from {
@@ -1407,55 +1432,59 @@ const ModalBox = styled.div`
   }
 
   @media (max-width: 480px) {
-    padding: 20px;
+    padding: 24px 20px;
     width: 90%;
+    max-width: 320px;
   }
 `;
 
 const ModalTitle = styled.h2`
   font-weight: bold;
-  font-size: 18px;
-  margin-top: 10px;
+  font-size: 20px;
+  margin: 16px 0 8px 0;
   text-align: center;
   color: #000;
 
   @media (max-width: 480px) {
-    font-size: 16px;
+    font-size: 18px;
   }
 `;
 
 const ModalMsg = styled.p`
   text-align: center;
-  margin: 12px 0;
+  margin: 12px 0 20px 0;
   color: #444;
-  line-height: 20px;
-  font-size: 14px;
+  line-height: 22px;
+  font-size: 15px;
 
   @media (max-width: 480px) {
-    font-size: 13px;
-    line-height: 18px;
+    font-size: 14px;
+    line-height: 20px;
   }
 `;
 
 const ModalBtn = styled.button`
   background-color: ${props => props.$color || props.$secondary ? '#999' : '#FF7A00'};
-  border-radius: 8px;
-  padding: 12px 25px;
+  border-radius: 10px;
+  padding: 14px 28px;
   margin-top: 8px;
-  min-width: 120px;
+  min-width: 140px;
   border: none;
   cursor: pointer;
   transition: all 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 
   &:hover {
     opacity: 0.9;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
   }
 
   &:active {
-    transform: scale(0.98);
+    transform: translateY(0);
   }
 
   &:disabled {
@@ -1464,18 +1493,18 @@ const ModalBtn = styled.button`
   }
 
   @media (max-width: 480px) {
-    padding: 10px 20px;
-    min-width: 110px;
+    padding: 12px 24px;
+    min-width: 120px;
   }
 `;
 
 const ModalBtnText = styled.span`
   color: #fff;
   font-weight: bold;
-  font-size: 14px;
+  font-size: 15px;
 
   @media (max-width: 480px) {
-    font-size: 13px;
+    font-size: 14px;
   }
 `;
 
@@ -1483,15 +1512,16 @@ const ModalBtnContainer = styled.div`
   width: 100%;
   display: flex;
   flex-direction: column;
-  margin-top: 10px;
+  margin-top: 16px;
+  gap: 8px;
 `;
 
 const ModalChoiceContainer = styled.div`
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-top: 10px;
+  gap: 12px;
+  margin-top: 16px;
 `;
 
 // Preview Modal
@@ -1501,16 +1531,17 @@ const PreviewBox = styled(ModalBox)`
 `;
 
 const PreviewTitle = styled(ModalTitle)`
-  margin-bottom: 15px;
+  margin-bottom: 20px;
 `;
 
 const PreviewImage = styled.img`
   width: 200px;
   height: 200px;
   border-radius: 100px;
-  margin: 15px 0;
-  border: 3px solid #FF7A00;
+  margin: 20px 0;
+  border: 4px solid #FF7A00;
   object-fit: cover;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
 
   @media (max-width: 480px) {
     width: 180px;
@@ -1522,11 +1553,11 @@ const PreviewBtns = styled.div`
   display: flex;
   justify-content: space-between;
   width: 100%;
-  margin-top: 15px;
-  gap: 12px;
+  margin-top: 24px;
+  gap: 16px;
 
   @media (max-width: 480px) {
     flex-direction: column;
-    gap: 8px;
+    gap: 12px;
   }
 `;
