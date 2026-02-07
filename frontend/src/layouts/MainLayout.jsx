@@ -1,15 +1,18 @@
-import { Outlet } from 'react-router-dom'
-import Navbar from '../components/Navbar'
-import BottomNav from '../components/BottomNav'
+import React from "react";
+import { Outlet } from "react-router-dom";
+import Navbar from "../components/Navbar";
+import FloatingBottomNav from "../components/FloatingBottomNav";
 
-export default function MainLayout() {
+const MainLayout = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      <main className="pb-16 md:pb-0">
+      <main className="pb-20">
         <Outlet />
       </main>
-      <BottomNav />
+      <FloatingBottomNav />
     </div>
-  )
-}
+  );
+};
+
+export default MainLayout;

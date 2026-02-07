@@ -1,167 +1,151 @@
-import React, { useState, useContext } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { AuthContext } from "../../context/AuthContext";
-import { EyeIcon, EyeSlashIcon, CheckCircleIcon, ExclamationCircleIcon } from "@heroicons/react/24/outline";
-import { Facebook, Google } from "../../components/SocialIcons";
-import Modal from "../../components/Modal";
+import React, { useState, useContext } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { AuthContext } from '../../context/AuthContext';
 
-export default function LoginScreen() {
+const Login = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [secure, setSecure] = useState(true);
-  const [loading, setLoading] = useState(false);
-
-  // Modal states
-  const [modalVisible, setModalVisible] = useState(false);
-  const [modalMessage, setModalMessage] = useState("");
-  const [modalType, setModalType] = useState("error");
-
-  const handleLogin = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!email || !password) {
-      showModal("Please enter your credentials.", "error");
-      return;
+    setError('');
+    setLoading(true);
+
+    const result = await login(email, password);
+    
+    if (result.success) {
+      navigate('/');
+    } else {
+      setError(result.error || 'Invalid credentials');
     }
     
-    setLoading(true);
-    const res = await login(email, password);
     setLoading(false);
-
-    if (res.success) {
-      showModal("Login successful!", "success");
-      setTimeout(() => {
-        setModalVisible(false);
-        navigate("/dashboard");
-      }, 1200);
-    } else {
-      showModal(res.error || "Invalid email or password.", "error");
-    }
-  };
-
-  const showModal = (message, type = "error") => {
-    setModalMessage(message);
-    setModalType(type);
-    setModalVisible(true);
   };
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Header */}
-      <div className="bg-black rounded-b-3xl py-12 px-4 text-center">
-        <h1 className="text-orange-500 text-2xl font-bold">Welcome</h1>
-      </div>
+    <div className="min-h-screen bg-black flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-white mb-2">Welcome Back</h1>
+          <p className="text-gray-400">Sign in to your Biggi Data account</p>
+        </div>
 
-      {/* Form */}
-      <div className="px-6 pt-8 pb-12 max-w-md mx-auto">
-        <form onSubmit={handleLogin}>
-          <div className="mb-4">
-            <label className="block text-gray-700 font-semibold mb-1">
-              Username or Email
-            </label>
-            <input
-              type="email"
-              placeholder="example@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-gray-200 rounded-full px-4 py-3 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-black"
-              autoCapitalize="none"
-            />
-          </div>
+        {/* Form Card */}
+        <div className="bg-gray-900 rounded-2xl p-8 shadow-xl border border-gray-800">
+          {/* Error Message */}
+          {error && (
+            <div className="mb-6 p-3 bg-red-900/30 border border-red-700 rounded-lg">
+              <p className="text-red-400 text-sm">{error}</p>
+            </div>
+          )}
 
-          <div className="mb-6">
-            <label className="block text-gray-700 font-semibold mb-1">
-              Password
-            </label>
-            <div className="relative">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Email */}
+            <div>
+              <label className="block text-gray-300 text-sm font-medium mb-2">
+                Email Address
+              </label>
               <input
-                type={secure ? "password" : "text"}
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-gray-200 rounded-full px-4 py-3 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-black pr-12"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                placeholder="example@email.com"
+                required
               />
+            </div>
+
+            {/* Password */}
+            <div>
+              <label className="block text-gray-300 text-sm font-medium mb-2">
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 pr-12"
+                  placeholder="Enter your password"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-3 text-gray-400 hover:text-white"
+                >
+                  {showPassword ? '👁️' : '👁️‍🗨️'}
+                </button>
+              </div>
+            </div>
+
+            {/* Remember & Forgot */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 text-orange-600 border-gray-700 rounded focus:ring-orange-500 bg-gray-800"
+                />
+                <span className="ml-2 text-gray-300 text-sm">Remember me</span>
+              </div>
+              <Link to="/forgot-password" className="text-orange-500 hover:text-orange-400 text-sm">
+                Forgot Password?
+              </Link>
+            </div>
+
+            {/* Sign In Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-orange-600 to-orange-500 text-white py-3 rounded-lg font-medium hover:from-orange-700 hover:to-orange-600 transition-all disabled:opacity-50"
+            >
+              {loading ? 'Signing In...' : 'Sign In'}
+            </button>
+
+            {/* Divider */}
+            <div className="flex items-center">
+              <div className="flex-grow border-t border-gray-700"></div>
+              <span className="mx-4 text-gray-500 text-sm">or continue with</span>
+              <div className="flex-grow border-t border-gray-700"></div>
+            </div>
+
+            {/* Social Buttons */}
+            <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
-                onClick={() => setSecure(!secure)}
-                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-600 hover:text-gray-800"
+                className="bg-gray-800 text-gray-300 py-3 rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center gap-2"
               >
-                {secure ? (
-                  <EyeSlashIcon className="w-5 h-5" />
-                ) : (
-                  <EyeIcon className="w-5 h-5" />
-                )}
+                <span className="font-bold text-blue-400">G</span>
+                Google
+              </button>
+              <button
+                type="button"
+                className="bg-gray-800 text-gray-300 py-3 rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center gap-2"
+              >
+                <span className="font-bold text-blue-500">f</span>
+                Facebook
               </button>
             </div>
-          </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className={`w-[83%] mx-auto block bg-black text-white rounded-full py-3 font-semibold text-lg hover:bg-gray-800 transition-colors ${
-              loading ? "opacity-60 cursor-not-allowed" : ""
-            }`}
-          >
-            {loading ? "Logging In..." : "Log In"}
-          </button>
-
-          <Link
-            to="/forgot-password"
-            className="block text-center text-gray-600 font-medium mt-3 hover:text-gray-800"
-          >
-            Forgot Password?
-          </Link>
-
-          <button
-            type="button"
-            onClick={() => navigate("/signup")}
-            className="w-[83%] mx-auto block bg-gray-200 text-gray-900 rounded-full py-3 font-semibold text-lg mt-4 hover:bg-gray-300 transition-colors"
-          >
-            Sign Up
-          </button>
-
-          <p className="text-center text-gray-600 mt-6">
-            Use <span className="text-orange-500 font-semibold">Fingerprint</span> To Access
-          </p>
-
-          <p className="text-center text-gray-500 mt-4">or sign up with</p>
-          
-          <div className="flex justify-center gap-6 mt-3">
-            <button
-              type="button"
-              className="p-2 border border-gray-300 rounded-full hover:bg-gray-50 transition-colors"
-            >
-              <Facebook className="w-5 h-5 text-blue-600" />
-            </button>
-            <button
-              type="button"
-              className="p-2 border border-gray-300 rounded-full hover:bg-gray-50 transition-colors"
-            >
-              <Google className="w-5 h-5 text-red-500" />
-            </button>
-          </div>
-
-          <div className="flex justify-center mt-6">
-            <p className="text-gray-600">Don't have an account? </p>
-            <Link
-              to="/signup"
-              className="text-orange-500 font-semibold ml-1 hover:text-orange-600"
-            >
-              Sign Up
-            </Link>
-          </div>
-        </form>
+            {/* Sign Up Link */}
+            <div className="text-center text-gray-400 text-sm">
+              Don't have an account?{' '}
+              <Link to="/signup" className="text-orange-500 hover:text-orange-400 font-medium">
+                Sign up
+              </Link>
+            </div>
+          </form>
+        </div>
       </div>
-
-      {/* Modal Component */}
-      <Modal
-        isOpen={modalVisible}
-        onClose={() => setModalVisible(false)}
-        type={modalType}
-        message={modalMessage}
-      />
     </div>
   );
-}
+};
+
+export default Login;

@@ -1,47 +1,119 @@
-import { createContext, useContext, useState } from 'react'
+import React, { createContext, useState, useEffect, useCallback } from "react";
+import api from "../utils/api";
 
-const AuthContext = createContext()
+export const AuthContext = createContext();
 
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
-  
-  // Mock login function
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem("token"));
+  const [loading, setLoading] = useState(true);
+  const [notificationCount, setNotificationCount] = useState(0);
+
+  // Initialize auth
+  useEffect(() => {
+    const initAuth = async () => {
+      if (token) {
+        try {
+          api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+          const res = await api.get("/auth/me");
+          setUser(res.data.user);
+          // Calculate notification count
+          const notifications = res.data.notifications || 0;
+          setNotificationCount(notifications > 9 ? 9 : notifications);
+        } catch (error) {
+          console.error("Auth init error:", error);
+          logout();
+        }
+      }
+      setLoading(false);
+    };
+    initAuth();
+  }, [token]);
+
   const login = async (email, password) => {
-    return new Promise(resolve => {
-      setTimeout(() => {
-        if (email && password) {
-          setUser({ email, name: "Demo User", username: "Demo User" })
-          resolve({ success: true, user: { email, name: "Demo User" } })
-        } else {
-          resolve({ success: false, error: "Invalid credentials" })
-        }
-      }, 1000)
-    })
-  }
-  
-  // Mock register function
-  const register = async (username, email, password, phoneNumber, birthDate) => {
-    return new Promise(resolve => {
-      setTimeout(() => {
-        if (username && email && password) {
-          setUser({ username, email, phoneNumber, birthDate })
-          resolve({ success: true, user: { username, email } })
-        } else {
-          resolve({ success: false, error: "Registration failed" })
-        }
-      }, 1000)
-    })
-  }
-  
+    try {
+      const res = await api.post("/auth/login", { email, password });
+      const { token: newToken, user: userData } = res.data;
+      
+      localStorage.setItem("token", newToken);
+      setToken(newToken);
+      setUser(userData);
+      api.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
+      
+      return { success: true };
+    } catch (error) {
+      return { 
+        success: false, 
+        error: error.response?.data?.error || "Login failed" 
+      };
+    }
+  };
+
+  const register = async (userData) => {
+    try {
+      const res = await api.post("/auth/register", userData);
+      const { token: newToken, user: userData } = res.data;
+      
+      localStorage.setItem("token", newToken);
+      setToken(newToken);
+      setUser(userData);
+      api.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
+      
+      return { success: true };
+    } catch (error) {
+      return { 
+        success: false, 
+        error: error.response?.data?.error || "Registration failed" 
+      };
+    }
+  };
+
   const logout = () => {
-    setUser(null)
-  }
-  
+    localStorage.removeItem("token");
+    setToken(null);
+    setUser(null);
+    delete api.defaults.headers.common["Authorization"];
+    window.location.href = "/login";
+  };
+
+  const refreshUser = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await api.get("/auth/me");
+      setUser(res.data.user);
+    } catch (error) {
+      console.error("Refresh user error:", error);
+    }
+  }, [token]);
+
+  const markNotificationsAsSeen = () => {
+    setNotificationCount(0);
+  };
+
+  const incrementNotificationCount = () => {
+    setNotificationCount(prev => {
+      const newCount = prev + 1;
+      return newCount > 9 ? 9 : newCount;
+    });
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, register, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        loading,
+        notificationCount,
+        login,
+        register,
+        logout,
+        refreshUser,
+        setUser,
+        markNotificationsAsSeen,
+        incrementNotificationCount,
+      }}
+    >
       {children}
     </AuthContext.Provider>
-  )
-}
-
-export const useAuth = () => useContext(AuthContext)
+  );
+};
