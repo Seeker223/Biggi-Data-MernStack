@@ -2,19 +2,73 @@ import React, { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import styled, { keyframes } from 'styled-components';
-import { Eye, EyeOff, CheckCircle, AlertCircle, Facebook, Mail } from 'lucide-react';
+import { Eye, EyeOff, CheckCircle, AlertCircle, Mail, Facebook } from 'lucide-react';
 
-const Login = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+const Signup = () => {
+  const { register } = useContext(AuthContext);
+  const navigate = useNavigate();
+
+  const [form, setForm] = useState({
+    username: '',
+    email: '',
+    phoneNumber: '',
+    birthDate: '',
+    password: '',
+    confirmPassword: '',
+  });
+
   const [secure, setSecure] = useState(true);
+  const [confirmSecure, setConfirmSecure] = useState(true);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
+  const [modalType, setModalType] = useState('success');
   const [modalMessage, setModalMessage] = useState('');
-  const [modalType, setModalType] = useState('error');
 
-  const { login } = useContext(AuthContext);
-  const navigate = useNavigate();
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    const { username, email, password, phoneNumber, birthDate, confirmPassword } = form;
+
+    if (!username || !email || !password || !confirmPassword) {
+      showModal('Please fill all required fields.', 'error');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      showModal('Passwords do not match.', 'error');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      showModal('Please enter a valid email address.', 'error');
+      return;
+    }
+
+    if (password.length < 6) {
+      showModal('Password must be at least 6 characters long.', 'error');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await register(username, email, password, phoneNumber, birthDate);
+      
+      if (res.success) {
+        showModal('Registration successful! Welcome to Biggi Data.', 'success');
+        setTimeout(() => {
+          setModalVisible(false);
+          navigate('/');
+        }, 1500);
+      } else {
+        showModal(res.error || 'Registration failed. Please try again.', 'error');
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      showModal('An unexpected error occurred. Please try again.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const showModal = (message, type = 'error') => {
     setModalMessage(message);
@@ -22,26 +76,31 @@ const Login = () => {
     setModalVisible(true);
   };
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    if (!email || !password) {
-      showModal('Please enter your credentials.', 'error');
-      return;
-    }
+  const closeModal = () => {
+    setModalVisible(false);
+  };
 
-    setLoading(true);
-    const res = await login(email, password);
-    setLoading(false);
-
-    if (res.success) {
-      showModal('Login successful!', 'success');
-      setTimeout(() => {
-        setModalVisible(false);
-        navigate('/');
-      }, 1200);
-    } else {
-      showModal(res.error || 'Invalid email or password.', 'error');
+  const formatDate = (text) => {
+    let cleaned = text.replace(/\D/g, '');
+    if (cleaned.length >= 4) {
+      cleaned = cleaned.substring(0, 4) + '-' + cleaned.substring(4);
     }
+    if (cleaned.length >= 7) {
+      cleaned = cleaned.substring(0, 7) + '-' + cleaned.substring(7, 9);
+    }
+    setForm({ ...form, birthDate: cleaned });
+  };
+
+  const formatPhoneNumber = (text) => {
+    let cleaned = text.replace(/\D/g, '');
+    if (cleaned.startsWith('0')) {
+      cleaned = '+234' + cleaned.substring(1);
+    } else if (cleaned.startsWith('234')) {
+      cleaned = '+' + cleaned;
+    } else if (!cleaned.startsWith('+')) {
+      cleaned = '+' + cleaned;
+    }
+    setForm({ ...form, phoneNumber: cleaned });
   };
 
   return (
@@ -49,32 +108,70 @@ const Login = () => {
       <ContentContainer>
         {/* Header */}
         <HeaderContainer>
-          <HeaderText>Welcome</HeaderText>
+          <HeaderText>Create Account</HeaderText>
+          <HeaderSubtitle>Join Biggi Data today</HeaderSubtitle>
         </HeaderContainer>
 
         {/* Main Content Card */}
         <MainCard>
           {/* Form */}
-          <FormContainer onSubmit={handleLogin}>
+          <FormContainer onSubmit={handleRegister}>
+            {/* Full Name */}
             <InputWrapper>
-              <Label>Username or Email</Label>
+              <Label>Full Name *</Label>
+              <TextInput
+                type="text"
+                placeholder="John Doe"
+                value={form.username}
+                onChange={(e) => setForm({ ...form, username: e.target.value })}
+                autoCapitalize="words"
+              />
+            </InputWrapper>
+
+            {/* Email */}
+            <InputWrapper>
+              <Label>Email *</Label>
               <TextInput
                 type="email"
                 placeholder="example@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value.toLowerCase() })}
                 autoCapitalize="none"
               />
             </InputWrapper>
 
+            {/* Phone Number */}
             <InputWrapper>
-              <Label>Password</Label>
+              <Label>Phone Number *</Label>
+              <TextInput
+                type="tel"
+                placeholder="+2348012345678"
+                value={form.phoneNumber}
+                onChange={(e) => formatPhoneNumber(e.target.value)}
+              />
+            </InputWrapper>
+
+            {/* Birth Date */}
+            <InputWrapper>
+              <Label>Date of Birth *</Label>
+              <TextInput
+                type="text"
+                placeholder="YYYY-MM-DD"
+                value={form.birthDate}
+                onChange={(e) => formatDate(e.target.value)}
+                maxLength={10}
+              />
+            </InputWrapper>
+
+            {/* Password */}
+            <InputWrapper>
+              <Label>Password *</Label>
               <PasswordContainer>
                 <PasswordInput
                   type={secure ? 'password' : 'text'}
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="At least 6 characters"
+                  value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
                 />
                 <ToggleSecureButton 
                   type="button"
@@ -84,62 +181,90 @@ const Login = () => {
                   {secure ? <EyeOff size={20} /> : <Eye size={20} />}
                 </ToggleSecureButton>
               </PasswordContainer>
+              <PasswordHint>Minimum 6 characters</PasswordHint>
             </InputWrapper>
 
-            <LoginButton type="submit" disabled={loading}>
-              <LoginButtonText>
-                {loading ? 'Logging In...' : 'Log In'}
-              </LoginButtonText>
-            </LoginButton>
+            {/* Confirm Password */}
+            <InputWrapper>
+              <Label>Confirm Password *</Label>
+              <PasswordContainer>
+                <PasswordInput
+                  type={confirmSecure ? 'password' : 'text'}
+                  placeholder="Confirm your password"
+                  value={form.confirmPassword}
+                  onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
+                />
+                <ToggleSecureButton 
+                  type="button"
+                  onClick={() => setConfirmSecure(!confirmSecure)}
+                  aria-label={confirmSecure ? 'Show password' : 'Hide password'}
+                >
+                  {confirmSecure ? <EyeOff size={20} /> : <Eye size={20} />}
+                </ToggleSecureButton>
+              </PasswordContainer>
+            </InputWrapper>
 
-            <ForgotButton as={Link} to="/forgot-password">
-              Forgot Password?
-            </ForgotButton>
+            {/* Terms */}
+            <TermsText>
+              By continuing, you agree to{' '}
+              <TermsHighlight href="/terms">Terms of Use</TermsHighlight> and{' '}
+              <TermsHighlight href="/privacy">Privacy Policy</TermsHighlight>.
+            </TermsText>
 
-            <SignupButton as={Link} to="/signup">
-              Sign Up
+            {/* Sign Up Button */}
+            <SignupButton type="submit" disabled={loading}>
+              <SignupButtonText>
+                {loading ? 'Signing Up...' : 'Create Account'}
+              </SignupButtonText>
             </SignupButton>
 
-            <FingerprintText>
-              Use <FingerprintHighlight>Fingerprint</FingerprintHighlight> To Access
-            </FingerprintText>
+            {/* Alternative Options */}
+            <AlternativeContainer>
+              <Divider />
+              <AlternativeText>or sign up with</AlternativeText>
+              <Divider />
+            </AlternativeContainer>
 
-            <SocialText>or sign up with</SocialText>
-            
-            <SocialRow>
-              <SocialIcon type="button">
-                <Facebook size={22} />
-              </SocialIcon>
-              <SocialIcon type="button">
-                <Mail size={22} />
-              </SocialIcon>
-            </SocialRow>
+            {/* Social Buttons */}
+            <SocialButtons>
+              <SocialButton type="button">
+                <Mail size={20} color="#DB4437" />
+                <SocialButtonText>Google</SocialButtonText>
+              </SocialButton>
+              <SocialButton type="button">
+                <Facebook size={20} color="#1877F2" />
+                <SocialButtonText>Facebook</SocialButtonText>
+              </SocialButton>
+            </SocialButtons>
 
+            {/* Footer */}
             <FooterRow>
-              <FooterText>Don't have an account? </FooterText>
-              <FooterLink as={Link} to="/signup">
-                Sign Up
+              <FooterText>Already have an account? </FooterText>
+              <FooterLink as={Link} to="/login">
+                Log In
               </FooterLink>
             </FooterRow>
           </FormContainer>
         </MainCard>
       </ContentContainer>
 
-      {/* Modal */}
+      {/* Success/Error Modal */}
       {modalVisible && (
-        <ModalOverlay onClick={() => setModalVisible(false)}>
+        <ModalOverlay onClick={closeModal}>
           <ModalContainer 
             $type={modalType} 
             onClick={(e) => e.stopPropagation()}
           >
             {modalType === 'success' ? (
-              <CheckCircle size={40} color="#16A34A" />
+              <CheckCircle size={48} color="#16A34A" />
             ) : (
-              <AlertCircle size={40} color="#DC2626" />
+              <AlertCircle size={48} color="#DC2626" />
             )}
             <ModalText>{modalMessage}</ModalText>
-            <ModalButton onClick={() => setModalVisible(false)}>
-              <ModalButtonText>OK</ModalButtonText>
+            <ModalButton onClick={closeModal}>
+              <ModalButtonText>
+                {modalType === 'success' ? 'Continue' : 'Try Again'}
+              </ModalButtonText>
             </ModalButton>
           </ModalContainer>
         </ModalOverlay>
@@ -148,12 +273,12 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default Signup;
 
 // Styled Components
 const PageContainer = styled.div`
   min-height: 100vh;
-  background-color: #fff;
+  background-color: #ffffff;
   display: flex;
   justify-content: center;
   align-items: flex-start;
@@ -176,13 +301,15 @@ const ContentContainer = styled.div`
 `;
 
 const HeaderContainer = styled.div`
-  background-color: #000;
-  border-bottom-left-radius: 30px;
-  border-bottom-right-radius: 30px;
+  background-color: #000000;
+  border-bottom-left-radius: 60px;
+  border-bottom-right-radius: 60px;
   width: 100%;
   max-width: 440px;
-  padding: 50px 0;
+  padding-top: 64px;
+  padding-bottom: 32px;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   margin-bottom: 0;
@@ -191,17 +318,29 @@ const HeaderContainer = styled.div`
 
 const HeaderText = styled.h1`
   color: #FF8000;
-  font-size: 24px;
+  font-size: 28px;
   font-weight: bold;
+  margin-bottom: 8px;
+  text-align: center;
+
+  @media (max-width: 480px) {
+    font-size: 26px;
+  }
+
+  @media (max-width: 360px) {
+    font-size: 24px;
+  }
+`;
+
+const HeaderSubtitle = styled.p`
+  color: #FFFFFF;
+  font-size: 14px;
+  opacity: 0.8;
   margin: 0;
   text-align: center;
 
   @media (max-width: 480px) {
-    font-size: 22px;
-  }
-
-  @media (max-width: 360px) {
-    font-size: 20px;
+    font-size: 13px;
   }
 `;
 
@@ -216,17 +355,17 @@ const MainCard = styled.div`
 
 const FormContainer = styled.form`
   width: 100%;
-  padding: 32px 24px;
+  padding: 32px 24px 48px;
   display: flex;
   flex-direction: column;
   align-items: center;
 
   @media (max-width: 480px) {
-    padding: 24px 20px;
+    padding: 28px 20px 40px;
   }
 
   @media (max-width: 360px) {
-    padding: 20px 16px;
+    padding: 24px 16px 36px;
   }
 `;
 
@@ -239,21 +378,20 @@ const InputWrapper = styled.div`
 const Label = styled.label`
   color: #374151;
   font-weight: 600;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
   display: block;
   font-size: 14px;
   line-height: 1.4;
 `;
 
 const TextInput = styled.input`
-  background-color: #E5E7EB;
-  border-radius: 50px;
-  padding: 12px 16px;
+  width: 100%;
+  background-color: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  padding: 14px 16px;
   font-size: 16px;
   color: #111827;
-  border: none;
-  width: 100%;
-  box-sizing: border-box;
   font-family: inherit;
   transition: all 0.2s ease;
   
@@ -263,37 +401,39 @@ const TextInput = styled.input`
   
   &:focus {
     outline: none;
-    background-color: #F3F4F6;
+    border-color: #FF8000;
+    background-color: #FFFFFF;
   }
 
   @media (max-width: 480px) {
     font-size: 15px;
-    padding: 11px 16px;
+    padding: 13px 16px;
   }
 
   @media (max-width: 360px) {
     font-size: 14px;
-    padding: 10px 14px;
+    padding: 12px 14px;
   }
 `;
 
 const PasswordContainer = styled.div`
   display: flex;
   align-items: center;
-  background-color: #E5E7EB;
-  border-radius: 50px;
+  background-color: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
   padding: 0 16px;
   transition: all 0.2s ease;
 
   &:focus-within {
-    background-color: #F3F4F6;
+    border-color: #FF8000;
+    background-color: #FFFFFF;
   }
 `;
 
 const PasswordInput = styled(TextInput)`
-  flex: 1;
   border: none;
-  padding-right: 8px;
+  padding: 14px 0;
   background: transparent;
   
   &:focus {
@@ -321,17 +461,55 @@ const ToggleSecureButton = styled.button`
   }
 `;
 
-const LoginButton = styled.button`
-  background-color: #000;
-  width: 83%;
-  max-width: 300px;
-  border-radius: 50px;
-  padding: 12px;
+const PasswordHint = styled.p`
+  color: #6B7280;
+  font-size: 12px;
+  margin-top: 4px;
+  margin-left: 4px;
+  line-height: 1.4;
+
+  @media (max-width: 480px) {
+    font-size: 11px;
+  }
+`;
+
+const TermsText = styled.p`
+  color: #4B5563;
+  font-size: 12px;
   margin-top: 16px;
+  text-align: center;
+  line-height: 18px;
+  max-width: 360px;
+  margin-bottom: 0;
+
+  @media (max-width: 480px) {
+    font-size: 11px;
+    line-height: 16px;
+  }
+`;
+
+const TermsHighlight = styled.a`
+  font-weight: 600;
+  color: #000;
+  text-decoration: none;
+  
+  &:hover {
+    text-decoration: underline;
+  }
+`;
+
+const SignupButton = styled.button`
+  background-color: #000;
+  width: 100%;
+  max-width: 360px;
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 24px;
   border: none;
   cursor: pointer;
   font-family: inherit;
   transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   
   &:hover:not(:disabled) {
     background-color: #333;
@@ -348,17 +526,16 @@ const LoginButton = styled.button`
   }
 
   @media (max-width: 480px) {
-    width: 83%;
-    padding: 11px;
+    padding: 15px;
+    margin-top: 20px;
   }
 
   @media (max-width: 360px) {
-    width: 85%;
-    padding: 10px;
+    padding: 14px;
   }
 `;
 
-const LoginButtonText = styled.span`
+const SignupButtonText = styled.span`
   color: #fff;
   font-weight: 600;
   font-size: 16px;
@@ -374,45 +551,68 @@ const LoginButtonText = styled.span`
   }
 `;
 
-const ForgotButton = styled.button`
-  margin-top: 12px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  text-decoration: none;
-  color: #6B7280;
-  font-weight: 500;
-  font-size: 14px;
-  padding: 4px;
-  
-  &:hover {
-    color: #4B5563;
-  }
-  
-  &:focus {
-    outline: none;
-  }
+const AlternativeContainer = styled.div`
+  display: flex;
+  align-items: center;
+  width: 100%;
+  max-width: 360px;
+  margin: 24px 0;
 
   @media (max-width: 480px) {
-    font-size: 13px;
+    margin: 20px 0;
   }
 `;
 
-const SignupButton = styled.button`
+const Divider = styled.div`
+  flex: 1;
+  height: 1px;
   background-color: #E5E7EB;
-  width: 83%;
-  max-width: 300px;
-  border-radius: 50px;
+`;
+
+const AlternativeText = styled.span`
+  color: #6B7280;
+  font-size: 14px;
+  margin: 0 12px;
+
+  @media (max-width: 480px) {
+    font-size: 13px;
+    margin: 0 10px;
+  }
+`;
+
+const SocialButtons = styled.div`
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  max-width: 360px;
+  margin-bottom: 24px;
+
+  @media (max-width: 480px) {
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  @media (max-width: 360px) {
+    gap: 8px;
+  }
+`;
+
+const SocialButton = styled.button`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
   padding: 12px;
-  margin-top: 16px;
-  border: none;
+  gap: 8px;
   cursor: pointer;
-  text-decoration: none;
   font-family: inherit;
   transition: all 0.2s ease;
   
   &:hover {
-    background-color: #D1D5DB;
+    background-color: #F3F4F6;
   }
   
   &:focus {
@@ -421,121 +621,36 @@ const SignupButton = styled.button`
   }
 
   @media (max-width: 480px) {
-    width: 83%;
     padding: 11px;
+    gap: 6px;
   }
 
   @media (max-width: 360px) {
-    width: 85%;
     padding: 10px;
+    gap: 5px;
   }
 `;
 
-const SignupButtonText = styled.span`
-  color: #111827;
-  font-weight: 600;
-  font-size: 16px;
-  display: block;
-  text-align: center;
-`;
-
-const FingerprintText = styled.p`
-  margin-top: 24px;
-  color: #4B5563;
-  text-align: center;
+const SocialButtonText = styled.span`
+  color: #374151;
+  font-weight: 500;
   font-size: 14px;
-  margin-bottom: 0;
-  line-height: 1.5;
 
   @media (max-width: 480px) {
     font-size: 13px;
-    margin-top: 20px;
-  }
-`;
-
-const FingerprintHighlight = styled.span`
-  color: #FF8000;
-  font-weight: 600;
-`;
-
-const SocialText = styled.p`
-  margin-top: 16px;
-  color: #6B7280;
-  text-align: center;
-  font-size: 14px;
-  margin-bottom: 12px;
-
-  @media (max-width: 480px) {
-    font-size: 13px;
-    margin-top: 14px;
-  }
-`;
-
-const SocialRow = styled.div`
-  display: flex;
-  flex-direction: row;
-  margin-top: 12px;
-  justify-content: center;
-  gap: 24px;
-
-  @media (max-width: 480px) {
-    gap: 20px;
   }
 
   @media (max-width: 360px) {
-    gap: 16px;
-  }
-`;
-
-const SocialIcon = styled.button`
-  padding: 8px;
-  border: 1px solid #D1D5DB;
-  border-radius: 50px;
-  background: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  color: #4B5563;
-  transition: all 0.2s ease;
-  
-  &:hover {
-    background-color: #F9FAFB;
-    border-color: #9CA3AF;
-  }
-  
-  &:focus {
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(156, 163, 175, 0.3);
-  }
-
-  @media (max-width: 480px) {
-    width: 38px;
-    height: 38px;
-    padding: 7px;
-  }
-
-  @media (max-width: 360px) {
-    width: 36px;
-    height: 36px;
-    padding: 6px;
+    font-size: 12px;
   }
 `;
 
 const FooterRow = styled.div`
   display: flex;
-  flex-direction: row;
-  margin-top: 24px;
-  justify-content: center;
-  margin-bottom: 0;
+  margin-top: 8px;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 4px;
-
-  @media (max-width: 480px) {
-    margin-top: 20px;
-  }
 `;
 
 const FooterText = styled.span`
@@ -593,20 +708,20 @@ const ModalOverlay = styled.div`
 
 const ModalContainer = styled.div`
   background-color: #fff;
-  border-radius: 20px;
-  padding: 24px;
   width: 100%;
   max-width: 400px;
+  padding: 24px;
+  border-radius: 16px;
   align-items: center;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-  border-left: 5px solid ${props => props.$type === 'success' ? '#16A34A' : '#DC2626'};
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  border-left: 4px solid ${props => props.$type === 'success' ? '#16A34A' : '#DC2626'};
   animation: ${fadeIn} 0.3s ease-out;
 
   @media (max-width: 480px) {
     padding: 20px;
-    border-radius: 16px;
+    border-radius: 14px;
     max-width: 320px;
   }
 
@@ -619,50 +734,57 @@ const ModalContainer = styled.div`
 const ModalText = styled.p`
   font-size: 16px;
   color: #111827;
-  margin: 12px 0;
   text-align: center;
-  line-height: 1.5;
+  margin: 16px 0;
+  line-height: 24px;
   width: 100%;
 
   @media (max-width: 480px) {
     font-size: 15px;
-    margin: 10px 0;
+    margin: 14px 0;
+    line-height: 22px;
   }
 
   @media (max-width: 360px) {
     font-size: 14px;
+    margin: 12px 0;
+    line-height: 20px;
   }
 `;
 
 const ModalButton = styled.button`
-  background-color: #FF8000;
-  border-radius: 50px;
-  padding: 10px 24px;
+  background-color: #000;
+  border-radius: 8px;
+  padding: 12px 24px;
   border: none;
   cursor: pointer;
-  margin-top: 8px;
+  min-width: 120px;
   font-family: inherit;
   transition: all 0.2s ease;
-  min-width: 100px;
   
   &:hover {
-    background-color: #E56A00;
+    background-color: #333;
   }
   
   &:focus {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(255, 128, 0, 0.3);
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
   }
 
   @media (max-width: 480px) {
-    padding: 9px 20px;
-    min-width: 90px;
+    padding: 11px 20px;
+    min-width: 110px;
+  }
+
+  @media (max-width: 360px) {
+    padding: 10px 18px;
+    min-width: 100px;
   }
 `;
 
 const ModalButtonText = styled.span`
   color: #fff;
-  font-weight: bold;
+  font-weight: 600;
   font-size: 14px;
   display: block;
   text-align: center;
