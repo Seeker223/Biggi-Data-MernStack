@@ -3,127 +3,30 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
-    --primary: #3B82F6;
-    --secondary: #10B981;
-    --accent: #8B5CF6;
-  }
-
   body {
-    @apply antialiased text-gray-900 bg-gray-50;
-    -webkit-tap-highlight-color: transparent;
+    @apply bg-white text-gray-900;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
   }
 
-  /* Scrollbar styling */
-  ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-
-  ::-webkit-scrollbar-track {
-    @apply bg-gray-100;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    @apply bg-gray-300 rounded-full;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    @apply bg-gray-400;
+  input, button {
+    @apply focus:outline-none;
   }
 }
 
 @layer components {
-  /* Button styles */
   .btn {
-    @apply inline-flex items-center justify-center px-4 py-2.5 rounded-lg 
-           font-medium transition-all duration-200 focus:outline-none 
-           focus:ring-2 focus:ring-offset-2 disabled:opacity-50 
-           disabled:cursor-not-allowed whitespace-nowrap;
+    @apply px-4 py-2 rounded-full font-medium transition-colors;
   }
   
   .btn-primary {
-    @apply btn bg-primary text-white hover:bg-primary/90 
-           focus:ring-primary active:scale-[0.98];
+    @apply btn bg-black text-white hover:bg-gray-800;
   }
   
   .btn-secondary {
-    @apply btn bg-secondary text-white hover:bg-secondary/90 
-           focus:ring-secondary active:scale-[0.98];
+    @apply btn bg-gray-200 text-gray-900 hover:bg-gray-300;
   }
   
-  .btn-outline {
-    @apply btn border-2 border-gray-300 text-gray-700 
-           hover:bg-gray-50 focus:ring-gray-300;
-  }
-  
-  /* Input styles */
   .input {
-    @apply w-full px-4 py-3 rounded-lg border border-gray-300 
-           bg-white text-gray-900 placeholder:text-gray-500
-           focus:outline-none focus:ring-2 focus:ring-primary 
-           focus:border-transparent transition-all duration-200
-           disabled:bg-gray-100 disabled:cursor-not-allowed;
-  }
-  
-  /* Card styles */
-  .card {
-    @apply bg-white rounded-xl shadow-card p-6 transition-all 
-           duration-200 hover:shadow-card-hover;
-  }
-  
-  /* Badge styles */
-  .badge {
-    @apply inline-flex items-center px-3 py-1 rounded-full text-xs 
-           font-medium;
-  }
-  
-  .badge-primary {
-    @apply badge bg-primary/10 text-primary;
-  }
-  
-  .badge-secondary {
-    @apply badge bg-secondary/10 text-secondary;
-  }
-  
-  /* Alert styles */
-  .alert {
-    @apply p-4 rounded-lg border;
-  }
-  
-  .alert-success {
-    @apply alert bg-green-50 border-green-200 text-green-800;
-  }
-  
-  .alert-error {
-    @apply alert bg-red-50 border-red-200 text-red-800;
-  }
-  
-  /* Layout utilities */
-  .safe-top {
-    @apply pt-safe-top;
-  }
-  
-  .safe-bottom {
-    @apply pb-safe-bottom;
-  }
-  
-  /* React Native like flex utilities */
-  .flex-center {
-    @apply flex items-center justify-center;
-  }
-  
-  .flex-row-center {
-    @apply flex flex-row items-center;
-  }
-  
-  .flex-col-center {
-    @apply flex flex-col items-center;
-  }
-  
-  /* Loading spinner */
-  .spinner {
-    @apply animate-spin rounded-full border-2 border-gray-300 
-           border-t-primary;
+    @apply w-full bg-gray-200 rounded-full px-4 py-3 text-gray-900 placeholder-gray-500;
   }
 }

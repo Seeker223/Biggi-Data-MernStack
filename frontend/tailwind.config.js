@@ -7,43 +7,35 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: '#3B82F6',
-        secondary: '#10B981',
-        accent: '#8B5CF6',
-        danger: '#EF4444',
-        warning: '#F59E0B',
-        success: '#10B981',
-        dark: '#1F2937',
-        light: '#F9FAFB',
+        // Your app colors
+        primary: "#000000",      // Black
+        secondary: "#FF7A00",    // Orange
+        accent: "#FFD700",       // Gold
+        success: "#4CAF50",      // Green
+        danger: "#FF3B30",       // Red
+        purple: {
+          800: "#2B006A",        // Monthly game card color
+        },
+        gray: {
+          50: "#F9FAFB",
+          100: "#F3F4F6",
+          200: "#E5E7EB",
+          300: "#D1D5DB",
+          400: "#9CA3AF",
+          500: "#6B7280",
+          600: "#4B5563",
+          700: "#374151",
+          800: "#1F2937",
+          900: "#111827",
+        },
+      },
+      borderRadius: {
+        'full': '50px',
+        '3xl': '30px',
       },
       animation: {
-        'fade-in': 'fadeIn 0.3s ease-in-out',
-        'slide-up': 'slideUp 0.3s ease-out',
-        'slide-down': 'slideDown 0.3s ease-out',
-        'bounce-in': 'bounceIn 0.5s ease-out',
-      },
-      keyframes: {
-        fadeIn: {
-          '0%': { opacity: '0' },
-          '100%': { opacity: '1' },
-        },
-        slideUp: {
-          '0%': { transform: 'translateY(20px)', opacity: '0' },
-          '100%': { transform: 'translateY(0)', opacity: '1' },
-        },
-        slideDown: {
-          '0%': { transform: 'translateY(-20px)', opacity: '0' },
-          '100%': { transform: 'translateY(0)', opacity: '1' },
-        },
-        bounceIn: {
-          '0%': { transform: 'scale(0.95)', opacity: '0' },
-          '50%': { transform: 'scale(1.05)', opacity: '0.7' },
-          '100%': { transform: 'scale(1)', opacity: '1' },
-        },
-      },
-      boxShadow: {
-        'card': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-        'card-hover': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+        'pulse-slow': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'bounce-slow': 'bounce 2s infinite',
       },
     },
   },
