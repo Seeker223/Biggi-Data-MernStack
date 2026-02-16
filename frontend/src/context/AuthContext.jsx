@@ -3,6 +3,17 @@ import api from "../utils/api";
 
 export const AuthContext = createContext();
 
+const getAuthErrorMessage = (error, fallbackMessage) => {
+  if (error?.response?.data?.error) return error.response.data.error;
+  if (error?.code === "ERR_NETWORK") {
+    return "Network error: your phone cannot reach the API server. Check VITE_BASE_URL, backend deployment, and CORS.";
+  }
+  if (error?.code === "ECONNABORTED") {
+    return "Request timeout: server took too long to respond.";
+  }
+  return fallbackMessage;
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(
@@ -61,7 +72,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       return { 
         success: false, 
-        error: error.response?.data?.error || "Login failed" 
+        error: getAuthErrorMessage(error, "Login failed"),
       };
     }
   };
@@ -96,7 +107,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       return { 
         success: false, 
-        error: error.response?.data?.error || "Registration failed" 
+        error: getAuthErrorMessage(error, "Registration failed"),
       };
     }
   };

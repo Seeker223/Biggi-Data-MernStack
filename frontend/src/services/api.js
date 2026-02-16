@@ -1,13 +1,13 @@
 import axios from 'axios';
 
-// 🌍 Base URL from environment
-const BASE_URL = import.meta.env.VITE_BASE_URL || "http://localhost:5000";
+// Resolve API base URL safely for both local dev and real devices.
+const envBaseUrl = import.meta.env.VITE_BASE_URL?.trim();
+const isLocalHost =
+  typeof window !== "undefined" &&
+  (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+const BASE_URL = envBaseUrl || (isLocalHost ? "http://localhost:5000" : "https://biggi-data-reactnative-mern.onrender.com");
 
-if (!BASE_URL) {
-  console.error("❌ Missing VITE_BASE_URL. Set it in .env");
-} else {
-  console.log("📡 API Base URL:", BASE_URL);
-}
+console.log("API Base URL:", BASE_URL);
 
 // -----------------------------------------------------------
 // ⚙️ Axios instance
