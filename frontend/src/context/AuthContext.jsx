@@ -6,7 +6,7 @@ export const AuthContext = createContext();
 const getAuthErrorMessage = (error, fallbackMessage) => {
   if (error?.response?.data?.error) return error.response.data.error;
   if (error?.code === "ERR_NETWORK") {
-    return "Network error: your phone cannot reach the API server. Check VITE_BASE_URL, backend deployment, and CORS.";
+    return "Network error: API request failed from this browser. Open /api/v1/auth/ping on this same domain to verify routing.";
   }
   if (error?.code === "ECONNABORTED") {
     return "Request timeout: server took too long to respond.";
