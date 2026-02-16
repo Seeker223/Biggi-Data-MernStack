@@ -1,19 +1,20 @@
 import axios from 'axios';
 
-// Resolve API base URL safely for both local dev and real devices.
+// Resolve API origin safely for local dev and production devices.
 const envBaseUrl = import.meta.env.VITE_BASE_URL?.trim();
 const isLocalHost =
   typeof window !== "undefined" &&
   (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
-const BASE_URL = envBaseUrl || (isLocalHost ? "http://localhost:5000" : "https://biggi-data-reactnative-mern.onrender.com");
+const API_ORIGIN = envBaseUrl || (isLocalHost ? "http://localhost:5000" : "");
+const API_BASE_URL = API_ORIGIN ? `${API_ORIGIN}/api/v1` : "/api/v1";
 
-console.log("API Base URL:", BASE_URL);
+console.log("API Base URL:", API_BASE_URL);
 
 // -----------------------------------------------------------
 // ⚙️ Axios instance
 // -----------------------------------------------------------
 const api = axios.create({
-  baseURL: `${BASE_URL}/api/v1`,
+  baseURL: API_BASE_URL,
   headers: { "Content-Type": "application/json" },
   timeout: 15000,
 });
@@ -89,7 +90,7 @@ api.interceptors.response.use(
         }
 
         const res = await axios.post(
-          `${BASE_URL}/api/v1/auth/refresh`,
+          `${API_BASE_URL}/auth/refresh`,
           { refreshToken },
           {
             headers: { "Content-Type": "application/json" },
@@ -268,7 +269,7 @@ export const updateAvatar = async (formData) => {
     const token = localStorage.getItem("userToken") || sessionStorage.getItem("userToken");
 
     const res = await axios.put(
-      `${BASE_URL}/api/v1/user/update-avatar`,
+      `${API_BASE_URL}/user/update-avatar`,
       formData,
       {
         headers: {

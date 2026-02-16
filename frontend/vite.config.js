@@ -6,5 +6,12 @@ export default defineConfig({
   server: {
     port: 3000,
     host: true,
+    proxy: {
+      "/api": {
+        target: process.env.VITE_BASE_URL || "https://biggi-data-reactnative-mern.onrender.com",
+        changeOrigin: true,
+        secure: true,
+      },
+    },
   }
 })
