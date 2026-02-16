@@ -51,7 +51,7 @@ const Signup = () => {
 
     setLoading(true);
     try {
-      const res = await register(username, email, password, phoneNumber, birthDate);
+      const res = await register({ username, email, password, phoneNumber, birthDate });
       
       if (res.success) {
         showModal('Registration successful! Welcome to Biggi Data.', 'success');
