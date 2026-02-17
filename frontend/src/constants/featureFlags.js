@@ -1,3 +1,4 @@
 export const FEATURE_FLAGS = {
-  DISABLE_GAME_AND_REDEEM: import.meta.env.VITE_DISABLE_GAME_AND_REDEEM === "true"
+  // Web app is not constrained by Play Store review restrictions.
+  DISABLE_GAME_AND_REDEEM: false
 }

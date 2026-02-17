@@ -168,21 +168,9 @@ export const getDepositStatus = (tx_ref) =>
 export const reconcilePayment = (tx_ref) =>
   api.post("/wallet/reconcile-payment", { tx_ref });
 
-export const redeemRewards = () => {
-  const DISABLE_GAME_AND_REDEEM = import.meta.env.VITE_DISABLE_GAME_AND_REDEEM === "true";
-  if (DISABLE_GAME_AND_REDEEM) {
-    return Promise.resolve({ success: false, message: "Redeem is temporarily disabled for review." });
-  }
-  return api.post("/wallet/redeem");
-};
+export const redeemRewards = () => api.post("/wallet/redeem");
 
-export const withdrawFunds = (payload) => {
-  const DISABLE_GAME_AND_REDEEM = import.meta.env.VITE_DISABLE_GAME_AND_REDEEM === "true";
-  if (DISABLE_GAME_AND_REDEEM) {
-    return Promise.resolve({ success: false, message: "Withdrawals are temporarily disabled for review." });
-  }
-  return api.post("/wallet/withdraw", payload);
-};
+export const withdrawFunds = (payload) => api.post("/wallet/withdraw", payload);
 
 export const getWithdrawalHistory = async () => {
   try {
@@ -312,21 +300,11 @@ export const getUserGameStats = async () => {
   }
 };
 
-export const claimDailyReward = (gameId) => {
-  const DISABLE_GAME_AND_REDEEM = import.meta.env.VITE_DISABLE_GAME_AND_REDEEM === "true";
-  if (DISABLE_GAME_AND_REDEEM) {
-    return Promise.resolve({ success: false, message: "Claiming rewards is temporarily disabled for review." });
-  }
-  return api.post("/game/daily/claim", { gameId });
-};
+export const claimDailyReward = (gameId) =>
+  api.post("/game/daily/claim", { gameId });
 
-export const claimMonthlyReward = (month) => {
-  const DISABLE_GAME_AND_REDEEM = import.meta.env.VITE_DISABLE_GAME_AND_REDEEM === "true";
-  if (DISABLE_GAME_AND_REDEEM) {
-    return Promise.resolve({ success: false, message: "Claiming monthly rewards is temporarily disabled for review." });
-  }
-  return api.post("/game/monthly/claim", { month });
-};
+export const claimMonthlyReward = (month) =>
+  api.post("/game/monthly/claim", { month });
 
 // -----------------------------------------------------------
 // NOTIFICATIONS
