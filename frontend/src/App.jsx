@@ -14,6 +14,13 @@ import DepositScreen from './pages/dashboard/DepositScreen';
 import WithdrawScreen from './pages/dashboard/WithdrawScreen';// Add this import
 import BuyDataScreen from './pages/dashboard/BuyDataScreen'; // Add this import (create this file)
 import RedeemScreen from './pages/dashboard/RedeemScreen'; // Add this import (create this file)
+import SelectNetworkScreen from './pages/dashboard/SelectNetworkScreen';
+import SelectPlanScreen from './pages/dashboard/SelectPlanScreen';
+import BuyDataSuccessScreen from './pages/dashboard/BuyDataSuccessScreen';
+import NotificationScreen from './pages/dashboard/NotificationScreen';
+import ProfileScreen from './pages/dashboard/ProfileScreen';
+import WalletScreen from './pages/dashboard/WalletScreen';
+import DailyLuckyDrawScreen from './pages/dashboard/DailyLuckyDrawScreen';
 
 function App() {
   return (
@@ -42,6 +49,30 @@ function App() {
             </Route>
             <Route element={<ProtectedRoute />}>
               <Route path="/redeem" element={<RedeemScreen />} />
+            </Route>
+            <Route element={<ProtectedRoute />}>
+              <Route path="/select-network" element={<SelectNetworkScreen />} />
+            </Route>
+            <Route element={<ProtectedRoute />}>
+              <Route path="/select-plan" element={<SelectPlanScreen />} />
+            </Route>
+            <Route element={<ProtectedRoute />}>
+              <Route path="/buy-data-success" element={<BuyDataSuccessScreen />} />
+            </Route>
+            <Route element={<ProtectedRoute />}>
+              <Route path="/notifications" element={<NotificationScreen />} />
+            </Route>
+            <Route element={<ProtectedRoute />}>
+              <Route path="/profile" element={<ProfileScreen />} />
+            </Route>
+            <Route element={<ProtectedRoute />}>
+              <Route path="/wallet" element={<WalletScreen />} />
+            </Route>
+            <Route element={<ProtectedRoute />}>
+              <Route path="/daily-draw" element={<DailyLuckyDrawScreen />} />
+            </Route>
+            <Route element={<ProtectedRoute />}>
+              <Route path="/daily-game" element={<DailyLuckyDrawScreen />} />
             </Route>
             
             {/* Redirect */}

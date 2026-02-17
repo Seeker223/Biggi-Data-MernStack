@@ -1,13 +1,9 @@
-// frontend/src/pages/dashboard/BuyDataScreen.jsx
-import React, { useState, useEffect, useContext } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import styled, { keyframes } from 'styled-components';
-import { 
-  ChevronLeft, 
-  ChevronDown, 
-  CheckCircle
-} from 'lucide-react';
-import { AuthContext } from '../../context/AuthContext';
+import React, { useState, useEffect, useContext } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import styled, { keyframes } from "styled-components";
+import { ChevronLeft, ChevronDown, CheckCircle } from "lucide-react";
+import { AuthContext } from "../../context/AuthContext";
+import { buyData } from "../../services/api";
 
 const BuyDataScreen = () => {
   const navigate = useNavigate();
@@ -24,12 +20,16 @@ const BuyDataScreen = () => {
   const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
-    if (location.state?.selectedNetwork) setNetwork(location.state.selectedNetwork);
+    if (location.state?.selectedNetwork) {
+      const selectedNetwork = location.state.selectedNetwork;
+      setNetwork(selectedNetwork);
+      setNetworkCode(selectedNetwork?.code || selectedNetwork?.network || null);
+    }
     if (location.state?.networkCode) setNetworkCode(location.state.networkCode);
     if (location.state?.selectedPlan) {
       const p = location.state.selectedPlan;
       setPlan(p);
-      setPrice(p.amount || p.price || 0);
+      setPrice(Number(p.amount || p.price || 0));
     }
   }, [location.state]);
 
@@ -42,8 +42,6 @@ const BuyDataScreen = () => {
     return null;
   };
 
-  const generateReference = () => `BD${Date.now()}`;
-
   const handlePay = async () => {
     const err = validate();
     if (err) return setErrorMsg(err);
@@ -53,38 +51,34 @@ const BuyDataScreen = () => {
 
     const backendPlanId = plan.plan_id || plan.code || plan.id || plan._id;
 
-    const payload = { 
-      network: networkCode, 
-      mobile_no: phone, 
-      amount: price, 
-      plan_id: backendPlanId, 
-      reference: generateReference() 
-    };
-
-    console.log("Sending plan payload →", payload);
-
     try {
-      // Simulate API call - replace with actual API
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Mock success response
+      const res = await buyData({
+        mobile_no: phone,
+        plan_id: backendPlanId,
+      });
+
+      if (!res?.success) {
+        setErrorMsg(res?.msg || "Unable to process request");
+        return;
+      }
+
       setSuccessModal(true);
       await refreshUser();
-      
+
       setTimeout(() => {
         setSuccessModal(false);
-        navigate('/buy-data-success', { 
-          state: { 
-            phone, 
-            network, 
-            plan: plan.name || plan.plan_name, 
-            price 
-          }
+        navigate("/buy-data-success", {
+          state: {
+            phone,
+            network: network?.label || network?.network || network,
+            plan: plan.name || plan.plan_name,
+            price,
+            reference: res?.reference,
+          },
         });
       }, 1300);
-      
     } catch (error) {
-      console.log("BUY DATA ERROR →", error);
+      console.log("BUY DATA ERROR:", error);
       setErrorMsg(error?.response?.data?.msg || "Unable to process request");
     } finally {
       setLoading(false);
@@ -92,17 +86,19 @@ const BuyDataScreen = () => {
   };
 
   const goToSelectNetwork = () => {
-    navigate('/select-network');
+    navigate("/select-network", {
+      state: { returnTo: "/buy-data", selectedNetwork: network },
+    });
   };
 
   const goToSelectPlan = () => {
     if (!network) return setErrorMsg("Select network first");
-    navigate('/select-plan', { 
-      state: { 
-        selectedNetwork: network, 
-        networkCode, 
-        categories: ["SME", "GIFTING", "CG"] 
-      }
+    navigate("/select-plan", {
+      state: {
+        selectedNetwork: network,
+        networkCode,
+        returnTo: "/buy-data",
+      },
     });
   };
 
@@ -114,12 +110,12 @@ const BuyDataScreen = () => {
             <ChevronLeft size={22} />
           </BackButton>
           <HeaderTitle>Buy Data</HeaderTitle>
-          <div style={{ width: '22px' }} /> {/* Spacer for alignment */}
+          <div style={{ width: "22px" }} />
         </Header>
 
         <FormContainer>
           <FormTitle>Purchase Data Bundle</FormTitle>
-          
+
           <Form>
             <InputGroup>
               <Label>Phone Number</Label>
@@ -128,7 +124,7 @@ const BuyDataScreen = () => {
                 placeholder="08012345678"
                 value={phone}
                 maxLength={11}
-                onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 11))}
+                onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 11))}
                 disabled={loading}
               />
             </InputGroup>
@@ -137,7 +133,7 @@ const BuyDataScreen = () => {
               <Label>Select Network</Label>
               <Dropdown onClick={goToSelectNetwork} disabled={loading}>
                 <DropdownText $placeholder={!network}>
-                  {network || "Choose network"}
+                  {network?.label || network?.network || network || "Choose network"}
                 </DropdownText>
                 <ChevronDown size={18} />
               </Dropdown>
@@ -156,7 +152,7 @@ const BuyDataScreen = () => {
             {price > 0 && (
               <PriceDisplay>
                 <PriceLabel>Plan Amount:</PriceLabel>
-                <PriceValue>₦{price.toLocaleString()}</PriceValue>
+                <PriceValue>N{price.toLocaleString()}</PriceValue>
               </PriceDisplay>
             )}
 
@@ -174,9 +170,11 @@ const BuyDataScreen = () => {
             </PayButton>
 
             <InfoText>
-              • Ensure phone number is correct<br />
-              • Network must match SIM card<br />
-              • Data will be delivered instantly
+              - Ensure phone number is correct
+              <br />
+              - Network must match SIM card
+              <br />
+              - Data will be delivered instantly
             </InfoText>
           </Form>
         </FormContainer>
@@ -197,37 +195,21 @@ const BuyDataScreen = () => {
 
 export default BuyDataScreen;
 
-// Animations
 const spin = keyframes`
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 `;
 
 const fadeIn = keyframes`
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 `;
 
 const slideUp = keyframes`
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 `;
 
-// Styled Components
 const PageContainer = styled.div`
   min-height: 100vh;
   background-color: #f8f9fa;
@@ -235,7 +217,6 @@ const PageContainer = styled.div`
   justify-content: center;
   align-items: flex-start;
   padding: 20px;
-
   @media (min-height: 700px) {
     align-items: center;
     padding: 40px 20px;
@@ -257,10 +238,6 @@ const Header = styled.div`
   margin-bottom: 24px;
   padding-bottom: 16px;
   border-bottom: 1px solid #e0e0e0;
-
-  @media (max-width: 480px) {
-    margin-bottom: 20px;
-  }
 `;
 
 const BackButton = styled.button`
@@ -273,10 +250,7 @@ const BackButton = styled.button`
   justify-content: center;
   color: #000;
   border-radius: 8px;
-  
-  &:hover {
-    background-color: #f0f0f0;
-  }
+  &:hover { background-color: #f0f0f0; }
 `;
 
 const HeaderTitle = styled.h1`
@@ -286,10 +260,6 @@ const HeaderTitle = styled.h1`
   margin: 0;
   text-align: center;
   flex: 1;
-
-  @media (max-width: 480px) {
-    font-size: 16px;
-  }
 `;
 
 const FormContainer = styled.div`
@@ -298,11 +268,6 @@ const FormContainer = styled.div`
   padding: 24px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   width: 100%;
-
-  @media (max-width: 480px) {
-    padding: 20px;
-    border-radius: 12px;
-  }
 `;
 
 const FormTitle = styled.h2`
@@ -311,11 +276,6 @@ const FormTitle = styled.h2`
   color: #000;
   margin-bottom: 24px;
   text-align: center;
-
-  @media (max-width: 480px) {
-    font-size: 18px;
-    margin-bottom: 20px;
-  }
 `;
 
 const Form = styled.div`
@@ -334,7 +294,6 @@ const Label = styled.label`
   font-size: 14px;
   font-weight: 600;
   color: #333;
-  display: block;
 `;
 
 const Input = styled.input`
@@ -347,18 +306,13 @@ const Input = styled.input`
   width: 100%;
   box-sizing: border-box;
   transition: all 0.2s;
-  
-  &::placeholder {
-    color: #999;
-  }
-  
+  &::placeholder { color: #999; }
   &:focus {
     outline: none;
-    border-color: #FF7A00;
+    border-color: #ff7a00;
     background-color: #fff;
     box-shadow: 0 0 0 3px rgba(255, 122, 0, 0.1);
   }
-  
   &:disabled {
     background-color: #f0f0f0;
     color: #999;
@@ -366,26 +320,22 @@ const Input = styled.input`
   }
 `;
 
-const Dropdown = styled.div`
-  background-color: ${props => props.disabled ? '#f0f0f0' : '#f8f9fa'};
+const Dropdown = styled.button`
+  background-color: ${(props) => (props.disabled ? "#f0f0f0" : "#f8f9fa")};
   border: 1px solid #e0e0e0;
   border-radius: 12px;
   padding: 16px;
   display: flex;
+  width: 100%;
   justify-content: space-between;
   align-items: center;
-  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
+  cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
   transition: all 0.2s;
-  
-  &:hover:not(:disabled) {
-    border-color: #FF7A00;
-    background-color: #fff;
-  }
 `;
 
 const DropdownText = styled.span`
   font-size: 16px;
-  color: ${props => props.$placeholder ? '#999' : '#000'};
+  color: ${(props) => (props.$placeholder ? "#999" : "#000")};
 `;
 
 const PriceDisplay = styled.div`
@@ -396,7 +346,6 @@ const PriceDisplay = styled.div`
   padding: 16px;
   border-radius: 12px;
   border: 1px solid #e0e0e0;
-  margin-top: 8px;
 `;
 
 const PriceLabel = styled.span`
@@ -408,7 +357,7 @@ const PriceLabel = styled.span`
 const PriceValue = styled.span`
   font-size: 20px;
   font-weight: 700;
-  color: #FF7A00;
+  color: #ff7a00;
 `;
 
 const ErrorMsg = styled.div`
@@ -419,30 +368,17 @@ const ErrorMsg = styled.div`
   padding: 12px;
   font-size: 14px;
   text-align: center;
-  margin-top: 8px;
 `;
 
 const PayButton = styled.button`
-  background-color: #FF7A00;
+  background-color: #ff7a00;
   border: none;
   border-radius: 12px;
   padding: 18px;
   cursor: pointer;
   width: 100%;
-  margin-top: 8px;
   transition: all 0.2s;
   box-shadow: 0 4px 12px rgba(255, 122, 0, 0.3);
-  
-  &:hover:not(:disabled) {
-    background-color: #E56A00;
-    transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(255, 122, 0, 0.4);
-  }
-  
-  &:active:not(:disabled) {
-    transform: translateY(0);
-  }
-  
   &:disabled {
     background-color: #ccc;
     box-shadow: none;
@@ -481,15 +417,12 @@ const InfoText = styled.div`
   padding: 12px;
   background-color: #f8f9fa;
   border-radius: 8px;
-  border-left: 4px solid #FF7A00;
+  border-left: 4px solid #ff7a00;
 `;
 
 const ModalOverlay = styled.div`
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
@@ -512,98 +445,15 @@ const SuccessBox = styled.div`
   gap: 16px;
   animation: ${slideUp} 0.3s ease-out;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-
-  @media (max-width: 480px) {
-    padding: 24px 20px;
-    max-width: 280px;
-  }
 `;
 
 const SuccessText = styled.div`
   font-size: 20px;
   font-weight: 700;
   color: #000;
-  text-align: center;
-
-  @media (max-width: 480px) {
-    font-size: 18px;
-  }
 `;
 
 const SuccessSubtext = styled.div`
   font-size: 14px;
   color: #666;
-  text-align: center;
 `;
-
-// // frontend/src/pages/dashboard/BuyDataScreen.jsx
-// import React from 'react';
-// import { useNavigate } from 'react-router-dom';
-// import styled from 'styled-components';
-// import { ChevronLeft } from 'lucide-react';
-
-// const BuyDataScreen = () => {
-//   const navigate = useNavigate();
-
-//   return (
-//     <Container>
-//       <Header>
-//         <BackButton onClick={() => navigate(-1)}>
-//           <ChevronLeft size={26} />
-//         </BackButton>
-//         <HeaderTitle>Buy Data Bundle</HeaderTitle>
-//         <div style={{ width: '26px' }} />
-//       </Header>
-      
-//       <Content>
-//         <h2>Coming Soon</h2>
-//         <p>Data bundle purchase functionality will be available soon.</p>
-//       </Content>
-//     </Container>
-//   );
-// };
-
-// export default BuyDataScreen;
-
-// const Container = styled.div`
-//   min-height: 100vh;
-//   background-color: #fff;
-//   padding: 20px;
-// `;
-
-// const Header = styled.div`
-//   display: flex;
-//   justify-content: space-between;
-//   align-items: center;
-//   width: 100%;
-//   margin-bottom: 24px;
-//   padding-bottom: 16px;
-//   border-bottom: 1px solid #f0f0f0;
-// `;
-
-// const BackButton = styled.button`
-//   background: none;
-//   border: none;
-//   cursor: pointer;
-//   padding: 4px;
-//   display: flex;
-//   align-items: center;
-//   justify-content: center;
-//   color: #000;
-  
-//   &:hover {
-//     opacity: 0.7;
-//   }
-// `;
-
-// const HeaderTitle = styled.h1`
-//   font-size: 18px;
-//   font-weight: 700;
-//   color: #000;
-//   margin: 0;
-// `;
-
-// const Content = styled.div`
-//   padding: 40px 20px;
-//   text-align: center;
-// `;

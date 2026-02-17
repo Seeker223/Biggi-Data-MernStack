@@ -1,52 +1,59 @@
-//frontend/src/pages/dashboard/DepositScreen.jsx
-import React, { useState, useContext, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import styled, { keyframes, css } from 'styled-components';
-import { 
-  ChevronLeft, 
-  AlertCircle, 
-  CheckCircle, 
-  XCircle, 
+import React, { useState, useContext, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import styled, { keyframes } from "styled-components";
+import {
+  ChevronLeft,
+  AlertCircle,
+  CheckCircle,
+  XCircle,
   RefreshCw,
   Info,
-  Clock
-} from 'lucide-react';
-import { AuthContext } from '../../context/AuthContext';
-import { FEATURE_FLAGS } from '../../constants/featureFlags';
+  Clock,
+} from "lucide-react";
+import { AuthContext } from "../../context/AuthContext";
+import { FEATURE_FLAGS } from "../../constants/featureFlags";
+import {
+  getDepositStatus,
+  reconcilePayment,
+  verifyFlutterwavePayment,
+} from "../../services/api";
 
 const SERVICE_CHARGE = 0;
 const POLL_INTERVAL = 3000;
 const MAX_POLL_ATTEMPTS = 20;
 const RECONCILE_ATTEMPTS = 3;
+const FLUTTERWAVE_PUBLIC_KEY =
+  import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY ||
+  import.meta.env.EXPO_PUBLIC_FLUTTERWAVE_KEY ||
+  "";
 
 const DepositScreen = () => {
   const navigate = useNavigate();
   const { user, refreshUser } = useContext(AuthContext);
 
-  // Feature flag check
   if (FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM) {
     return (
       <PageContainer>
         <ContentContainer>
-          <div style={{ 
-            textAlign: 'center', 
-            padding: '40px 20px',
-            backgroundColor: '#fff',
-            borderRadius: '16px',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-            width: '100%',
-            maxWidth: '400px'
-          }}>
-            <AlertCircle size={48} color="#FF7A00" style={{ marginBottom: '16px' }} />
-            <h2 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '8px', color: '#000' }}>
+          <div
+            style={{
+              textAlign: "center",
+              padding: "40px 20px",
+              backgroundColor: "#fff",
+              borderRadius: "16px",
+              boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+              width: "100%",
+              maxWidth: "400px",
+            }}
+          >
+            <AlertCircle size={48} color="#FF7A00" style={{ marginBottom: "16px" }} />
+            <h2 style={{ fontSize: "18px", fontWeight: "700", marginBottom: "8px", color: "#000" }}>
               Deposits Temporarily Disabled
             </h2>
-            <p style={{ textAlign: 'center', color: '#444', marginBottom: '24px', lineHeight: '1.5' }}>
+            <p style={{ textAlign: "center", color: "#444", marginBottom: "24px", lineHeight: "1.5" }}>
               Deposits are disabled while we undergo Play Store review.
             </p>
-            <PrimaryButton onClick={() => navigate(-1)}>
-              Return
-            </PrimaryButton>
+            <PrimaryButton onClick={() => navigate(-1)}>Return</PrimaryButton>
           </div>
         </ContentContainer>
       </PageContainer>
@@ -56,45 +63,36 @@ const DepositScreen = () => {
   const [amount, setAmount] = useState("");
   const [showConfirm, setShowConfirm] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState("idle");
-  const [txRef, setTxRef] = useState(null);
+  const [txRef, setTxRef] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Toast state
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [toastType, setToastType] = useState("info");
 
-  // Refs
   const pollTimer = useRef(null);
   const pollCount = useRef(0);
   const reconcileAttempts = useRef(0);
-  const currentTxRef = useRef(null);
+  const currentTxRef = useRef("");
 
-  /* ---------------- TOAST ---------------- */
   const showToast = (msg, type = "info") => {
     setToastMessage(msg);
     setToastType(type);
     setToastVisible(true);
-
-    setTimeout(() => {
-      setToastVisible(false);
-    }, 3500);
+    setTimeout(() => setToastVisible(false), 3500);
   };
 
-  /* ---------------- CLEANUP ---------------- */
   useEffect(() => {
     return () => {
       if (pollTimer.current) clearInterval(pollTimer.current);
-      currentTxRef.current = null;
+      currentTxRef.current = "";
     };
   }, []);
 
-  /* ---------------- AMOUNT VALIDATION ---------------- */
   const enteredAmount = Number(amount) > 0 ? Number(amount) : 0;
   const totalAmount = enteredAmount + SERVICE_CHARGE;
   const isValidAmount = () => enteredAmount >= 100 && enteredAmount <= 1000000;
 
-  /* ---------------- STOP POLLING ---------------- */
   const stopPolling = () => {
     if (pollTimer.current) {
       clearInterval(pollTimer.current);
@@ -102,10 +100,21 @@ const DepositScreen = () => {
     }
     pollCount.current = 0;
     setIsProcessing(false);
-    currentTxRef.current = null;
+    currentTxRef.current = "";
   };
 
-  /* ---------------- MANUAL RECONCILIATION ---------------- */
+  const loadFlutterwaveCheckout = async () => {
+    if (window.FlutterwaveCheckout) return true;
+    return new Promise((resolve) => {
+      const script = document.createElement("script");
+      script.src = "https://checkout.flutterwave.com/v3.js";
+      script.async = true;
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
   const attemptReconciliation = async (reference) => {
     if (reconcileAttempts.current >= RECONCILE_ATTEMPTS) {
       showToast("Maximum reconciliation attempts reached", "error");
@@ -114,35 +123,30 @@ const DepositScreen = () => {
 
     try {
       reconcileAttempts.current += 1;
-      showToast(
-        `Attempting reconciliation (${reconcileAttempts.current}/${RECONCILE_ATTEMPTS})`,
-        "info"
-      );
-
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // For demo, simulate success
-      showToast("Payment reconciled successfully! 🎉", "success");
-      await refreshUser();
-      setAmount("");
-      setPaymentStatus("success");
-      stopPolling();
-      return true;
-
+      showToast(`Attempting reconciliation (${reconcileAttempts.current}/${RECONCILE_ATTEMPTS})`, "info");
+      const res = await reconcilePayment(reference);
+      if (res?.data?.success) {
+        showToast("Payment reconciled successfully!", "success");
+        await refreshUser();
+        setAmount("");
+        setPaymentStatus("success");
+        stopPolling();
+        return true;
+      }
+      showToast(res?.data?.message || "Reconciliation failed. Try again.", "error");
+      return false;
     } catch (error) {
-      showToast("Reconciliation failed. Try again.", "error");
+      showToast(error?.response?.data?.message || "Reconciliation failed. Try again.", "error");
       return false;
     }
   };
 
-  /* ---------------- ENHANCED POLLING ---------------- */
-  const startPolling = async (reference) => {
+  const startPolling = (reference) => {
     stopPolling();
     currentTxRef.current = reference;
     setPaymentStatus("pending");
     setIsProcessing(true);
-    showToast("Payment received. Awaiting confirmation…", "info");
+    showToast("Payment received. Awaiting confirmation...", "info");
 
     pollTimer.current = setInterval(async () => {
       if (currentTxRef.current !== reference) {
@@ -151,45 +155,39 @@ const DepositScreen = () => {
       }
 
       pollCount.current += 1;
-
-      // Simulate polling - in real app, call getDepositStatus API
-      if (pollCount.current >= 3) {
-        // Simulate success after 3 polls
-        stopPolling();
-        setPaymentStatus("success");
-        showToast("Wallet credited successfully! 🎉", "success");
-        setAmount("");
-        await refreshUser();
-        return;
+      try {
+        const res = await getDepositStatus(reference);
+        const status = String(res?.data?.status || "").toLowerCase();
+        if (status === "successful") {
+          stopPolling();
+          setPaymentStatus("success");
+          showToast("Wallet credited successfully!", "success");
+          setAmount("");
+          await refreshUser();
+          return;
+        }
+        if (status === "failed") {
+          stopPolling();
+          setPaymentStatus("failed");
+          showToast("Payment failed", "error");
+          return;
+        }
+      } catch {
+        // keep polling
       }
 
-      // Stop polling after max attempts
       if (pollCount.current >= MAX_POLL_ATTEMPTS) {
         stopPolling();
         setPaymentStatus("idle");
-        showToast(
-          "Payment is still processing. Check your balance shortly.",
-          "info"
-        );
-
-        // Show manual reconciliation option
-        if (window.confirm(
-          "Your payment is taking longer than expected. Would you like to manually reconcile?"
-        )) {
-          await attemptReconciliation(reference);
-        }
+        showToast("Payment is still processing. Check your balance shortly.", "info");
       }
     }, POLL_INTERVAL);
   };
 
-  /* ---------------- START PAYMENT ---------------- */
   const handleStartPayment = () => {
     if (!isValidAmount()) {
-      if (enteredAmount < 100) {
-        showToast("Minimum deposit is ₦100", "error");
-      } else if (enteredAmount > 1000000) {
-        showToast("Maximum deposit is ₦1,000,000", "error");
-      }
+      if (enteredAmount < 100) showToast("Minimum deposit is N100", "error");
+      else if (enteredAmount > 1000000) showToast("Maximum deposit is N1,000,000", "error");
       return;
     }
 
@@ -198,53 +196,73 @@ const DepositScreen = () => {
       return;
     }
 
-    const reference = `flw_${user?._id || 'user'}_${Date.now()}`;
+    const reference = `flw_${user?._id || "user"}_${Date.now()}`;
     setTxRef(reference);
     setShowConfirm(true);
     reconcileAttempts.current = 0;
   };
 
-  /* ---------------- FLUTTERWAVE INTEGRATION ---------------- */
-  const handleFlutterwavePayment = () => {
-    // Note: For web, you would use the Flutterwave web SDK
-    // This is a mock implementation for the demo
-    
+  const handleFlutterwavePayment = async () => {
     setShowConfirm(false);
     setIsProcessing(true);
-    showToast("Redirecting to payment gateway...", "info");
-    
-    // Simulate payment processing
-    setTimeout(() => {
-      // For demo, simulate successful payment
-      const reference = `flw_${user?._id || 'user'}_${Date.now()}`;
-      startPolling(reference);
-    }, 2000);
+
+    if (!FLUTTERWAVE_PUBLIC_KEY) {
+      showToast("Flutterwave key missing. Set VITE_FLUTTERWAVE_PUBLIC_KEY.", "error");
+      setIsProcessing(false);
+      return;
+    }
+
+    const loaded = await loadFlutterwaveCheckout();
+    if (!loaded || !window.FlutterwaveCheckout) {
+      showToast("Unable to load payment gateway", "error");
+      setIsProcessing(false);
+      return;
+    }
+
+    window.FlutterwaveCheckout({
+      public_key: FLUTTERWAVE_PUBLIC_KEY,
+      tx_ref: txRef,
+      amount: totalAmount,
+      currency: "NGN",
+      payment_options: "card,banktransfer,ussd",
+      customer: {
+        email: user?.email || "user@example.com",
+        name: user?.username || "User",
+      },
+      customizations: {
+        title: "Biggi Data Deposit",
+        description: "Wallet funding",
+      },
+      callback: async () => {
+        try {
+          const res = await verifyFlutterwavePayment(txRef);
+          if (res?.data?.success) {
+            setPaymentStatus("success");
+            showToast("Payment verified and wallet credited!", "success");
+            setAmount("");
+            await refreshUser();
+            stopPolling();
+            return;
+          }
+          startPolling(txRef);
+        } catch {
+          startPolling(txRef);
+        }
+      },
+      onclose: () => {
+        if (paymentStatus === "idle") setIsProcessing(false);
+      },
+    });
   };
 
-  /* ---------------- STATUS BANNER ---------------- */
   const renderStatusBanner = () => {
     if (paymentStatus === "idle") return null;
-
     const config = {
-      pending: { 
-        text: "Payment processing…", 
-        color: "#FF9800", 
-        icon: <Clock size={20} /> 
-      },
-      success: { 
-        text: "Payment successful 🎉", 
-        color: "#28a745", 
-        icon: <CheckCircle size={20} /> 
-      },
-      failed: { 
-        text: "Payment failed", 
-        color: "#ff5252", 
-        icon: <XCircle size={20} /> 
-      },
+      pending: { text: "Payment processing...", color: "#FF9800", icon: <Clock size={20} /> },
+      success: { text: "Payment successful", color: "#28a745", icon: <CheckCircle size={20} /> },
+      failed: { text: "Payment failed", color: "#ff5252", icon: <XCircle size={20} /> },
     };
-
     const statusConfig = config[paymentStatus];
-
     return (
       <StatusBanner $color={statusConfig.color}>
         {statusConfig.icon}
@@ -253,10 +271,8 @@ const DepositScreen = () => {
     );
   };
 
-  /* ---------------- MANUAL RECONCILE BUTTON ---------------- */
   const renderReconcileButton = () => {
     if (paymentStatus !== "pending" || !txRef || !isProcessing) return null;
-
     return (
       <ReconcileButton onClick={() => attemptReconciliation(txRef)}>
         <RefreshCw size={20} />
@@ -268,7 +284,6 @@ const DepositScreen = () => {
   return (
     <PageContainer>
       <ContentContainer>
-        {/* Toast */}
         {toastVisible && (
           <Toast $type={toastType}>
             <ToastText>{toastMessage}</ToastText>
@@ -277,111 +292,92 @@ const DepositScreen = () => {
 
         {renderStatusBanner()}
 
-        {/* Header */}
         <Header>
-          <BackButton onClick={() => {
-            if (isProcessing) {
-              if (window.confirm(
-                "A payment is being processed. Are you sure you want to leave?"
-              )) {
+          <BackButton
+            onClick={() => {
+              if (isProcessing) {
+                if (window.confirm("A payment is being processed. Are you sure you want to leave?")) {
+                  navigate(-1);
+                }
+              } else {
                 navigate(-1);
               }
-            } else {
-              navigate(-1);
-            }
-          }}>
+            }}
+          >
             <ChevronLeft size={26} />
           </BackButton>
           <HeaderTitle>Deposit Funds</HeaderTitle>
-          <div style={{ width: '26px' }} />
+          <div style={{ width: "26px" }} />
         </Header>
 
-        {/* Main Content */}
         <MainContent>
           <Label>Enter Amount to Deposit</Label>
           <Input
             type="number"
-            placeholder="₦ Amount (min ₦100, max ₦1,000,000)"
+            placeholder="N Amount (min N100, max N1,000,000)"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             disabled={isProcessing}
-            $disabled={isProcessing}
           />
 
           <Breakdown>
             <BreakdownRow>
               <BreakdownLabel>Amount:</BreakdownLabel>
-              <BreakdownValue>₦{enteredAmount.toLocaleString()}</BreakdownValue>
+              <BreakdownValue>N{enteredAmount.toLocaleString()}</BreakdownValue>
             </BreakdownRow>
             <BreakdownRow>
               <BreakdownLabel>Service Charge:</BreakdownLabel>
-              <BreakdownValue>₦{SERVICE_CHARGE}</BreakdownValue>
+              <BreakdownValue>N{SERVICE_CHARGE}</BreakdownValue>
             </BreakdownRow>
             <BreakdownRow $total>
               <TotalLabel>Total:</TotalLabel>
-              <TotalValue>₦{totalAmount.toLocaleString()}</TotalValue>
+              <TotalValue>N{totalAmount.toLocaleString()}</TotalValue>
             </BreakdownRow>
           </Breakdown>
 
           {renderReconcileButton()}
 
-          <PrimaryButton
-            onClick={handleStartPayment}
-            disabled={!isValidAmount() || isProcessing}
-            $disabled={!isValidAmount() || isProcessing}
-          >
+          <PrimaryButton onClick={handleStartPayment} disabled={!isValidAmount() || isProcessing}>
             {isProcessing ? (
               <ProcessingContainer>
                 <Spinner size={16} />
                 <PayText>Processing...</PayText>
               </ProcessingContainer>
             ) : (
-              <PayText>Pay ₦{totalAmount.toLocaleString()}</PayText>
+              <PayText>Pay N{totalAmount.toLocaleString()}</PayText>
             )}
           </PrimaryButton>
 
           <InfoBox>
             <Info size={18} />
             <InfoText>
-              • Payments usually complete within 1-2 minutes{"\n"}
-              • If balance doesn't update, use the reconcile button{"\n"}
-              • Contact support if issues persist
+              - Payments usually complete within 1-2 minutes{"\n"}- If balance doesn't update, use the
+              reconcile button{"\n"}- Contact support if issues persist
             </InfoText>
           </InfoBox>
         </MainContent>
 
-        {/* CONFIRMATION MODAL */}
         {showConfirm && (
           <ModalOverlay onClick={() => setShowConfirm(false)}>
-            <ModalContent onClick={e => e.stopPropagation()}>
+            <ModalContent onClick={(e) => e.stopPropagation()}>
               <ModalTitle>Confirm Payment</ModalTitle>
-
               <ModalDetails>
                 <ModalDetailRow>
                   <ModalDetailLabel>Amount:</ModalDetailLabel>
-                  <ModalDetailValue>₦{enteredAmount.toLocaleString()}</ModalDetailValue>
+                  <ModalDetailValue>N{enteredAmount.toLocaleString()}</ModalDetailValue>
                 </ModalDetailRow>
                 <ModalDetailRow>
                   <ModalDetailLabel>Service Charge:</ModalDetailLabel>
-                  <ModalDetailValue>₦{SERVICE_CHARGE}</ModalDetailValue>
+                  <ModalDetailValue>N{SERVICE_CHARGE}</ModalDetailValue>
                 </ModalDetailRow>
                 <ModalDetailRow $total>
                   <ModalDetailLabel>Total:</ModalDetailLabel>
-                  <ModalTotal>₦{totalAmount.toLocaleString()}</ModalTotal>
+                  <ModalTotal>N{totalAmount.toLocaleString()}</ModalTotal>
                 </ModalDetailRow>
               </ModalDetails>
-
               <ModalButtons>
-                <SecondaryButton onClick={() => setShowConfirm(false)}>
-                  Cancel
-                </SecondaryButton>
-                <PrimaryButton onClick={handleFlutterwavePayment}>
-                  {isProcessing ? (
-                    <Spinner size={16} />
-                  ) : (
-                    'Confirm & Pay'
-                  )}
-                </PrimaryButton>
+                <SecondaryButton onClick={() => setShowConfirm(false)}>Cancel</SecondaryButton>
+                <PrimaryButton onClick={handleFlutterwavePayment}>Confirm & Pay</PrimaryButton>
               </ModalButtons>
             </ModalContent>
           </ModalOverlay>
@@ -393,37 +389,21 @@ const DepositScreen = () => {
 
 export default DepositScreen;
 
-// Animations
 const spin = keyframes`
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 `;
 
 const slideDown = keyframes`
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
 `;
 
 const fadeIn = keyframes`
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 `;
 
-// Styled Components
 const PageContainer = styled.div`
   min-height: 100vh;
   background-color: #fff;
@@ -432,11 +412,6 @@ const PageContainer = styled.div`
   align-items: flex-start;
   padding: 20px;
   overflow-y: auto;
-
-  @media (min-height: 700px) {
-    align-items: center;
-    padding: 40px 20px;
-  }
 `;
 
 const ContentContainer = styled.div`
@@ -453,17 +428,12 @@ const Toast = styled.div`
   top: 20px;
   left: 50%;
   transform: translateX(-50%);
-  background-color: ${props => 
-    props.$type === "error" ? "#ff5252" :
-    props.$type === "success" ? "#28a745" : "#333"
-  };
+  background-color: ${(props) =>
+    props.$type === "error" ? "#ff5252" : props.$type === "success" ? "#28a745" : "#333"};
   padding: 12px 24px;
   border-radius: 10px;
   z-index: 1000;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   animation: ${slideDown} 0.3s ease-out;
-  max-width: 90%;
-  text-align: center;
 `;
 
 const ToastText = styled.span`
@@ -479,7 +449,7 @@ const StatusBanner = styled.div`
   padding: 12px;
   margin: 10px 0 20px;
   border-radius: 8px;
-  background-color: ${props => props.$color};
+  background-color: ${(props) => props.$color};
   width: 100%;
   gap: 8px;
   animation: ${fadeIn} 0.3s ease-out;
@@ -487,7 +457,6 @@ const StatusBanner = styled.div`
 
 const StatusText = styled.span`
   color: #fff;
-  text-align: center;
   font-weight: 600;
   font-size: 14px;
 `;
@@ -511,10 +480,6 @@ const BackButton = styled.button`
   align-items: center;
   justify-content: center;
   color: #000;
-  
-  &:hover {
-    opacity: 0.7;
-  }
 `;
 
 const HeaderTitle = styled.h1`
@@ -545,26 +510,8 @@ const Input = styled.input`
   border: 1px solid #e0e0e0;
   margin-bottom: 20px;
   color: #000;
-  font-family: inherit;
   width: 100%;
   box-sizing: border-box;
-  transition: all 0.2s;
-  
-  &::placeholder {
-    color: #999;
-  }
-  
-  &:focus {
-    outline: none;
-    border-color: #FF7A00;
-    background-color: #fff;
-  }
-  
-  &:disabled {
-    background-color: #f0f0f0;
-    color: #999;
-    cursor: not-allowed;
-  }
 `;
 
 const Breakdown = styled.div`
@@ -578,9 +525,9 @@ const Breakdown = styled.div`
 const BreakdownRow = styled.div`
   display: flex;
   justify-content: space-between;
-  margin-bottom: ${props => props.$total ? '0' : '8px'};
-  padding-top: ${props => props.$total ? '12px' : '0'};
-  border-top: ${props => props.$total ? '1px solid #ddd' : 'none'};
+  margin-bottom: ${(props) => (props.$total ? "0" : "8px")};
+  padding-top: ${(props) => (props.$total ? "12px" : "0")};
+  border-top: ${(props) => (props.$total ? "1px solid #ddd" : "none")};
 `;
 
 const BreakdownLabel = styled.span`
@@ -603,7 +550,7 @@ const TotalLabel = styled(BreakdownLabel)`
 const TotalValue = styled(BreakdownValue)`
   font-size: 18px;
   font-weight: 700;
-  color: #FF7A00;
+  color: #ff7a00;
 `;
 
 const ReconcileButton = styled.button`
@@ -617,41 +564,21 @@ const ReconcileButton = styled.button`
   justify-content: center;
   gap: 8px;
   margin-bottom: 20px;
-  transition: all 0.2s;
-  
-  &:hover {
-    background-color: #e5e5e5;
-  }
-  
-  &:active {
-    transform: scale(0.98);
-  }
 `;
 
 const ReconcileText = styled.span`
-  color: #FF7A00;
+  color: #ff7a00;
   font-weight: 600;
   font-size: 14px;
 `;
 
 const PrimaryButton = styled.button`
-  background-color: ${props => props.$disabled ? '#ccc' : '#FF7A00'};
+  background-color: ${(props) => (props.disabled ? "#ccc" : "#ff7a00")};
   padding: 18px;
   border-radius: 12px;
   border: none;
-  cursor: ${props => props.$disabled ? 'not-allowed' : 'pointer'};
-  font-family: inherit;
-  transition: all 0.2s;
-  box-shadow: ${props => props.$disabled ? 'none' : '0 4px 12px rgba(255, 122, 0, 0.3)'};
+  cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
   width: 100%;
-  
-  &:hover:not(:disabled) {
-    background-color: ${props => props.$disabled ? '#ccc' : '#E56A00'};
-  }
-  
-  &:active:not(:disabled) {
-    transform: scale(0.98);
-  }
 `;
 
 const ProcessingContainer = styled.div`
@@ -662,8 +589,8 @@ const ProcessingContainer = styled.div`
 `;
 
 const Spinner = styled.div`
-  width: ${props => props.size || 16}px;
-  height: ${props => props.size || 16}px;
+  width: ${(props) => props.size || 16}px;
+  height: ${(props) => props.size || 16}px;
   border: 2px solid rgba(255, 255, 255, 0.3);
   border-radius: 50%;
   border-top-color: #fff;
@@ -699,30 +626,16 @@ const SecondaryButton = styled.button`
   border-radius: 10px;
   border: none;
   cursor: pointer;
-  font-family: inherit;
   font-weight: 600;
   font-size: 16px;
   color: #666;
-  transition: all 0.2s;
   flex: 1;
   margin-right: 10px;
-  
-  &:hover {
-    background-color: #e5e5e5;
-  }
-  
-  &:active {
-    transform: scale(0.98);
-  }
 `;
 
-// Modal Styles
 const ModalOverlay = styled.div`
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
@@ -738,7 +651,6 @@ const ModalContent = styled.div`
   border-radius: 16px;
   width: 100%;
   max-width: 400px;
-  animation: ${slideDown} 0.3s ease-out;
 `;
 
 const ModalTitle = styled.h2`
@@ -759,9 +671,9 @@ const ModalDetails = styled.div`
 const ModalDetailRow = styled.div`
   display: flex;
   justify-content: space-between;
-  margin-bottom: ${props => props.$total ? '0' : '12px'};
-  padding-top: ${props => props.$total ? '12px' : '0'};
-  border-top: ${props => props.$total ? '1px solid #ddd' : 'none'};
+  margin-bottom: ${(props) => (props.$total ? "0" : "12px")};
+  padding-top: ${(props) => (props.$total ? "12px" : "0")};
+  border-top: ${(props) => (props.$total ? "1px solid #ddd" : "none")};
 `;
 
 const ModalDetailLabel = styled.span`
@@ -778,7 +690,7 @@ const ModalDetailValue = styled.span`
 const ModalTotal = styled(ModalDetailValue)`
   font-size: 18px;
   font-weight: 700;
-  color: #FF7A00;
+  color: #ff7a00;
 `;
 
 const ModalButtons = styled.div`

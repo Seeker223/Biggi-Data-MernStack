@@ -129,7 +129,7 @@ const HomeScreen = () => {
   const rewardBalance = Number(user.rewardBalance || 0);
   const tickets = Number(user.tickets || 0);
 
-  const goToDeposit = () => navigate('./deposit');
+  const goToDeposit = () => navigate('/deposit');
   const goToWithdraw = () => navigate('/withdraw');
   const goToBundle = () => navigate('/buy-data');
   const goToRedeem = () => navigate('/redeem');
@@ -146,7 +146,7 @@ const HomeScreen = () => {
   const handleDailyGame = () => {
     if (FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM) return;
     if (tickets <= 0) return setTicketModalVisible(true);
-    navigate('/daily-game');
+    navigate('/daily-draw');
   };
 
   const handleMonthlyGame = () => {
