@@ -1,9 +1,10 @@
 // frontend/src/App.jsx
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import GlobalStyle from './globalStyles';
+import SplashScreen from './components/SplashScreen';
 
 // Import pages
 import Login from './pages/auth/Login';
@@ -25,6 +26,22 @@ import DailyNumberDrawScreen from './pages/dashboard/DailyNumberDrawScreen';
 import DailyHistoryScreen from './pages/dashboard/DailyHistoryScreen';
 
 function App() {
+  const [showSplash, setShowSplash] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setShowSplash(false), 3000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (showSplash) {
+    return (
+      <>
+        <GlobalStyle />
+        <SplashScreen />
+      </>
+    );
+  }
+
   return (
     <>
       <GlobalStyle />
