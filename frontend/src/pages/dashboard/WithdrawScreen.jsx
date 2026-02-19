@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import { FEATURE_FLAGS } from '../../constants/featureFlags';
+import api from '../../services/api';
 
 // Biggi Data Brand Colors
 const BRAND_COLORS = {
@@ -134,19 +135,33 @@ const WithdrawScreen = () => {
 
     try {
       setIsProcessing(true);
-      
-      // Simulate API call for account verification
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Mock verification response
-      const mockAccountName = "John Doe"; // In real app, get from API
-      setAccountName(mockAccountName);
-      showToast("Account verified successfully", "success");
-      return true;
-      
+
+      const payload = {
+        account_number: accountNumber,
+        bank_code: selectedBank.code,
+      };
+
+      if (selectedBank.name.toLowerCase().includes("opay")) {
+        payload.is_fintech = true;
+        payload.bank_name = "Opay";
+      }
+
+      const res = await api.post("/wallet/verify-account", payload);
+
+      if (res.data?.success && res.data?.account_name) {
+        setAccountName(res.data.account_name);
+        showToast("Account verified successfully", "success");
+        return true;
+      }
+
+      showToast(res.data?.message || "Account verification failed. Please check details.", "error");
+      return false;
     } catch (error) {
       console.log("Account verification error:", error);
-      showToast("Account verification failed. Please check details.", "error");
+      showToast(
+        error?.response?.data?.message || "Account verification failed. Please check details.",
+        "error"
+      );
       return false;
     } finally {
       setIsProcessing(false);
