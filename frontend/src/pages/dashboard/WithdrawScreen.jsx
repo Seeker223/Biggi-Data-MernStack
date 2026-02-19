@@ -223,24 +223,39 @@ const WithdrawScreen = () => {
     setShowConfirm(false);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Update user balance (in real app, this would be done via backend)
-      showToast("Withdrawal initiated successfully! 🎉", "success");
-      
+      const txRef = `flw_withdraw_${user?._id || "user"}_${Date.now()}`;
+      const payload = {
+        tx_ref: txRef,
+        amount: enteredAmount,
+        account_bank: selectedBank.code,
+        account_number: accountNumber,
+        beneficiary_name: accountName.trim(),
+        narration: "Withdrawal from Biggi Data",
+        currency: "NGN",
+      };
+
+      const res = await api.post("/wallet/flutterwave-withdraw", payload);
+      if (!res.data?.success) {
+        throw new Error(res.data?.message || "Withdrawal failed");
+      }
+
+      showToast("Withdrawal initiated successfully!", "success");
+
       // Reset form
       setAmount("");
       setAccountNumber("");
       setAccountName("");
       setSelectedBank(null);
-      
+
       // Refresh user data
       await refreshUser();
-      
+
     } catch (error) {
       console.log("Withdrawal error:", error);
-      showToast("Failed to process withdrawal. Please try again.", "error");
+      showToast(
+        error?.response?.data?.message || error?.message || "Failed to process withdrawal. Please try again.",
+        "error"
+      );
     } finally {
       setIsProcessing(false);
     }
@@ -1420,3 +1435,4 @@ const PrimaryButton = styled.button`
     transform: scale(0.98);
   }
 `;
+
