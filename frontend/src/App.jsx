@@ -21,6 +21,7 @@ import NotificationScreen from './pages/dashboard/NotificationScreen';
 import ProfileScreen from './pages/dashboard/ProfileScreen';
 import WalletScreen from './pages/dashboard/WalletScreen';
 import DailyLuckyDrawScreen from './pages/dashboard/DailyLuckyDrawScreen';
+import DailyNumberDrawScreen from './pages/dashboard/DailyNumberDrawScreen';
 
 function App() {
   return (
@@ -69,7 +70,7 @@ function App() {
               <Route path="/wallet" element={<WalletScreen />} />
             </Route>
             <Route element={<ProtectedRoute />}>
-              <Route path="/daily-draw" element={<DailyLuckyDrawScreen />} />
+              <Route path="/daily-draw" element={<DailyNumberDrawScreen />} />
             </Route>
             <Route element={<ProtectedRoute />}>
               <Route path="/daily-game" element={<DailyLuckyDrawScreen />} />
