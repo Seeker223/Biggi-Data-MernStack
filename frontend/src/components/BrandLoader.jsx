@@ -21,20 +21,21 @@ const BrandLoader = ({ text = "Loading..." }) => {
 export default BrandLoader;
 
 const Wrap = styled.div`
-  min-height: 40vh;
+  min-height: 70vh;
   width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 16px;
+  text-align: center;
 `;
 
 const LogoRing = styled.div`
-  width: 68px;
-  height: 68px;
+  width: 120px;
+  height: 120px;
   border-radius: 50%;
-  border: 3px solid rgba(255, 122, 0, 0.25);
+  border: 4px solid rgba(255, 122, 0, 0.25);
   border-top-color: #ff7a00;
   display: grid;
   place-items: center;
@@ -42,14 +43,14 @@ const LogoRing = styled.div`
 `;
 
 const Logo = styled.img`
-  width: 42px;
-  height: 42px;
+  width: 84px;
+  height: 84px;
   object-fit: contain;
 `;
 
 const Text = styled.p`
   margin: 0;
   color: #333;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
 `;
