@@ -22,6 +22,9 @@ const DailyNumberDrawScreen = () => {
   const toastTimeoutRef = useRef(null);
 
   const tickets = Number(user?.tickets || 0);
+  const historyCount = Array.isArray(user?.dailyNumberDraw)
+    ? user.dailyNumberDraw.length
+    : 0;
   const numbers = useMemo(
     () => Array.from({ length: MAX_NUMBERS }, (_, i) => i + 1),
     []
@@ -114,8 +117,9 @@ const DailyNumberDrawScreen = () => {
             <ArrowLeft size={20} />
           </IconButton>
           <Title>Daily Number Draw</Title>
-          <IconButton onClick={() => navigate("/daily-history")}>
+          <IconButton onClick={() => navigate("/daily-history")} aria-label="Open history">
             <History size={20} />
+            {historyCount > 0 && <HistoryBadge>{historyCount}</HistoryBadge>}
           </IconButton>
         </Header>
 
@@ -258,6 +262,7 @@ const PrimaryButton = styled.button`
 `;
 
 const IconButton = styled.button`
+  position: relative;
   border: 0;
   background: #fff;
   width: 36px;
@@ -266,6 +271,22 @@ const IconButton = styled.button`
   display: grid;
   place-items: center;
   cursor: pointer;
+`;
+
+const HistoryBadge = styled.span`
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #ff7a00;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+  padding: 0 4px;
 `;
 
 const Overlay = styled.div`
