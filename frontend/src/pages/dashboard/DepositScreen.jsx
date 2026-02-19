@@ -231,7 +231,7 @@ const DepositScreen = () => {
         name: user?.username || "User",
       },
       customizations: {
-        title: "Biggi Data Deposit",
+        title: "Biggi Data Company",
         description: "Wallet funding",
       },
       callback: async () => {
