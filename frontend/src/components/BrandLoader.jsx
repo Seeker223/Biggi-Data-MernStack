@@ -2,9 +2,17 @@ import React from "react";
 import styled, { keyframes } from "styled-components";
 import logo from "../assets/images/biggiDataLogo.png";
 
-const spin = keyframes`
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+const pulse = keyframes`
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(255, 122, 0, 0.35);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 0 0 14px rgba(255, 122, 0, 0);
+    opacity: 0.92;
+  }
 `;
 
 const BrandLoader = ({ text = "Loading..." }) => {
@@ -35,11 +43,10 @@ const LogoRing = styled.div`
   width: 120px;
   height: 120px;
   border-radius: 50%;
-  border: 4px solid rgba(255, 122, 0, 0.25);
-  border-top-color: #ff7a00;
+  border: 4px solid rgba(255, 122, 0, 0.28);
   display: grid;
   place-items: center;
-  animation: ${spin} 1.1s linear infinite;
+  animation: ${pulse} 1.6s ease-in-out infinite;
 `;
 
 const Logo = styled.img`
