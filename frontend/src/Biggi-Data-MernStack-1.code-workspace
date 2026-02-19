@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"path": "../.."
+		},
+		{
+			"path": "../../../Biggi-Data-Reactnative-mern"
+		},
+		{
+			"path": "../../../Biggi-Data-Application"
+		}
+	],
+	"settings": {
+		"liveServer.settings.multiRootWorkspaceName": "Biggi-Data-Reactnative-mern"
+	}
+}
