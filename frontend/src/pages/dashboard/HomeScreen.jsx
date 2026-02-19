@@ -18,7 +18,8 @@ import {
   ChevronRight,
   Wallet,
   LogOut,
-  User
+  User,
+  Download
 } from 'lucide-react';
 
 import FloatingBottomNav from '../../components/FloatingBottomNav';
@@ -28,6 +29,7 @@ import { FEATURE_FLAGS } from '../../constants/featureFlags';
 
 const HomeScreen = () => {
   const navigate = useNavigate();
+  const appDownloadUrl = import.meta.env.VITE_APP_DOWNLOAD_URL || "";
   const { 
     user, 
     refreshUser, 
@@ -141,6 +143,18 @@ const HomeScreen = () => {
   const goToNotification = () => {
     markNotificationsAsSeen();
     navigate('/notifications');
+  };
+
+  const handleDownloadApp = () => {
+    if (!appDownloadUrl) {
+      showPermissionModal(
+        "Download Link Missing",
+        "Set VITE_APP_DOWNLOAD_URL in frontend env to enable app download.",
+        "info"
+      );
+      return;
+    }
+    window.open(appDownloadUrl, "_blank", "noopener,noreferrer");
   };
 
   const handleDailyGame = () => {
@@ -262,19 +276,26 @@ const HomeScreen = () => {
               </UserText>
             </UserInfo>
             
-            {/* NOTIFICATION BELL WITH BADGE */}
-            <BellButton onClick={goToNotification}>
-              <BellContainer>
-                <BellIcon size={26} />
-                {notificationCount > 0 && (
-                  <NotificationBadge>
-                    <NotificationBadgeText>
-                      {notificationCount > 9 ? "9+" : notificationCount}
-                    </NotificationBadgeText>
-                  </NotificationBadge>
-                )}
-              </BellContainer>
-            </BellButton>
+            <HeaderActions>
+              <DownloadAppButton onClick={handleDownloadApp}>
+                <Download size={14} />
+                <DownloadAppText>Download App</DownloadAppText>
+              </DownloadAppButton>
+
+              {/* NOTIFICATION BELL WITH BADGE */}
+              <BellButton onClick={goToNotification}>
+                <BellContainer>
+                  <BellIcon size={26} />
+                  {notificationCount > 0 && (
+                    <NotificationBadge>
+                      <NotificationBadgeText>
+                        {notificationCount > 9 ? "9+" : notificationCount}
+                      </NotificationBadgeText>
+                    </NotificationBadge>
+                  )}
+                </BellContainer>
+              </BellButton>
+            </HeaderActions>
           </Header>
 
           {/* WALLET CARD */}
@@ -737,6 +758,47 @@ const SubText = styled.p`
   @media (max-width: 480px) {
     font-size: 13px;
   }
+`;
+
+const HeaderActions = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+`;
+
+const DownloadAppButton = styled.button`
+  background-color: #ff7a00;
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 8px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(255, 122, 0, 0.3);
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: #e56a00;
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  @media (max-width: 480px) {
+    padding: 7px 10px;
+    font-size: 11px;
+  }
+`;
+
+const DownloadAppText = styled.span`
+  line-height: 1;
 `;
 
 const BellButton = styled.button`
