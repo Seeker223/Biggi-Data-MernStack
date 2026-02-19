@@ -141,9 +141,12 @@ const WithdrawScreen = () => {
         bank_code: selectedBank.code,
       };
 
-      if (selectedBank.name.toLowerCase().includes("opay")) {
+      const bankName = selectedBank.name.toLowerCase();
+      const isFintechBank = bankName.includes("opay") || bankName.includes("palmpay");
+
+      if (isFintechBank) {
         payload.is_fintech = true;
-        payload.bank_name = "Opay";
+        payload.bank_name = selectedBank.name;
       }
 
       const res = await api.post("/wallet/verify-account", payload);
