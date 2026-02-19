@@ -4,6 +4,7 @@ import styled from "styled-components";
 import { ArrowLeft, History, RefreshCcw, Ticket, Trophy } from "lucide-react";
 import { AuthContext } from "../../context/AuthContext";
 import { FEATURE_FLAGS } from "../../constants/featureFlags";
+import BrandLoader from "../../components/BrandLoader";
 
 const DailyHistoryScreen = () => {
   const navigate = useNavigate();
@@ -42,7 +43,7 @@ const DailyHistoryScreen = () => {
   if (loading) {
     return (
       <Page>
-        <CenterText>Loading history...</CenterText>
+        <BrandLoader text="Loading Biggi Data..." />
       </Page>
     );
   }
@@ -337,10 +338,4 @@ const WinBadge = styled.span`
   font-weight: 800;
   border-radius: 8px;
   padding: 6px 10px;
-`;
-
-const CenterText = styled.p`
-  color: #fff;
-  text-align: center;
-  margin-top: 40px;
 `;

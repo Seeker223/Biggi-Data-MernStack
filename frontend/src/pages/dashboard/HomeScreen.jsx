@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 
 import FloatingBottomNav from '../../components/FloatingBottomNav';
+import BrandLoader from '../../components/BrandLoader';
 import { AuthContext } from '../../context/AuthContext';
 import { FEATURE_FLAGS } from '../../constants/featureFlags';
 
@@ -117,8 +118,7 @@ const HomeScreen = () => {
       <PageContainer>
         <ContentContainer>
           <LoadingContainer>
-            <Spinner />
-            <LoadingText>Loading...</LoadingText>
+            <BrandLoader text="Loading Biggi Data..." />
           </LoadingContainer>
         </ContentContainer>
       </PageContainer>
@@ -635,7 +635,6 @@ const ContentContainer = styled.div`
 
 const LoadingContainer = styled.div`
   display: flex;
-  flex-direction: column;
   justify-content: center;
   align-items: center;
   height: 100vh;
@@ -654,12 +653,6 @@ const Spinner = styled.div`
 
 const SpinningRefresh = styled(RefreshCw)`
   animation: ${spin} 1s linear infinite;
-`;
-
-const LoadingText = styled.div`
-  color: #333;
-  margin-top: 10px;
-  font-size: 14px;
 `;
 
 const ScrollContainer = styled.div`
