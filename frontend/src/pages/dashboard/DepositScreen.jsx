@@ -24,6 +24,7 @@ const MAX_POLL_ATTEMPTS = 20;
 const RECONCILE_ATTEMPTS = 3;
 const FLUTTERWAVE_PUBLIC_KEY =
   import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY ||
+  import.meta.env.VITE_FLUTTERWAVE_KEY ||
   import.meta.env.EXPO_PUBLIC_FLUTTERWAVE_KEY ||
   "";
 
