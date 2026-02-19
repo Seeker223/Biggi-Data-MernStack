@@ -5,7 +5,7 @@ import Confetti from "react-confetti";
 import { ArrowLeft, CheckCircle2, History, Ticket, TriangleAlert } from "lucide-react";
 import { AuthContext } from "../../context/AuthContext";
 import { FEATURE_FLAGS } from "../../constants/featureFlags";
-import { playDailyGame } from "../../services/api";
+import api from "../../utils/api";
 
 const MAX_NUMBERS = 70;
 const REQUIRED_PICKS = 5;
@@ -67,7 +67,10 @@ const DailyNumberDrawScreen = () => {
 
     setSubmitting(true);
     try {
-      const res = await playDailyGame(selectedNumbers);
+      const res = await api.post("/daily-game/play", {
+        numbers: selectedNumbers,
+      });
+
       if (res?.data?.success) {
         await refreshUser?.();
         setSelectedNumbers([]);
@@ -75,10 +78,14 @@ const DailyNumberDrawScreen = () => {
         setShowConfetti(true);
         window.setTimeout(() => setShowConfetti(false), 1800);
       } else {
-        showToast(res?.data?.message || "Submission failed");
+        showToast(res?.data?.message || res?.data?.msg || "Submission failed");
       }
     } catch (err) {
-      showToast(err?.response?.data?.message || "Unable to submit");
+      showToast(
+        err?.response?.data?.message ||
+          err?.response?.data?.msg ||
+          "Unable to submit"
+      );
     } finally {
       setSubmitting(false);
     }
