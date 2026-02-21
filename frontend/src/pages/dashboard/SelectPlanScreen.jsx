@@ -13,6 +13,66 @@ const SelectPlanScreen = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
+  const PRICE_OVERRIDES = {
+    mtn: { "500MB": 450, "1GB": 550 },
+    glo: { "500MB": 330, "1GB": 440 },
+    airtel: { "500MB": 580, "1GB": 890 },
+  };
+
+  const normalizeText = (value) => String(value || "").toLowerCase().replace(/\s+/g, " ").trim();
+  const extractSizeInMb = (plan) => {
+    const source = `${plan?.name || ""} ${plan?.plan_name || ""}`;
+    const match = source.match(/(\d+(?:\.\d+)?)\s*(gb|mb)/i);
+    if (!match) return null;
+    const value = Number(match[1]);
+    if (Number.isNaN(value)) return null;
+    const unit = String(match[2] || "").toLowerCase();
+    return unit === "gb" ? value * 1024 : value;
+  };
+  const pickClosestPlan = (plansWithSize, targetMb, usedIds) => {
+    const available = plansWithSize.filter((p) => !usedIds.has(p.id));
+    if (available.length === 0) return null;
+    available.sort((a, b) => {
+      const da = Math.abs(a.sizeMb - targetMb);
+      const db = Math.abs(b.sizeMb - targetMb);
+      if (da !== db) return da - db;
+      return Number(a.plan.amount || 0) - Number(b.plan.amount || 0);
+    });
+    return available[0];
+  };
+  const buildLimitedPlans = (rawPlans, networkLabel, networkKey) => {
+    const plansWithSize = rawPlans
+      .map((plan) => {
+        const id = plan.plan_id || plan._id || plan.id;
+        return { id, sizeMb: extractSizeInMb(plan), plan };
+      })
+      .filter((entry) => entry.id && entry.sizeMb !== null);
+
+    if (plansWithSize.length === 0) return [];
+
+    const usedIds = new Set();
+    const targetConfigs = [
+      { targetMb: 500, label: "500MB" },
+      { targetMb: 1024, label: "1GB" },
+    ];
+
+    const selected = targetConfigs
+      .map((target) => {
+        const picked = pickClosestPlan(plansWithSize, target.targetMb, usedIds);
+        if (!picked) return null;
+        usedIds.add(picked.id);
+        return {
+          ...picked.plan,
+          name: `${networkLabel} ${target.label}`,
+          plan_name: `${networkLabel} ${target.label}`,
+          validity: "7 days",
+          amount: PRICE_OVERRIDES[networkKey]?.[target.label] ?? picked.plan.amount,
+        };
+      })
+      .filter(Boolean);
+
+    return selected;
+  };
 
   useEffect(() => {
     let live = true;
@@ -24,7 +84,12 @@ const SelectPlanScreen = () => {
       try {
         const res = await api.get(`/plans/network/${selectedNetwork.code}`);
         if (!live) return;
-        setPlans(Array.isArray(res.data?.plans) ? res.data.plans : []);
+        const rawPlans = Array.isArray(res.data?.plans) ? res.data.plans : [];
+        const label = normalizeText(selectedNetwork?.label || selectedNetwork?.network || "").toUpperCase();
+        const networkKey = normalizeText(
+          selectedNetwork?.code || selectedNetwork?.network || selectedNetwork?.label || ""
+        );
+        setPlans(buildLimitedPlans(rawPlans, label || "DATA", networkKey));
       } catch (err) {
         if (!live) return;
         setError(err?.response?.data?.msg || "Could not load plans");
