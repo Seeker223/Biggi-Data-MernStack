@@ -168,7 +168,7 @@ export const getDepositStatus = (tx_ref) =>
 export const reconcilePayment = (tx_ref) =>
   api.post("/wallet/reconcile-payment", { tx_ref });
 
-export const redeemRewards = () => api.post("/wallet/redeem");
+export const redeemRewards = (payload = {}) => api.post("/wallet/redeem", payload);
 
 export const withdrawFunds = (payload) => api.post("/wallet/withdraw", payload);
 

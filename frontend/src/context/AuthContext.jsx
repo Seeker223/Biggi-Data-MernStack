@@ -146,18 +146,24 @@ export const AuthProvider = ({ children }) => {
     });
   };
 
+  const updateUser = (partialUser) => {
+    setUser((prev) => (prev ? { ...prev, ...partialUser } : prev));
+  };
+
   return (
     <AuthContext.Provider
       value={{
         user,
         token,
         loading,
+        authLoading: loading,
         notificationCount,
         login,
         register,
         logout,
         refreshUser,
         setUser,
+        updateUser,
         markNotificationsAsSeen,
         incrementNotificationCount,
       }}

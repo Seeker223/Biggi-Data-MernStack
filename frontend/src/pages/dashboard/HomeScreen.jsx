@@ -317,7 +317,7 @@ const HomeScreen = () => {
             <Divider />
             <BalanceRow>
               <div>
-                <BalanceLabel>Reward Balance</BalanceLabel>
+                <BalanceLabel>Redeem Balance</BalanceLabel>
                 <Balance>₦{rewardBalance.toLocaleString()}</Balance>
               </div>
               <RedeemBtn 
