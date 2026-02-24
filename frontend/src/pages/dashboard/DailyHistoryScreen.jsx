@@ -5,6 +5,7 @@ import { ArrowLeft, History, RefreshCcw, Ticket, Trophy } from "lucide-react";
 import { AuthContext } from "../../context/AuthContext";
 import { FEATURE_FLAGS } from "../../constants/featureFlags";
 import BrandLoader from "../../components/BrandLoader";
+import { toLetters } from "../../utils/drawLetters";
 
 const DailyHistoryScreen = () => {
   const navigate = useNavigate();
@@ -82,8 +83,8 @@ const DailyHistoryScreen = () => {
         ) : (
           <List>
             {history.map((item, idx) => {
-              const picked = Array.isArray(item.numbers) ? item.numbers : [];
-              const result = Array.isArray(item.result) ? item.result : [];
+              const picked = toLetters(item.numbers);
+              const result = toLetters(item.result);
               const isWinner = Boolean(item.isWinner);
               const matched = result.length
                 ? picked.filter((n) => result.includes(n)).length

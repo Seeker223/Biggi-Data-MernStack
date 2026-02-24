@@ -6,14 +6,14 @@ import { ArrowLeft, CheckCircle2, History, Ticket, TriangleAlert } from "lucide-
 import { AuthContext } from "../../context/AuthContext";
 import { FEATURE_FLAGS } from "../../constants/featureFlags";
 import api from "../../utils/api";
+import { DRAW_LETTERS, letterToNumber } from "../../utils/drawLetters";
 
-const MAX_NUMBERS = 70;
 const REQUIRED_PICKS = 5;
 
 const DailyNumberDrawScreen = () => {
   const navigate = useNavigate();
   const { user, refreshUser } = useContext(AuthContext);
-  const [selectedNumbers, setSelectedNumbers] = useState([]);
+  const [selectedLetters, setSelectedLetters] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [successModal, setSuccessModal] = useState(false);
   const [noTicketModal, setNoTicketModal] = useState(false);
@@ -25,10 +25,7 @@ const DailyNumberDrawScreen = () => {
   const historyCount = Array.isArray(user?.dailyNumberDraw)
     ? user.dailyNumberDraw.length
     : 0;
-  const numbers = useMemo(
-    () => Array.from({ length: MAX_NUMBERS }, (_, i) => i + 1),
-    []
-  );
+  const letters = useMemo(() => DRAW_LETTERS, []);
 
   const showToast = (message) => {
     setToast(message);
@@ -38,23 +35,23 @@ const DailyNumberDrawScreen = () => {
     toastTimeoutRef.current = window.setTimeout(() => setToast(""), 1800);
   };
 
-  const toggleNumber = (num) => {
+  const toggleLetter = (letter) => {
     if (tickets <= 0) {
       setNoTicketModal(true);
       return;
     }
 
-    if (selectedNumbers.includes(num)) {
-      setSelectedNumbers((prev) => prev.filter((n) => n !== num));
+    if (selectedLetters.includes(letter)) {
+      setSelectedLetters((prev) => prev.filter((n) => n !== letter));
       return;
     }
 
-    if (selectedNumbers.length < REQUIRED_PICKS) {
-      setSelectedNumbers((prev) => [...prev, num]);
+    if (selectedLetters.length < REQUIRED_PICKS) {
+      setSelectedLetters((prev) => [...prev, letter]);
       return;
     }
 
-    showToast("You can select only 5 numbers");
+    showToast("You can select only 5 letters");
   };
 
   const handleSubmit = async () => {
@@ -63,20 +60,21 @@ const DailyNumberDrawScreen = () => {
       return;
     }
 
-    if (selectedNumbers.length !== REQUIRED_PICKS) {
-      showToast("Select exactly 5 numbers");
+    if (selectedLetters.length !== REQUIRED_PICKS) {
+      showToast("Select exactly 5 letters");
       return;
     }
 
     setSubmitting(true);
     try {
+      const mappedNumbers = selectedLetters.map((letter) => letterToNumber(letter));
       const res = await api.post("/daily-game/play", {
-        numbers: selectedNumbers,
+        numbers: mappedNumbers,
       });
 
       if (res?.data?.success) {
         await refreshUser?.();
-        setSelectedNumbers([]);
+        setSelectedLetters([]);
         setSuccessModal(true);
         setShowConfetti(true);
         window.setTimeout(() => setShowConfetti(false), 1800);
@@ -125,7 +123,7 @@ const DailyNumberDrawScreen = () => {
 
         <Card>
           <Muted>
-            Select 5 lucky numbers from 1-70. Each play consumes 1 ticket.
+            Select 5 letters from A-Z then a-z (52 total). Each play consumes 1 ticket.
           </Muted>
           <TicketRow>
             <Ticket size={18} color="#ff7a00" />
@@ -133,15 +131,15 @@ const DailyNumberDrawScreen = () => {
           </TicketRow>
 
           <Grid>
-            {numbers.map((num) => {
-              const selected = selectedNumbers.includes(num);
+            {letters.map((letter) => {
+              const selected = selectedLetters.includes(letter);
               return (
                 <NumButton
-                  key={num}
+                  key={letter}
                   $selected={selected}
-                  onClick={() => toggleNumber(num)}
+                  onClick={() => toggleLetter(letter)}
                 >
-                  {num}
+                  {letter}
                 </NumButton>
               );
             })}
@@ -149,7 +147,7 @@ const DailyNumberDrawScreen = () => {
 
           <PrimaryButton
             onClick={handleSubmit}
-            disabled={submitting || selectedNumbers.length !== REQUIRED_PICKS}
+            disabled={submitting || selectedLetters.length !== REQUIRED_PICKS}
           >
             {submitting ? "Submitting..." : "Submit"}
           </PrimaryButton>
@@ -163,7 +161,7 @@ const DailyNumberDrawScreen = () => {
           <ModalCard>
             <CheckCircle2 size={54} color="#22c55e" />
             <h3>Submitted</h3>
-            <p>Your numbers were entered. Results are drawn at 7:00 PM.</p>
+            <p>Your letters were entered. Results are drawn at 7:00 PM.</p>
             <PrimaryButton onClick={() => setSuccessModal(false)}>OK</PrimaryButton>
           </ModalCard>
         </Overlay>

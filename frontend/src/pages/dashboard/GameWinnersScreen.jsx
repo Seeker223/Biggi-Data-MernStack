@@ -12,6 +12,7 @@ import {
 import { AuthContext } from "../../context/AuthContext";
 import { FEATURE_FLAGS } from "../../constants/featureFlags";
 import { claimDailyReward } from "../../services/api";
+import { toLetters } from "../../utils/drawLetters";
 
 export default function GameWinnersScreen() {
   const navigate = useNavigate();
@@ -55,8 +56,8 @@ export default function GameWinnersScreen() {
             hour: "2-digit",
             minute: "2-digit",
           }),
-          numbers: game.numbers || [],
-          result: game.result || [],
+          numbers: toLetters(game.numbers),
+          result: toLetters(game.result),
         })),
     [user]
   );
@@ -95,7 +96,7 @@ export default function GameWinnersScreen() {
       type: "daily",
       amount: FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "-" : "N2,000",
       date: "Today, 7:30 PM",
-      numbers: [15, 23, 42, 56, 68],
+      numbers: ["A", "F", "M", "Q", "z"],
     },
     {
       name: "Sarah Williams",
@@ -103,7 +104,7 @@ export default function GameWinnersScreen() {
       type: "daily",
       amount: FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "-" : "N2,000",
       date: "Yesterday, 7:30 PM",
-      numbers: [8, 19, 34, 47, 62],
+      numbers: ["C", "R", "X", "g", "p"],
     },
     {
       name: "Emma Davis",
@@ -111,7 +112,7 @@ export default function GameWinnersScreen() {
       type: "daily",
       amount: FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "-" : "N2,000",
       date: "2 Days Ago, 7:30 PM",
-      numbers: [3, 27, 41, 55, 70],
+      numbers: ["K", "O", "U", "d", "y"],
     },
     ...userWins,
   ];
@@ -280,7 +281,7 @@ export default function GameWinnersScreen() {
                     <WinnerDate>{winner.date}</WinnerDate>
                     {winner.numbers && (
                       <WinnerMeta>
-                        Numbers: {winner.numbers.join(", ")}
+                        Letters: {winner.numbers.join(", ")}
                       </WinnerMeta>
                     )}
                     {winner.note && <WinnerNote>{winner.note}</WinnerNote>}
