@@ -5,6 +5,7 @@ import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import GlobalStyle from './globalStyles';
 import SplashScreen from './components/SplashScreen';
+import AlertModalHost from './components/AlertModalHost';
 
 // Import pages
 import Login from './pages/auth/Login';
@@ -48,6 +49,7 @@ function App() {
     <>
       <GlobalStyle />
       <AuthProvider>
+        <AlertModalHost />
         <Router>
           <Routes>
             {/* Public Routes */}

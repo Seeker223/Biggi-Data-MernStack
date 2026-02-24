@@ -9,6 +9,7 @@ import {
 } from "../../services/api";
 import { AuthContext } from "../../context/AuthContext";
 import { FEATURE_FLAGS } from "../../constants/featureFlags";
+import showAlert from "../../utils/alert";
 
 const getCurrentMonth = () => {
   const now = new Date();
@@ -54,7 +55,7 @@ const TopRandomScreen = () => {
 
   const handleClaim = async () => {
     if (FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM) {
-      window.alert("Claiming is temporarily disabled.");
+      showAlert("Claiming is temporarily disabled.");
       return;
     }
     setClaiming(true);
@@ -63,7 +64,7 @@ const TopRandomScreen = () => {
       await claimTopRandomMonthlyReward(month);
       await refreshUser?.();
       await loadData();
-      window.alert("Reward claimed successfully and added to redeem balance.");
+      showAlert("Success", "Reward claimed successfully and added to redeem balance.");
     } catch (err) {
       setError(
         err?.response?.data?.message ||

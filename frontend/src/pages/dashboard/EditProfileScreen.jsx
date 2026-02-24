@@ -7,13 +7,13 @@ import {
   Switch,
   TouchableOpacity,
   Image,
-  Alert,
   ActivityIndicator,
 } from "react-native";
 import Header from "../../components/Header";
 import FloatingBottomNav from "../../components/FloatingBottomNav";
 import * as ImagePicker from "expo-image-picker";
 import { fetchUser, updateUserProfile, updateAvatar } from "../../utils/api";
+import { Alert as ModalAlert } from "../../utils/alert";
 
 export default function EditProfileScreen() {
   const [isEnabled, setIsEnabled] = useState(true);
@@ -64,7 +64,7 @@ export default function EditProfileScreen() {
       }
     } catch (err) {
       console.log("Picker error:", err);
-      Alert.alert("Error", "Failed to select image.");
+      ModalAlert.alert("Error", "Failed to select image.");
     }
   };
 
@@ -87,13 +87,13 @@ export default function EditProfileScreen() {
 
       if (res.data?.success) {
         setAvatar(res.data.user.photo);
-        Alert.alert("Success", "Avatar updated successfully!");
+        ModalAlert.alert("Success", "Avatar updated successfully!");
       } else {
-        Alert.alert("Error", res.data?.msg || "Upload failed");
+        ModalAlert.alert("Error", res.data?.msg || "Upload failed");
       }
     } catch (err) {
       console.log("Avatar upload failed:", err);
-      Alert.alert("Error", "Failed to upload avatar.");
+      ModalAlert.alert("Error", "Failed to upload avatar.");
     } finally {
       setLoading(false);
     }
@@ -115,13 +115,13 @@ export default function EditProfileScreen() {
       const res = await updateUserProfile(payload);
 
       if (res.data?.success) {
-        Alert.alert("Success", "Profile updated successfully!");
+        ModalAlert.alert("Success", "Profile updated successfully!");
       } else {
-        Alert.alert("Error", res.data?.msg || "Update failed");
+        ModalAlert.alert("Error", res.data?.msg || "Update failed");
       }
     } catch (err) {
       console.log("Profile update error:", err);
-      Alert.alert("Error", "Failed to update profile.");
+      ModalAlert.alert("Error", "Failed to update profile.");
     } finally {
       setLoading(false);
     }

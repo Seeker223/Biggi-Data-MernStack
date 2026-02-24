@@ -13,6 +13,7 @@ import { AuthContext } from "../../context/AuthContext";
 import { FEATURE_FLAGS } from "../../constants/featureFlags";
 import { claimDailyReward, getMonthlyWinners } from "../../services/api";
 import { toLetters } from "../../utils/drawLetters";
+import showAlert from "../../utils/alert";
 
 export default function GameWinnersScreen() {
   const navigate = useNavigate();
@@ -136,7 +137,7 @@ export default function GameWinnersScreen() {
 
   const handleClaim = async () => {
     if (FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM) {
-      window.alert(
+      showAlert(
         "Feature Disabled: Claiming rewards is temporarily disabled for Play Store review."
       );
       return;
@@ -196,7 +197,7 @@ export default function GameWinnersScreen() {
           setClaimFallbackInfo(true);
           setSuccessVisible(true);
         } else {
-          window.alert(errorMessage || "Failed to claim reward(s). Please try again.");
+          showAlert(errorMessage || "Failed to claim reward(s). Please try again.");
         }
       } finally {
         setClaiming(false);
