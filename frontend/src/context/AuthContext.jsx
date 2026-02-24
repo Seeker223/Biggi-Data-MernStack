@@ -2,6 +2,20 @@ import React, { createContext, useState, useEffect, useCallback } from "react";
 import api from "../utils/api";
 
 export const AuthContext = createContext();
+const LOCAL_NOTIFICATIONS_KEY = "bd_local_notifications";
+
+const getLocalNotifications = () => {
+  try {
+    const raw = localStorage.getItem(LOCAL_NOTIFICATIONS_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+const getLocalUnreadCount = () =>
+  getLocalNotifications().filter((item) => !item?.seen).length;
 
 const getAuthErrorMessage = (error, fallbackMessage) => {
   if (error?.response?.data?.error) return error.response.data.error;
@@ -42,7 +56,8 @@ export const AuthProvider = ({ children }) => {
           setUser(res.data.user);
           // Calculate notification count
           const notifications = res.data.notifications || 0;
-          setNotificationCount(notifications > 9 ? 9 : notifications);
+          const total = notifications + getLocalUnreadCount();
+          setNotificationCount(total > 9 ? 9 : total);
         } catch (error) {
           console.error("Auth init error:", error);
           logout();
@@ -136,6 +151,11 @@ export const AuthProvider = ({ children }) => {
   }, [token]);
 
   const markNotificationsAsSeen = () => {
+    const localItems = getLocalNotifications().map((item) => ({
+      ...item,
+      seen: true,
+    }));
+    localStorage.setItem(LOCAL_NOTIFICATIONS_KEY, JSON.stringify(localItems));
     setNotificationCount(0);
   };
 

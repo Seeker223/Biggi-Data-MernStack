@@ -8,10 +8,11 @@ import { redeemRewards } from "../../services/api";
 
 const MIN_REDEEM = 100;
 const REDEEM_RATE_LABEL = "1 Reward Naira = 1 Naira";
+const LOCAL_NOTIFICATIONS_KEY = "bd_local_notifications";
 
 const RedeemScreen = () => {
   const navigate = useNavigate();
-  const { user, refreshUser, updateUser } = useContext(AuthContext);
+  const { user, refreshUser, updateUser, incrementNotificationCount } = useContext(AuthContext);
 
   const [amount, setAmount] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -40,6 +41,26 @@ const RedeemScreen = () => {
   const showToast = (message, type = "info") => {
     setToast({ visible: true, type, message });
     setTimeout(() => setToast((prev) => ({ ...prev, visible: false })), 3200);
+  };
+
+  const addRedeemNotification = (amountValue) => {
+    try {
+      const raw = localStorage.getItem(LOCAL_NOTIFICATIONS_KEY);
+      const current = raw ? JSON.parse(raw) : [];
+      const list = Array.isArray(current) ? current : [];
+      list.unshift({
+        id: `redeem_${Date.now()}`,
+        type: "Redeem",
+        status: "success",
+        amount: amountValue,
+        createdAt: new Date().toISOString(),
+        seen: false,
+      });
+      localStorage.setItem(LOCAL_NOTIFICATIONS_KEY, JSON.stringify(list.slice(0, 50)));
+      incrementNotificationCount?.();
+    } catch {
+      // Ignore local notification write errors silently.
+    }
   };
 
   const handleRedeem = async () => {
@@ -75,6 +96,7 @@ const RedeemScreen = () => {
 
       setAmount("");
       setSuccess({ visible: true, amount: redeemedAmount });
+      addRedeemNotification(redeemedAmount);
       showToast(data?.message || "Reward redeemed successfully.", "success");
     } catch (error) {
       showToast(

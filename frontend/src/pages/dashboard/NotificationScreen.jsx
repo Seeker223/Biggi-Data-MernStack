@@ -5,12 +5,15 @@ import { ArrowLeft, Bell, RefreshCw } from "lucide-react";
 import { AuthContext } from "../../context/AuthContext";
 import api from "../../utils/api";
 
+const LOCAL_NOTIFICATIONS_KEY = "bd_local_notifications";
+
 const NotificationScreen = () => {
   const navigate = useNavigate();
   const { user, markNotificationsAsSeen } = useContext(AuthContext);
   const [loading, setLoading] = useState(true);
   const [deposits, setDeposits] = useState([]);
   const [withdrawals, setWithdrawals] = useState([]);
+  const [localNotifications, setLocalNotifications] = useState([]);
 
   const fetchData = async () => {
     try {
@@ -25,6 +28,13 @@ const NotificationScreen = () => {
       }
       if (wdRes.status === "fulfilled") {
         setWithdrawals(wdRes.value.data?.withdrawals || []);
+      }
+      try {
+        const raw = localStorage.getItem(LOCAL_NOTIFICATIONS_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        setLocalNotifications(Array.isArray(parsed) ? parsed : []);
+      } catch {
+        setLocalNotifications([]);
       }
     } finally {
       setLoading(false);
@@ -49,8 +59,19 @@ const NotificationScreen = () => {
       amount: x.amount || 0,
       createdAt: x.createdAt,
     }));
-    return [...d, ...w].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  }, [deposits, withdrawals]);
+    const l = localNotifications.map((x) => ({
+      type: x.type || "Notification",
+      status: x.status || "created",
+      amount: x.amount || 0,
+      createdAt: x.createdAt,
+    }));
+    return [...d, ...w, ...l].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  }, [deposits, withdrawals, localNotifications]);
+
+  const redeemCount = useMemo(
+    () => localNotifications.filter((item) => item?.type === "Redeem").length,
+    [localNotifications]
+  );
 
   return (
     <Page>
@@ -77,6 +98,10 @@ const NotificationScreen = () => {
           <Stat>
             <StatNumber>{user?.dailyNumberDraw?.length || 0}</StatNumber>
             <StatLabel>Games</StatLabel>
+          </Stat>
+          <Stat>
+            <StatNumber>{redeemCount}</StatNumber>
+            <StatLabel>Redeems</StatLabel>
           </Stat>
         </Stats>
 
@@ -142,7 +167,7 @@ const Title = styled.h1`
 
 const Stats = styled.div`
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 8px;
   margin-bottom: 14px;
 `;
