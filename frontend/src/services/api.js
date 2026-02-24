@@ -306,6 +306,15 @@ export const claimDailyReward = (gameId) =>
 export const claimMonthlyReward = (month) =>
   api.post("/monthly-game/claim", { month });
 
+export const getTopRandomMonthlyStatus = (month) =>
+  api.get("/top-random-monthly/status", month ? { params: { month } } : {});
+
+export const getTopRandomMonthlyWinners = (month) =>
+  api.get("/top-random-monthly/winners", month ? { params: { month } } : {});
+
+export const claimTopRandomMonthlyReward = (month) =>
+  api.post("/top-random-monthly/claim", month ? { month } : {});
+
 // -----------------------------------------------------------
 // NOTIFICATIONS
 // -----------------------------------------------------------

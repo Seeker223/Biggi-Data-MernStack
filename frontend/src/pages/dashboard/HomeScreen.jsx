@@ -141,6 +141,7 @@ const HomeScreen = () => {
   const goToWithdraw = () => navigate('/withdraw');
   const goToBundle = () => navigate('/buy-data');
   const goToRedeem = () => navigate('/redeem');
+  const goToTopRandom = () => navigate('/top-random');
   const goToDraws = () => {
     if (FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM) return;
     navigate('/daily-draw');
@@ -462,6 +463,17 @@ const HomeScreen = () => {
                 )}
               </MonthlyBtn>
             </MonthlyGameCard>
+
+            <TopRandomCard>
+              <TopRandomTitle>Top Random Monthly Picks</TopRandomTitle>
+              <TopRandomDesc>
+                10 random users who bought data this month win ₦2,000 each.
+              </TopRandomDesc>
+              <TopRandomBtn onClick={goToTopRandom}>
+                <Trophy size={18} />
+                <TopRandomBtnText>Open Top Random Picks</TopRandomBtnText>
+              </TopRandomBtn>
+            </TopRandomCard>
           </ContentSection>
         </ScrollContainer>
 
@@ -1468,6 +1480,55 @@ const MonthlyBtnText = styled.span`
   @media (max-width: 480px) {
     font-size: 14px;
   }
+`;
+
+const TopRandomCard = styled.div`
+  margin-top: 16px;
+  background: linear-gradient(135deg, #0f766e 0%, #0ea5a4 100%);
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: 0 8px 24px rgba(15, 118, 110, 0.28);
+`;
+
+const TopRandomTitle = styled.h3`
+  margin: 0;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 800;
+  text-align: center;
+`;
+
+const TopRandomDesc = styled.p`
+  margin: 10px 0 14px;
+  color: rgba(255, 255, 255, 0.92);
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.45;
+`;
+
+const TopRandomBtn = styled.button`
+  width: 100%;
+  border: none;
+  border-radius: 10px;
+  padding: 13px;
+  background: #ffffff;
+  color: #0f766e;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+  }
+`;
+
+const TopRandomBtnText = styled.span`
+  font-size: 14px;
+  font-weight: 800;
 `;
 
 // Modal Styles
