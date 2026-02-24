@@ -29,6 +29,14 @@ import DailyNumberDrawScreen from './pages/dashboard/DailyNumberDrawScreen';
 import DailyHistoryScreen from './pages/dashboard/DailyHistoryScreen';
 import GameWinnersScreen from './pages/dashboard/GameWinnersScreen';
 import TopRandomScreen from './pages/dashboard/TopRandomScreen';
+import TermsScreen from './pages/dashboard/terms';
+import DeleteAccountScreen from './pages/dashboard/deleteAccount';
+import DepositHistoryScreen from './pages/dashboard/DepositHistoryScreen';
+import TransactionHistoryScreen from './pages/dashboard/TransactionHistoryScreen';
+import PaymentMethodsScreen from './pages/dashboard/PaymentMethodsScreen';
+import LanguageScreen from './pages/dashboard/LanguageScreen';
+import PrivacyPolicyScreen from './pages/dashboard/PrivacyPolicyScreen';
+import AboutScreen from './pages/dashboard/AboutScreen';
 
 function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -113,6 +121,30 @@ function App() {
             </Route>
             <Route element={<ProtectedRoute />}>
               <Route path="/top-random" element={<TopRandomScreen />} />
+            </Route>
+            <Route element={<ProtectedRoute />}>
+              <Route path="/terms" element={<TermsScreen />} />
+            </Route>
+            <Route element={<ProtectedRoute />}>
+              <Route path="/delete-account" element={<DeleteAccountScreen />} />
+            </Route>
+            <Route element={<ProtectedRoute />}>
+              <Route path="/deposit-history" element={<DepositHistoryScreen />} />
+            </Route>
+            <Route element={<ProtectedRoute />}>
+              <Route path="/transactions" element={<TransactionHistoryScreen />} />
+            </Route>
+            <Route element={<ProtectedRoute />}>
+              <Route path="/payment-methods" element={<PaymentMethodsScreen />} />
+            </Route>
+            <Route element={<ProtectedRoute />}>
+              <Route path="/language" element={<LanguageScreen />} />
+            </Route>
+            <Route element={<ProtectedRoute />}>
+              <Route path="/privacy-policy" element={<PrivacyPolicyScreen />} />
+            </Route>
+            <Route element={<ProtectedRoute />}>
+              <Route path="/about" element={<AboutScreen />} />
             </Route>
             
             {/* Redirect */}

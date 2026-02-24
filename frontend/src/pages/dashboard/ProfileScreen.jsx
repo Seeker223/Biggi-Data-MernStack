@@ -1,7 +1,7 @@
 import React, { useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
-import { User, Settings, Headset, LogOut, ChevronRight } from "lucide-react";
+import { User, Settings, Headset, LogOut, ChevronRight, ReceiptText } from "lucide-react";
 import FloatingBottomNav from "../../components/FloatingBottomNav";
 import { AuthContext } from "../../context/AuthContext";
 
@@ -24,6 +24,11 @@ const ProfileScreen = () => {
       icon: <Settings size={20} color="#fff" />,
       label: "Settings",
       onClick: () => navigate("/settings"),
+    },
+    {
+      icon: <ReceiptText size={20} color="#fff" />,
+      label: "Transaction History",
+      onClick: () => navigate("/transactions"),
     },
     {
       icon: <Headset size={20} color="#fff" />,
@@ -92,7 +97,7 @@ export default ProfileScreen;
 const Page = styled.div`
   min-height: 100vh;
   background: #f5f5f5;
-  padding: 18px 14px 96px;
+  padding: 0 14px 96px;
   display: flex;
   justify-content: center;
 `;
@@ -103,15 +108,19 @@ const Container = styled.div`
 `;
 
 const Title = styled.h1`
-  margin: 0 0 10px;
-  font-size: 24px;
+  margin: 0;
+  font-size: 22px;
   color: #1a1a1a;
   font-weight: 800;
+  text-align: center;
+  padding: 14px 0;
 `;
 
 const Content = styled.div`
-  background: #f5f5f5;
-  border-radius: 30px;
+  background: #fff;
+  border-radius: 22px;
+  border: 1px solid #ececec;
+  margin-top: 8px;
   padding: 24px 14px 12px;
   display: flex;
   flex-direction: column;
@@ -140,19 +149,20 @@ const IdText = styled.p`
 `;
 
 const Options = styled.div`
-  width: 88%;
+  width: 94%;
   margin-top: 28px;
   display: grid;
-  gap: 14px;
+  gap: 10px;
 `;
 
 const Option = styled.button`
-  border: none;
-  background: transparent;
+  border: 1px solid #efefef;
+  border-radius: 14px;
+  background: #fff;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0;
+  padding: 12px;
   cursor: pointer;
 `;
 

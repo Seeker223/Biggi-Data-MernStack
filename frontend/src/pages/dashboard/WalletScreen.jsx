@@ -31,15 +31,16 @@ export default WalletScreen;
 
 const Page = styled.div`
   min-height: 100vh;
-  background: #f8f9fa;
+  background: #fff;
   display: flex;
   justify-content: center;
-  padding: 20px;
+  padding: 0;
 `;
 
 const Container = styled.div`
   width: 100%;
   max-width: 440px;
+  min-height: 100vh;
 `;
 
 const Header = styled.div`
@@ -47,6 +48,10 @@ const Header = styled.div`
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
+  padding: 18px 16px 20px;
+  background: linear-gradient(90deg, #ff7a00 0%, #ff5c00 100%);
+  border-bottom-left-radius: 30px;
+  border-bottom-right-radius: 30px;
 `;
 
 const BackButton = styled.button`
@@ -56,11 +61,13 @@ const BackButton = styled.button`
   width: 34px;
   height: 34px;
   cursor: pointer;
+  color: #ff7a00;
 `;
 
 const Title = styled.h1`
   margin: 0;
   font-size: 20px;
+  color: #fff;
 `;
 
 const Spacer = styled.div`
@@ -68,9 +75,11 @@ const Spacer = styled.div`
 `;
 
 const Card = styled.div`
+  margin: 0 16px;
   background: #fff;
-  border-radius: 14px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  border: 1px solid #efefef;
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
   padding: 18px;
   display: flex;
   flex-direction: column;
