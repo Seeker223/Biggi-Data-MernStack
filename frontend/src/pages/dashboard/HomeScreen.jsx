@@ -26,6 +26,7 @@ import FloatingBottomNav from '../../components/FloatingBottomNav';
 import BrandLoader from '../../components/BrandLoader';
 import { AuthContext } from '../../context/AuthContext';
 import { FEATURE_FLAGS } from '../../constants/featureFlags';
+import { updateAvatar } from '../../services/api';
 
 const HomeScreen = () => {
   const navigate = useNavigate();
@@ -45,6 +46,7 @@ const HomeScreen = () => {
   const [ticketModalVisible, setTicketModalVisible] = useState(false);
   const [previewVisible, setPreviewVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [monthlyEligibility, setMonthlyEligibility] = useState({
     purchases: 0,
@@ -75,7 +77,6 @@ const HomeScreen = () => {
     message: "",
     type: "success"
   });
-  const [profilePhoto, setProfilePhoto] = useState("");
 
   const [isUploading, setIsUploading] = useState(false);
 
@@ -86,25 +87,6 @@ const HomeScreen = () => {
   useEffect(() => {
     calculateMonthlyEligibility();
   }, [user?.dataBundleCount]);
-
-  useEffect(() => {
-    if (!user) return;
-
-    const userKey = user?._id || user?.id || user?.email || "anonymous";
-    const photoStorageKey = `bd_profile_photo_${userKey}`;
-    const backendPhoto = user?.photo || user?.profilePic || user?.avatar || "";
-    const localPhoto = localStorage.getItem(photoStorageKey) || "";
-    const resolvedPhoto = backendPhoto || localPhoto;
-
-    if (resolvedPhoto) {
-      setProfilePhoto(resolvedPhoto);
-      if (!backendPhoto) {
-        updateUser({ photo: resolvedPhoto });
-      }
-    } else {
-      setProfilePhoto(DEFAULT_AVATAR);
-    }
-  }, [user?._id, user?.id, user?.email, user?.photo, user?.profilePic, user?.avatar]);
 
   const calculateMonthlyEligibility = () => {
     const purchases = user?.dataBundleCount || 0;
@@ -211,6 +193,7 @@ const HomeScreen = () => {
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
+      setSelectedFile(file);
       const reader = new FileReader();
       reader.onload = (event) => {
         setSelectedImage(event.target.result);
@@ -230,34 +213,50 @@ const HomeScreen = () => {
   };
 
   const uploadPhoto = async () => {
-    if (!selectedImage) return;
+    if (!selectedFile) return;
     try {
       setIsUploading(true);
       setUploadingPhoto(true);
-      // In a real app, you would upload to your backend here
-      // For now, we'll simulate upload
-      setTimeout(() => {
-        const userKey = user?._id || user?.id || user?.email || "anonymous";
-        localStorage.setItem(`bd_profile_photo_${userKey}`, selectedImage);
-        setProfilePhoto(selectedImage);
-        updateUser({ photo: selectedImage });
-        setPreviewVisible(false);
-        setSelectedImage(null);
-        pushNotification?.(
-          {
-            type: "Profile",
-            status: "success",
-            message: "Profile photo updated successfully.",
-            createdAt: new Date().toISOString(),
-          },
-          user
-        );
-        showUploadModal("Success", "Profile photo updated successfully!", "success");
-        setIsUploading(false);
-        setUploadingPhoto(false);
-      }, 1500);
+      const formData = new FormData();
+      formData.append("photo", selectedFile);
+
+      const result = await updateAvatar(formData);
+      const backendPhoto =
+        result?.user?.photo ||
+        result?.user?.profilePic ||
+        result?.photo ||
+        result?.avatar ||
+        "";
+
+      if (!result?.success && !backendPhoto) {
+        throw new Error(result?.msg || "Failed to upload image");
+      }
+
+      if (backendPhoto) {
+        updateUser({ photo: backendPhoto });
+      }
+      await refreshUser();
+
+      setPreviewVisible(false);
+      setSelectedImage(null);
+      setSelectedFile(null);
+      pushNotification?.(
+        {
+          type: "Profile",
+          status: "success",
+          message: "Profile photo updated successfully.",
+          createdAt: new Date().toISOString(),
+        },
+        user
+      );
+      showUploadModal("Success", "Profile photo updated successfully!", "success");
     } catch (err) {
-      showUploadModal("Error", "Failed to upload image. Try again.", "error");
+      showUploadModal(
+        "Error",
+        err?.message || err?.response?.data?.message || "Failed to upload image. Try again.",
+        "error"
+      );
+    } finally {
       setIsUploading(false);
       setUploadingPhoto(false);
     }
@@ -289,7 +288,7 @@ const HomeScreen = () => {
             <UserInfo>
               <AvatarContainer>
                 <Avatar 
-                  src={profilePhoto || DEFAULT_AVATAR} 
+                  src={user?.photo || user?.profilePic || user?.avatar || DEFAULT_AVATAR} 
                   alt="Profile"
                 />
                 <AvatarOverlay 
