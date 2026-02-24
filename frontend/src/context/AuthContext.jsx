@@ -232,6 +232,11 @@ export const AuthProvider = ({ children }) => {
     setUser((prev) => (prev ? { ...prev, ...partialUser } : prev));
   };
 
+  const pushNotification = (payload, userLike = user) => {
+    addLocalNotification(payload, userLike);
+    incrementNotificationCount();
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -246,6 +251,7 @@ export const AuthProvider = ({ children }) => {
         refreshUser,
         setUser,
         updateUser,
+        pushNotification,
         markNotificationsAsSeen,
         incrementNotificationCount,
       }}

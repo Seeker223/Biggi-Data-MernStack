@@ -30,11 +30,13 @@ import { FEATURE_FLAGS } from '../../constants/featureFlags';
 const HomeScreen = () => {
   const navigate = useNavigate();
   const appDownloadUrl = import.meta.env.VITE_APP_DOWNLOAD_URL || "";
+  const DEFAULT_AVATAR = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
   const { 
     user, 
     refreshUser, 
     authLoading, 
     updateUser,
+    pushNotification,
     notificationCount,
     markNotificationsAsSeen,
     logout
@@ -73,13 +75,36 @@ const HomeScreen = () => {
     message: "",
     type: "success"
   });
+  const [profilePhoto, setProfilePhoto] = useState("");
 
   const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     refreshUser();
+  }, []);
+
+  useEffect(() => {
     calculateMonthlyEligibility();
-  }, [user]);
+  }, [user?.dataBundleCount]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const userKey = user?._id || user?.id || user?.email || "anonymous";
+    const photoStorageKey = `bd_profile_photo_${userKey}`;
+    const backendPhoto = user?.photo || user?.profilePic || user?.avatar || "";
+    const localPhoto = localStorage.getItem(photoStorageKey) || "";
+    const resolvedPhoto = backendPhoto || localPhoto;
+
+    if (resolvedPhoto) {
+      setProfilePhoto(resolvedPhoto);
+      if (!backendPhoto) {
+        updateUser({ photo: resolvedPhoto });
+      }
+    } else {
+      setProfilePhoto(DEFAULT_AVATAR);
+    }
+  }, [user?._id, user?.id, user?.email, user?.photo, user?.profilePic, user?.avatar]);
 
   const calculateMonthlyEligibility = () => {
     const purchases = user?.dataBundleCount || 0;
@@ -208,18 +233,33 @@ const HomeScreen = () => {
     if (!selectedImage) return;
     try {
       setIsUploading(true);
+      setUploadingPhoto(true);
       // In a real app, you would upload to your backend here
       // For now, we'll simulate upload
       setTimeout(() => {
+        const userKey = user?._id || user?.id || user?.email || "anonymous";
+        localStorage.setItem(`bd_profile_photo_${userKey}`, selectedImage);
+        setProfilePhoto(selectedImage);
         updateUser({ photo: selectedImage });
         setPreviewVisible(false);
         setSelectedImage(null);
+        pushNotification?.(
+          {
+            type: "Profile",
+            status: "success",
+            message: "Profile photo updated successfully.",
+            createdAt: new Date().toISOString(),
+          },
+          user
+        );
         showUploadModal("Success", "Profile photo updated successfully!", "success");
         setIsUploading(false);
+        setUploadingPhoto(false);
       }, 1500);
     } catch (err) {
       showUploadModal("Error", "Failed to upload image. Try again.", "error");
       setIsUploading(false);
+      setUploadingPhoto(false);
     }
   };
 
@@ -249,7 +289,7 @@ const HomeScreen = () => {
             <UserInfo>
               <AvatarContainer>
                 <Avatar 
-                  src={user?.photo || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} 
+                  src={profilePhoto || DEFAULT_AVATAR} 
                   alt="Profile"
                 />
                 <AvatarOverlay 
