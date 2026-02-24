@@ -1,671 +1,648 @@
-// frontend/app/screens/GameWinnersScreen.jsx
-import React, { useState, useContext, useEffect } from "react";
+import React, { useContext, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import styled from "styled-components";
 import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  Modal,
-  StyleSheet,
-  Alert,
-  ActivityIndicator,
-} from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+  ArrowLeft,
+  Calendar,
+  Trophy,
+  DollarSign,
+  Info,
+  Check,
+} from "lucide-react";
 import { AuthContext } from "../../context/AuthContext";
 import { FEATURE_FLAGS } from "../../constants/featureFlags";
 
 export default function GameWinnersScreen() {
-  const navigation = useNavigation();
+  const navigate = useNavigate();
   const { user } = useContext(AuthContext);
-  
-  const [activeTab, setActiveTab] = useState("daily"); // 'daily' or 'monthly'
+
+  const [activeTab, setActiveTab] = useState("daily");
   const [successVisible, setSuccessVisible] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [monthlyProgress, setMonthlyProgress] = useState({
     purchases: 0,
     required: 5,
-    isEligible: false
+    isEligible: false,
   });
 
   useEffect(() => {
-    if (user) {
-      const purchases = user.dataBundleCount || 0;
-      setMonthlyProgress({
-        purchases,
-        required: 5,
-        isEligible: purchases >= 5
-      });
-    }
+    if (!user) return;
+    const purchases = user.dataBundleCount || 0;
+    setMonthlyProgress({
+      purchases,
+      required: 5,
+      isEligible: purchases >= 5,
+    });
   }, [user]);
 
-  // Get user's wins from dailyNumberDraw
-  const userWins = (user?.dailyNumberDraw || [])
-    .filter(game => game.isWinner)
-    .map(game => ({
-      name: user?.username || "You",
-      id: user?._id?.slice(-6) || "000000",
-      type: "daily",
-      amount: FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "—" : "₦2,000",
-      date: new Date(game.createdAt).toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      }),
-      numbers: game.numbers || [],
-      result: game.result || []
-    }));
+  const userWins = useMemo(
+    () =>
+      (user?.dailyNumberDraw || [])
+        .filter((game) => game.isWinner)
+        .map((game) => ({
+          name: user?.username || "You",
+          id: user?._id?.slice(-6) || "000000",
+          type: "daily",
+          amount: FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "-" : "N2,000",
+          date: new Date(game.createdAt).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          numbers: game.numbers || [],
+          result: game.result || [],
+        })),
+    [user]
+  );
 
-  // Sample monthly winners
   const monthlyWinners = [
-    { 
-      name: "Michael Brown", 
-      id: "789012", 
-      amount: FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "—" : "₦5,000", 
+    {
+      name: "Michael Brown",
+      id: "789012",
+      type: "monthly",
+      amount: FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "-" : "N5,000",
       date: "Jan 31, 2024",
-      note: "Monthly Draw Winner"
+      note: "Monthly Draw Winner",
     },
-    { 
-      name: "James Wilson", 
-      id: "345678", 
-      amount: FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "—" : "₦5,000", 
+    {
+      name: "James Wilson",
+      id: "345678",
+      type: "monthly",
+      amount: FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "-" : "N5,000",
       date: "Dec 31, 2023",
-      note: "Monthly Draw Winner"
+      note: "Monthly Draw Winner",
     },
-    { 
-      name: "Robert Taylor", 
-      id: "901234", 
-      amount: FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "—" : "₦5,000", 
+    {
+      name: "Robert Taylor",
+      id: "901234",
+      type: "monthly",
+      amount: FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "-" : "N5,000",
       date: "Nov 30, 2023",
-      note: "Monthly Draw Winner"
+      note: "Monthly Draw Winner",
     },
   ];
 
-  // Sample daily winners
   const dailyWinners = [
-    { 
-      name: "Alex Johnson", 
-      id: "123456", 
-      amount: FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "—" : "₦2,000", 
+    {
+      name: "Alex Johnson",
+      id: "123456",
+      type: "daily",
+      amount: FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "-" : "N2,000",
       date: "Today, 7:30 PM",
-      numbers: [15, 23, 42, 56, 68]
+      numbers: [15, 23, 42, 56, 68],
     },
-    { 
-      name: "Sarah Williams", 
-      id: "234567", 
-      amount: FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "—" : "₦2,000", 
+    {
+      name: "Sarah Williams",
+      id: "234567",
+      type: "daily",
+      amount: FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "-" : "N2,000",
       date: "Yesterday, 7:30 PM",
-      numbers: [8, 19, 34, 47, 62]
+      numbers: [8, 19, 34, 47, 62],
     },
-    { 
-      name: "Emma Davis", 
-      id: "456789", 
-      amount: FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "—" : "₦2,000", 
+    {
+      name: "Emma Davis",
+      id: "456789",
+      type: "daily",
+      amount: FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "-" : "N2,000",
       date: "2 Days Ago, 7:30 PM",
-      numbers: [3, 27, 41, 55, 70]
+      numbers: [3, 27, 41, 55, 70],
     },
     ...userWins,
   ];
 
-  const winners = activeTab === "daily" ? dailyWinners.slice(0, 10) : monthlyWinners;
+  const winners =
+    activeTab === "daily" ? dailyWinners.slice(0, 10) : monthlyWinners;
 
   const handleClaim = () => {
     if (FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM) {
-      Alert.alert("Feature Disabled", "Claiming rewards is temporarily disabled for Play Store review.");
+      window.alert(
+        "Feature Disabled: Claiming rewards is temporarily disabled for Play Store review."
+      );
       return;
     }
+
     if (userWins.length > 0) {
-      const totalWinnings = FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? 0 : userWins.length * 2000;
       setSuccessVisible(true);
-      
-      // In a real app, you would call an API here to claim rewards
-      // For now, we'll just show the success modal
-    } else {
-      Alert.alert(
-        "No Rewards to Claim",
-        "You don't have any unclaimed rewards yet.\n\n" +
-        "Keep playing daily draws to win prizes!",
-        [
-          { text: "Close", style: "cancel" },
-          { text: "Play Daily Draw", onPress: () => navigation.navigate("screens/DailyNumberDrawScreen") }
-        ]
-      );
+      return;
     }
+
+    const goToDraw = window.confirm(
+      "No Rewards to Claim.\n\nYou don't have any unclaimed rewards yet.\nKeep playing daily draws to win prizes.\n\nClick OK to Play Daily Draw, or Cancel to close."
+    );
+    if (goToDraw) navigate("/daily-draw");
   };
 
   const handleCheckMonthlyEligibility = () => {
-    Alert.alert(
-      "Monthly Draw Eligibility",
-      FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM
-        ? `You need ${monthlyProgress.required} data purchases this month to qualify for the monthly draw (prize hidden).\n\n` +
-          `Your purchases this month: ${monthlyProgress.purchases}/${monthlyProgress.required}\n` +
-          `Status: ${monthlyProgress.isEligible ? "🎉 ELIGIBLE!" : "Not yet eligible"}\n\n` +
-          `Monthly draw happens at the end of each month.\n` +
-          `Winners are automatically selected from all eligible players.`
-        : `You need ${monthlyProgress.required} data purchases this month to qualify for the ₦5,000 monthly draw.\n\n` +
-          `Your purchases this month: ${monthlyProgress.purchases}/${monthlyProgress.required}\n` +
-          `Status: ${monthlyProgress.isEligible ? "🎉 ELIGIBLE!" : "Not yet eligible"}\n\n` +
-          `Monthly draw happens at the end of each month.\n` +
-          `Winners are automatically selected from all eligible players.`,
-      [
-        { text: "Close", style: "cancel" },
-        { text: "Buy Data", onPress: () => navigation.navigate("screens/BuyDataScreen") }
-      ]
-    );
+    const message = FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM
+      ? `You need ${monthlyProgress.required} data purchases this month to qualify for the monthly draw (prize hidden).\n\nYour purchases this month: ${monthlyProgress.purchases}/${monthlyProgress.required}\nStatus: ${
+          monthlyProgress.isEligible ? "ELIGIBLE" : "Not yet eligible"
+        }\n\nMonthly draw happens at the end of each month.\nWinners are automatically selected from all eligible players.\n\nClick OK to Buy Data, or Cancel to close.`
+      : `You need ${monthlyProgress.required} data purchases this month to qualify for the N5,000 monthly draw.\n\nYour purchases this month: ${monthlyProgress.purchases}/${monthlyProgress.required}\nStatus: ${
+          monthlyProgress.isEligible ? "ELIGIBLE" : "Not yet eligible"
+        }\n\nMonthly draw happens at the end of each month.\nWinners are automatically selected from all eligible players.\n\nClick OK to Buy Data, or Cancel to close.`;
+
+    const goBuy = window.confirm(message);
+    if (goBuy) navigate("/buy-data");
   };
 
   return (
-    <LinearGradient colors={["#2B006A", "#A000A6"]} style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#fff" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Game Winners</Text>
-        <View style={{ width: 24 }} />
-      </View>
+    <Page>
+      <Wrapper>
+        <Header>
+          <IconButton onClick={() => navigate(-1)} aria-label="Go back">
+            <ArrowLeft size={20} />
+          </IconButton>
+          <HeaderTitle>Game Winners</HeaderTitle>
+          <Spacer />
+        </Header>
 
-      {/* Card Container */}
-      <View style={styles.card}>
-        {/* Title */}
-        <LinearGradient
-          colors={["#FFA500", "#FFD700"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.titleContainer}
-        >
-          <Text style={styles.title}>Winners Board</Text>
-        </LinearGradient>
+        <Card>
+          <TitlePill>Winners Board</TitlePill>
 
-        {/* Tabs */}
-        <View style={styles.tabsContainer}>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === "daily" && styles.activeTab]}
-            onPress={() => setActiveTab("daily")}
-          >
-            <Ionicons 
-              name="calendar" 
-              size={16} 
-              color={activeTab === "daily" ? "#FFF" : "#666"} 
-            />
-            <Text style={[styles.tabText, activeTab === "daily" && styles.activeTabText]}>
+          <TabsContainer>
+            <TabButton
+              $active={activeTab === "daily"}
+              onClick={() => setActiveTab("daily")}
+            >
+              <Calendar size={16} />
               Daily Winners
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === "monthly" && styles.activeTab]}
-            onPress={() => setActiveTab("monthly")}
-          >
-            <Ionicons 
-              name="trophy" 
-              size={16} 
-              color={activeTab === "monthly" ? "#FFF" : "#666"} 
-            />
-            <Text style={[styles.tabText, activeTab === "monthly" && styles.activeTabText]}>
+            </TabButton>
+            <TabButton
+              $active={activeTab === "monthly"}
+              onClick={() => setActiveTab("monthly")}
+            >
+              <Trophy size={16} />
               Monthly Winners
-            </Text>
-          </TouchableOpacity>
-        </View>
+            </TabButton>
+          </TabsContainer>
 
-        {/* Info Card */}
-        <View style={styles.infoCard}>
-          <View style={styles.infoRow}>
-            <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>Prize</Text>
-              <Text style={styles.infoValue}>
-                {FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "Prize hidden" : (activeTab === "daily" ? "₦2,000" : "₦5,000")}
-              </Text>
-            </View>
-            <View style={styles.infoDivider} />
-            <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>Draw Time</Text>
-              <Text style={styles.infoValue}>
+          <InfoCard>
+            <InfoItem>
+              <InfoLabel>Prize</InfoLabel>
+              <InfoValue>
+                {FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM
+                  ? "Prize hidden"
+                  : activeTab === "daily"
+                  ? "N2,000"
+                  : "N5,000"}
+              </InfoValue>
+            </InfoItem>
+            <InfoDivider />
+            <InfoItem>
+              <InfoLabel>Draw Time</InfoLabel>
+              <InfoValue>
                 {activeTab === "daily" ? "7:30 PM Daily" : "End of Month"}
-              </Text>
-            </View>
-          </View>
-        </View>
+              </InfoValue>
+            </InfoItem>
+          </InfoCard>
 
-        {/* Winners List */}
-        <ScrollView 
-          style={styles.winnersList} 
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.winnersListContent}
-        >
-          {winners.map((winner, index) => (
-            <View key={`${winner.id}-${index}`} style={styles.winnerRow}>
-              <View style={styles.winnerInfo}>
-                <View style={[
-                  styles.winnerAvatar,
-                  winner.type === "monthly" ? styles.monthlyAvatar : styles.dailyAvatar
-                ]}>
-                  <Text style={styles.winnerInitial}>
+          <ListArea>
+            {winners.map((winner, index) => (
+              <WinnerRow key={`${winner.id}-${index}`}>
+                <WinnerInfo>
+                  <WinnerAvatar $monthly={winner.type === "monthly"}>
                     {winner.name.charAt(0)}
-                  </Text>
-                </View>
-                <View style={styles.winnerDetails}>
-                  <Text style={styles.winnerName}>{winner.name}</Text>
-                  <Text style={styles.winnerDate}>{winner.date}</Text>
-                  {winner.numbers && (
-                    <Text style={styles.winnerNumbers}>
-                      Numbers: {winner.numbers.join(", ")}
-                    </Text>
-                  )}
-                  {winner.note && (
-                    <Text style={styles.winnerNote}>{winner.note}</Text>
-                  )}
-                </View>
-              </View>
-              <View style={styles.winnerPrize}>
-                <Text style={styles.winnerAmount}>{FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "—" : winner.amount}</Text>
-                <View style={[
-                  styles.winnerTypeBadge,
-                  winner.type === "monthly" ? styles.monthlyBadge : styles.dailyBadge
-                ]}>
-                  <Text style={styles.winnerTypeText}>
+                  </WinnerAvatar>
+                  <WinnerDetails>
+                    <WinnerName>{winner.name}</WinnerName>
+                    <WinnerDate>{winner.date}</WinnerDate>
+                    {winner.numbers && (
+                      <WinnerMeta>
+                        Numbers: {winner.numbers.join(", ")}
+                      </WinnerMeta>
+                    )}
+                    {winner.note && <WinnerNote>{winner.note}</WinnerNote>}
+                  </WinnerDetails>
+                </WinnerInfo>
+                <PrizeSide>
+                  <Amount>
+                    {FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "-" : winner.amount}
+                  </Amount>
+                  <TypeBadge $monthly={winner.type === "monthly"}>
                     {winner.type === "monthly" ? "MONTHLY" : "DAILY"}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          ))}
-          
-          {winners.length === 0 && (
-            <View style={styles.emptyState}>
-              <Ionicons name="trophy-outline" size={50} color="#CCC" />
-              <Text style={styles.emptyText}>
-                No {activeTab} winners to display yet
-              </Text>
-            </View>
-          )}
-        </ScrollView>
+                  </TypeBadge>
+                </PrizeSide>
+              </WinnerRow>
+            ))}
 
-        {/* Action Buttons */}
-        <View style={styles.actionButtons}>
-          <TouchableOpacity
-            style={[styles.actionButton, styles.claimButton, FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM && { opacity: 0.6 }]}
-            onPress={handleClaim}
-            disabled={userWins.length === 0 || FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM}
-          >
-            <Ionicons name="cash" size={18} color="#FFF" />
-            <Text style={styles.claimButtonText}>
-              {FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "Claiming Disabled" : (userWins.length > 0 ? `Claim ₦${userWins.length * 2000}` : "No Rewards")}
-            </Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={[styles.actionButton, styles.infoButton]}
-            onPress={handleCheckMonthlyEligibility}
-          >
-            <Ionicons name="information-circle" size={18} color="#FFF" />
-            <Text style={styles.infoButtonText}>
+            {winners.length === 0 && (
+              <EmptyState>No {activeTab} winners to display yet</EmptyState>
+            )}
+          </ListArea>
+
+          <ActionRow>
+            <ActionButton
+              onClick={handleClaim}
+              disabled={userWins.length === 0 || FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM}
+            >
+              <DollarSign size={18} />
+              {FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM
+                ? "Claiming Disabled"
+                : userWins.length > 0
+                ? `Claim N${(userWins.length * 2000).toLocaleString()}`
+                : "No Rewards"}
+            </ActionButton>
+
+            <ActionButton $secondary onClick={handleCheckMonthlyEligibility}>
+              <Info size={18} />
               Monthly Eligibility
-            </Text>
-          </TouchableOpacity>
-        </View>
+            </ActionButton>
+          </ActionRow>
 
-        {/* Stats */}
-        <View style={styles.statsContainer}>
-          <Text style={styles.statsTitle}>Your Statistics</Text>
-          <View style={styles.statsGrid}>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{userWins.length}</Text>
-              <Text style={styles.statLabel}>Total Wins</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{user?.tickets || 0}</Text>
-              <Text style={styles.statLabel}>Available Tickets</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{monthlyProgress.purchases}</Text>
-              <Text style={styles.statLabel}>Monthly Purchases</Text>
-            </View>
-          </View>
-        </View>
-      </View>
+          <StatsCard>
+            <StatsTitle>Your Statistics</StatsTitle>
+            <StatsGrid>
+              <StatItem>
+                <StatNumber>{userWins.length}</StatNumber>
+                <StatLabel>Total Wins</StatLabel>
+              </StatItem>
+              <StatsDivider />
+              <StatItem>
+                <StatNumber>{user?.tickets || 0}</StatNumber>
+                <StatLabel>Available Tickets</StatLabel>
+              </StatItem>
+              <StatsDivider />
+              <StatItem>
+                <StatNumber>{monthlyProgress.purchases}</StatNumber>
+                <StatLabel>Monthly Purchases</StatLabel>
+              </StatItem>
+            </StatsGrid>
+          </StatsCard>
+        </Card>
+      </Wrapper>
 
-      {/* Success Modal */}
-      <Modal transparent visible={successVisible} animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <View style={styles.checkCircle}>
-              <Ionicons name="checkmark" size={40} color="#fff" />
-            </View>
-            <Text style={styles.successTitle}>Rewards Claimed!</Text>
-            <Text style={styles.successMsg}>
-              {FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "Rewards have been added to your reward balance." : `₦${userWins.length * 2000} has been added to your reward balance.`}
-            </Text>
-            <Text style={styles.successSubtext}>
+      {successVisible && (
+        <ModalOverlay>
+          <ModalCard>
+            <CheckCircle>
+              <Check size={28} color="#fff" />
+            </CheckCircle>
+            <ModalTitle>Rewards Claimed!</ModalTitle>
+            <ModalMessage>
+              {FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM
+                ? "Rewards have been added to your reward balance."
+                : `N${(userWins.length * 2000).toLocaleString()} has been added to your reward balance.`}
+            </ModalMessage>
+            <ModalSubText>
               You can redeem your rewards anytime from your wallet.
-            </Text>
+            </ModalSubText>
 
-            <TouchableOpacity
-              style={styles.okButton}
-              onPress={() => {
+            <ModalButton
+              onClick={() => {
                 setSuccessVisible(false);
-                navigation.navigate("redeemScreen");
+                navigate("/redeem");
               }}
             >
-              <Text style={styles.okText}>View Wallet</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[styles.okButton, { backgroundColor: "#666", marginTop: 8 }]}
-              onPress={() => setSuccessVisible(false)}
-            >
-              <Text style={styles.okText}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-    </LinearGradient>
+              View Wallet
+            </ModalButton>
+            <ModalButton $secondary onClick={() => setSuccessVisible(false)}>
+              Close
+            </ModalButton>
+          </ModalCard>
+        </ModalOverlay>
+      )}
+    </Page>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: {
-    paddingTop: 45,
-    paddingHorizontal: 20,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  headerTitle: {
-    color: "#FFF",
-    fontSize: 20,
-    fontWeight: "700",
-  },
-  card: {
-    backgroundColor: "#fff",
-    margin: 20,
-    marginTop: 10,
-    borderRadius: 30,
-    padding: 20,
-    flex: 1,
-  },
-  titleContainer: {
-    alignSelf: "center",
-    paddingVertical: 8,
-    paddingHorizontal: 30,
-    borderRadius: 10,
-    marginBottom: 15,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#fff",
-  },
-  tabsContainer: {
-    flexDirection: "row",
-    backgroundColor: "#F0F0F0",
-    borderRadius: 12,
-    padding: 4,
-    marginBottom: 15,
-  },
-  tab: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 10,
-    borderRadius: 10,
-    gap: 6,
-  },
-  activeTab: {
-    backgroundColor: "#FF7A00",
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#666",
-  },
-  activeTabText: {
-    color: "#FFF",
-  },
-  infoCard: {
-    backgroundColor: "#F8F9FA",
-    borderRadius: 12,
-    padding: 15,
-    marginBottom: 15,
-  },
-  infoRow: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
-  },
-  infoItem: {
-    alignItems: "center",
-    flex: 1,
-  },
-  infoLabel: {
-    fontSize: 12,
-    color: "#666",
-    marginBottom: 4,
-  },
-  infoValue: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#FF7A00",
-  },
-  infoDivider: {
-    width: 1,
-    height: 30,
-    backgroundColor: "#E0E0E0",
-  },
-  winnersList: {
-    flex: 1,
-  },
-  winnersListContent: {
-    paddingBottom: 10,
-  },
-  winnerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
-  },
-  winnerInfo: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    flex: 1,
-  },
-  winnerAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-  },
-  dailyAvatar: {
-    backgroundColor: "#FF7A0020",
-  },
-  monthlyAvatar: {
-    backgroundColor: "#8E2DE220",
-  },
-  winnerInitial: {
-    color: "#FF7A00",
-    fontSize: 18,
-    fontWeight: "700",
-  },
-  winnerDetails: {
-    flex: 1,
-  },
-  winnerName: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#000",
-    marginBottom: 2,
-  },
-  winnerDate: {
-    fontSize: 12,
-    color: "#666",
-    marginBottom: 4,
-  },
-  winnerNumbers: {
-    fontSize: 11,
-    color: "#888",
-    fontStyle: "italic",
-  },
-  winnerNote: {
-    fontSize: 11,
-    color: "#8E2DE2",
-    fontWeight: "500",
-    marginTop: 2,
-  },
-  winnerPrize: {
-    alignItems: "flex-end",
-    marginLeft: 10,
-  },
-  winnerAmount: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#FF7A00",
-    marginBottom: 4,
-  },
-  winnerTypeBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-  },
-  dailyBadge: {
-    backgroundColor: "#FF7A0010",
-  },
-  monthlyBadge: {
-    backgroundColor: "#8E2DE210",
-  },
-  winnerTypeText: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: "#666",
-  },
-  emptyState: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 40,
-  },
-  emptyText: {
-    color: "#999",
-    fontSize: 14,
-    marginTop: 10,
-  },
-  actionButtons: {
-    flexDirection: "row",
-    gap: 10,
-    marginTop: 10,
-    marginBottom: 15,
-  },
-  actionButton: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 12,
-    borderRadius: 10,
-    gap: 8,
-  },
-  claimButton: {
-    backgroundColor: "#FF7A00",
-  },
-  claimButtonText: {
-    color: "#FFF",
-    fontWeight: "700",
-    fontSize: 14,
-  },
-  infoButton: {
-    backgroundColor: "#8E2DE2",
-  },
-  infoButtonText: {
-    color: "#FFF",
-    fontWeight: "700",
-    fontSize: 14,
-  },
-  statsContainer: {
-    backgroundColor: "#F8F9FA",
-    borderRadius: 12,
-    padding: 15,
-  },
-  statsTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#000",
-    marginBottom: 15,
-    textAlign: "center",
-  },
-  statsGrid: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
-  },
-  statItem: {
-    alignItems: "center",
-    flex: 1,
-  },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: "800",
-    color: "#FF7A00",
-  },
-  statLabel: {
-    fontSize: 12,
-    color: "#666",
-    marginTop: 4,
-  },
-  statDivider: {
-    width: 1,
-    height: 30,
-    backgroundColor: "#E0E0E0",
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalCard: {
-    backgroundColor: "#fff",
-    borderRadius: 20,
-    width: 300,
-    padding: 25,
-    alignItems: "center",
-  },
-  checkCircle: {
-    backgroundColor: "#32CD32",
-    width: 65,
-    height: 65,
-    borderRadius: 40,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  successTitle: { fontSize: 20, fontWeight: "bold", color: "#000", marginBottom: 8 },
-  successMsg: {
-    textAlign: "center",
-    color: "#666",
-    marginVertical: 10,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  successSubtext: {
-    textAlign: "center",
-    color: "#888",
-    fontSize: 12,
-    marginBottom: 20,
-  },
-  okButton: {
-    backgroundColor: "#FF7A00",
-    paddingVertical: 12,
-    paddingHorizontal: 40,
-    borderRadius: 10,
-    width: "100%",
-    alignItems: "center",
-  },
-  okText: { color: "#fff", fontWeight: "700", fontSize: 16 },
-});
+const Page = styled.div`
+  min-height: 100vh;
+  background: linear-gradient(180deg, #2b006a 0%, #a000a6 100%);
+  padding: 20px;
+`;
+
+const Wrapper = styled.div`
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+`;
+
+const Header = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+`;
+
+const IconButton = styled.button`
+  width: 36px;
+  height: 36px;
+  border-radius: 18px;
+  border: none;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+`;
+
+const HeaderTitle = styled.h1`
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+`;
+
+const Spacer = styled.div`
+  width: 36px;
+  height: 36px;
+`;
+
+const Card = styled.div`
+  background: #fff;
+  border-radius: 24px;
+  padding: 18px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+`;
+
+const TitlePill = styled.div`
+  margin: 0 auto 14px;
+  width: fit-content;
+  padding: 8px 24px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #ffa500 0%, #ffd700 100%);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+`;
+
+const TabsContainer = styled.div`
+  background: #f0f0f0;
+  border-radius: 12px;
+  padding: 4px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+`;
+
+const TabButton = styled.button`
+  border: none;
+  border-radius: 10px;
+  padding: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  color: ${(props) => (props.$active ? "#fff" : "#666")};
+  background: ${(props) => (props.$active ? "#ff7a00" : "transparent")};
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+`;
+
+const InfoCard = styled.div`
+  margin-top: 14px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 14px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+`;
+
+const InfoItem = styled.div`
+  text-align: center;
+`;
+
+const InfoLabel = styled.div`
+  font-size: 12px;
+  color: #666;
+`;
+
+const InfoValue = styled.div`
+  margin-top: 4px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #ff7a00;
+`;
+
+const InfoDivider = styled.div`
+  width: 1px;
+  height: 30px;
+  background: #e0e0e0;
+`;
+
+const ListArea = styled.div`
+  margin-top: 12px;
+  max-height: 340px;
+  overflow: auto;
+`;
+
+const WinnerRow = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  border-bottom: 1px solid #f0f0f0;
+  padding: 12px 0;
+`;
+
+const WinnerInfo = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+`;
+
+const WinnerAvatar = styled.div`
+  width: 42px;
+  height: 42px;
+  border-radius: 21px;
+  background: ${(props) => (props.$monthly ? "#8e2de220" : "#ff7a0020")};
+  color: ${(props) => (props.$monthly ? "#8e2de2" : "#ff7a00")};
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+`;
+
+const WinnerDetails = styled.div`
+  min-width: 0;
+`;
+
+const WinnerName = styled.div`
+  font-size: 15px;
+  font-weight: 600;
+  color: #111;
+`;
+
+const WinnerDate = styled.div`
+  font-size: 12px;
+  color: #666;
+  margin-top: 2px;
+`;
+
+const WinnerMeta = styled.div`
+  font-size: 11px;
+  color: #888;
+  margin-top: 4px;
+`;
+
+const WinnerNote = styled.div`
+  font-size: 11px;
+  color: #8e2de2;
+  font-weight: 600;
+  margin-top: 4px;
+`;
+
+const PrizeSide = styled.div`
+  text-align: right;
+`;
+
+const Amount = styled.div`
+  font-size: 16px;
+  font-weight: 700;
+  color: #ff7a00;
+`;
+
+const TypeBadge = styled.div`
+  margin-top: 4px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #666;
+  padding: 2px 8px;
+  background: ${(props) => (props.$monthly ? "#8e2de210" : "#ff7a0010")};
+`;
+
+const EmptyState = styled.div`
+  padding: 36px 8px;
+  text-align: center;
+  color: #999;
+  font-size: 14px;
+`;
+
+const ActionRow = styled.div`
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+`;
+
+const ActionButton = styled.button`
+  border: none;
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  background: ${(props) => (props.$secondary ? "#8e2de2" : "#ff7a00")};
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+`;
+
+const StatsCard = styled.div`
+  margin-top: 14px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 14px;
+`;
+
+const StatsTitle = styled.div`
+  text-align: center;
+  font-size: 16px;
+  font-weight: 700;
+  color: #111;
+`;
+
+const StatsGrid = styled.div`
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr auto 1fr;
+  align-items: center;
+`;
+
+const StatItem = styled.div`
+  text-align: center;
+`;
+
+const StatNumber = styled.div`
+  font-size: 24px;
+  font-weight: 800;
+  color: #ff7a00;
+`;
+
+const StatLabel = styled.div`
+  margin-top: 4px;
+  font-size: 12px;
+  color: #666;
+`;
+
+const StatsDivider = styled.div`
+  width: 1px;
+  height: 30px;
+  background: #e0e0e0;
+  justify-self: center;
+`;
+
+const ModalOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  z-index: 1000;
+`;
+
+const ModalCard = styled.div`
+  background: #fff;
+  width: 100%;
+  max-width: 320px;
+  border-radius: 18px;
+  padding: 22px;
+  text-align: center;
+`;
+
+const CheckCircle = styled.div`
+  width: 62px;
+  height: 62px;
+  border-radius: 31px;
+  background: #32cd32;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const ModalTitle = styled.h2`
+  margin: 12px 0 8px;
+  font-size: 20px;
+  color: #111;
+`;
+
+const ModalMessage = styled.p`
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+  line-height: 1.4;
+`;
+
+const ModalSubText = styled.p`
+  margin: 12px 0 18px;
+  color: #888;
+  font-size: 12px;
+`;
+
+const ModalButton = styled.button`
+  width: 100%;
+  border: none;
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  background: ${(props) => (props.$secondary ? "#666" : "#ff7a00")};
+  margin-top: ${(props) => (props.$secondary ? "8px" : "0")};
+`;

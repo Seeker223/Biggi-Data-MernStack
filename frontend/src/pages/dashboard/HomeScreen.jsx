@@ -417,7 +417,7 @@ const HomeScreen = () => {
               </ProgressContainer>
               
               <MonthlyBtn 
-                onClick={handleMonthlyGame}
+                onClick={() => navigate('/game-winner')}
                 $eligible={monthlyEligibility.isEligible}
               >
                 {monthlyEligibility.isEligible ? (

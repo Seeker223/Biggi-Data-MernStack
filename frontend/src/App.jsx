@@ -24,6 +24,7 @@ import WalletScreen from './pages/dashboard/WalletScreen';
 import DailyLuckyDrawScreen from './pages/dashboard/DailyLuckyDrawScreen';
 import DailyNumberDrawScreen from './pages/dashboard/DailyNumberDrawScreen';
 import DailyHistoryScreen from './pages/dashboard/DailyHistoryScreen';
+import GameWinnersScreen from './pages/dashboard/GameWinnersScreen';
 
 function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -95,6 +96,9 @@ function App() {
             </Route>
             <Route element={<ProtectedRoute />}>
               <Route path="/daily-history" element={<DailyHistoryScreen />} />
+            </Route>
+            <Route element={<ProtectedRoute />}>
+              <Route path="/game-winner" element={<GameWinnersScreen />} />
             </Route>
             
             {/* Redirect */}
