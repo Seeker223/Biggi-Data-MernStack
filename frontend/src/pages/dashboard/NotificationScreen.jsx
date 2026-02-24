@@ -6,6 +6,8 @@ import { AuthContext } from "../../context/AuthContext";
 import api from "../../utils/api";
 
 const LOCAL_NOTIFICATIONS_KEY = "bd_local_notifications";
+const getUserKey = (userLike) =>
+  userLike?._id || userLike?.id || userLike?.email || "anonymous";
 
 const NotificationScreen = () => {
   const navigate = useNavigate();
@@ -32,7 +34,11 @@ const NotificationScreen = () => {
       try {
         const raw = localStorage.getItem(LOCAL_NOTIFICATIONS_KEY);
         const parsed = raw ? JSON.parse(raw) : [];
-        setLocalNotifications(Array.isArray(parsed) ? parsed : []);
+        const key = getUserKey(user);
+        const filtered = (Array.isArray(parsed) ? parsed : []).filter(
+          (item) => !item?.userKey || item.userKey === key
+        );
+        setLocalNotifications(filtered);
       } catch {
         setLocalNotifications([]);
       }
@@ -62,7 +68,8 @@ const NotificationScreen = () => {
     const l = localNotifications.map((x) => ({
       type: x.type || "Notification",
       status: x.status || "created",
-      amount: x.amount || 0,
+      amount: x.amount ?? null,
+      message: x.message || "",
       createdAt: x.createdAt,
     }));
     return [...d, ...w, ...l].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -118,9 +125,11 @@ const NotificationScreen = () => {
             <Card key={`${item.type}-${idx}`}>
               <Row>
                 <Type>{item.type}</Type>
-                <Amount>₦{Number(item.amount).toLocaleString()}</Amount>
+                {item.amount !== null && item.amount !== undefined ? (
+                  <Amount>₦{Number(item.amount).toLocaleString()}</Amount>
+                ) : null}
               </Row>
-              <Meta>{item.status}</Meta>
+              <Meta>{item.message || item.status}</Meta>
               <Time>{new Date(item.createdAt).toLocaleString()}</Time>
             </Card>
           ))}

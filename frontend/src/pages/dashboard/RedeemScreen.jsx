@@ -55,6 +55,7 @@ const RedeemScreen = () => {
         amount: amountValue,
         createdAt: new Date().toISOString(),
         seen: false,
+        userKey: user?._id || user?.email || "anonymous",
       });
       localStorage.setItem(LOCAL_NOTIFICATIONS_KEY, JSON.stringify(list.slice(0, 50)));
       incrementNotificationCount?.();

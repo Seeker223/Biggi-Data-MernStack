@@ -4,6 +4,9 @@ import api from "../utils/api";
 export const AuthContext = createContext();
 const LOCAL_NOTIFICATIONS_KEY = "bd_local_notifications";
 
+const getUserKey = (userLike) =>
+  userLike?._id || userLike?.id || userLike?.email || "anonymous";
+
 const getLocalNotifications = () => {
   try {
     const raw = localStorage.getItem(LOCAL_NOTIFICATIONS_KEY);
@@ -14,8 +17,12 @@ const getLocalNotifications = () => {
   }
 };
 
-const getLocalUnreadCount = () =>
-  getLocalNotifications().filter((item) => !item?.seen).length;
+const getLocalUnreadCount = (userLike) => {
+  const key = getUserKey(userLike);
+  return getLocalNotifications().filter(
+    (item) => !item?.seen && (!item?.userKey || item.userKey === key)
+  ).length;
+};
 
 const getAuthErrorMessage = (error, fallbackMessage) => {
   if (error?.response?.data?.error) return error.response.data.error;
@@ -39,6 +46,34 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [notificationCount, setNotificationCount] = useState(0);
 
+  const addLocalNotification = useCallback((payload, userLike) => {
+    try {
+      const current = getLocalNotifications();
+      const userKey = getUserKey(userLike);
+      current.unshift({
+        id: `${payload.type?.toLowerCase?.() || "note"}_${Date.now()}`,
+        type: payload.type || "Notification",
+        status: payload.status || "info",
+        amount: payload.amount ?? null,
+        message: payload.message || "",
+        createdAt: payload.createdAt || new Date().toISOString(),
+        seen: false,
+        userKey,
+      });
+      localStorage.setItem(
+        LOCAL_NOTIFICATIONS_KEY,
+        JSON.stringify(current.slice(0, 100))
+      );
+    } catch {
+      // ignore local storage errors
+    }
+  }, []);
+
+  const setNotificationCountForUser = useCallback((apiNotifications, userLike) => {
+    const total = Number(apiNotifications || 0) + getLocalUnreadCount(userLike);
+    setNotificationCount(total > 9 ? 9 : total);
+  }, []);
+
   // Initialize auth
   useEffect(() => {
     const initAuth = async () => {
@@ -56,8 +91,7 @@ export const AuthProvider = ({ children }) => {
           setUser(res.data.user);
           // Calculate notification count
           const notifications = res.data.notifications || 0;
-          const total = notifications + getLocalUnreadCount();
-          setNotificationCount(total > 9 ? 9 : total);
+          setNotificationCountForUser(notifications, res.data.user);
         } catch (error) {
           console.error("Auth init error:", error);
           logout();
@@ -82,6 +116,15 @@ export const AuthProvider = ({ children }) => {
       setToken(newToken);
       setUser(userData);
       api.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
+      addLocalNotification(
+        {
+          type: "Welcome",
+          status: "success",
+          message: `Welcome back, ${userData?.username || "User"}!`,
+        },
+        userData
+      );
+      setNotificationCountForUser(0, userData);
       
       return { success: true };
     } catch (error) {
@@ -117,6 +160,15 @@ export const AuthProvider = ({ children }) => {
       setToken(newToken);
       setUser(createdUser);
       api.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
+      addLocalNotification(
+        {
+          type: "Welcome",
+          status: "success",
+          message: `Welcome to Biggi Data, ${createdUser?.username || "User"}!`,
+        },
+        createdUser
+      );
+      setNotificationCountForUser(0, createdUser);
       
       return { success: true };
     } catch (error) {
@@ -128,6 +180,16 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
+    if (user) {
+      addLocalNotification(
+        {
+          type: "Signout",
+          status: "info",
+          message: `Last sign out: ${new Date().toLocaleString()}`,
+        },
+        user
+      );
+    }
     localStorage.removeItem("token");
     sessionStorage.removeItem("token");
     localStorage.removeItem("userToken");
@@ -151,10 +213,10 @@ export const AuthProvider = ({ children }) => {
   }, [token]);
 
   const markNotificationsAsSeen = () => {
-    const localItems = getLocalNotifications().map((item) => ({
-      ...item,
-      seen: true,
-    }));
+    const key = getUserKey(user);
+    const localItems = getLocalNotifications().map((item) =>
+      !item?.userKey || item.userKey === key ? { ...item, seen: true } : item
+    );
     localStorage.setItem(LOCAL_NOTIFICATIONS_KEY, JSON.stringify(localItems));
     setNotificationCount(0);
   };
