@@ -29,7 +29,7 @@ const BuyDataSuccessScreen = () => {
           onClick={() => navigate("/daily-draw")}
           disabled={FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM}
         >
-          Play Daily Game
+          Play Weekly Game
         </Btn>
       </Card>
     </Wrap>

@@ -48,7 +48,7 @@ export default function GameWinnersScreen() {
           gameId: game?._id || game?.id || null,
           claimed: Boolean(game?.claimed || game?.rewardClaimed || game?.isClaimed),
           id: user?._id?.slice(-6) || "000000",
-          type: "daily",
+          type: "weekly",
           amount: FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "-" : "N2,000",
           date: new Date(game.createdAt).toLocaleDateString("en-US", {
             month: "short",
@@ -93,25 +93,25 @@ export default function GameWinnersScreen() {
     {
       name: "Alex Johnson",
       id: "123456",
-      type: "daily",
+      type: "weekly",
       amount: FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "-" : "N2,000",
-      date: "Today, 7:30 PM",
+      date: "This Week",
       numbers: ["A", "F", "M", "Q", "z"],
     },
     {
       name: "Sarah Williams",
       id: "234567",
-      type: "daily",
+      type: "weekly",
       amount: FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "-" : "N2,000",
-      date: "Yesterday, 7:30 PM",
+      date: "Last Week",
       numbers: ["C", "R", "X", "g", "p"],
     },
     {
       name: "Emma Davis",
       id: "456789",
-      type: "daily",
+      type: "weekly",
       amount: FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "-" : "N2,000",
-      date: "2 Days Ago, 7:30 PM",
+      date: "2 Weeks Ago",
       numbers: ["K", "O", "U", "d", "y"],
     },
     ...userWins,
@@ -200,7 +200,7 @@ export default function GameWinnersScreen() {
     }
 
     const goToDraw = window.confirm(
-      "No Rewards to Claim.\n\nYou don't have any unclaimed rewards yet.\nKeep playing daily draws to win prizes.\n\nClick OK to Play Daily Draw, or Cancel to close."
+      "No Rewards to Claim.\n\nYou don't have any unclaimed rewards yet.\nKeep playing weekly draws to win prizes.\n\nClick OK to Play Weekly Draw, or Cancel to close."
     );
     if (goToDraw) navigate("/daily-draw");
   };
@@ -238,7 +238,7 @@ export default function GameWinnersScreen() {
               onClick={() => setActiveTab("daily")}
             >
               <Calendar size={16} />
-              Daily Winners
+              Weekly Winners
             </TabButton>
             <TabButton
               $active={activeTab === "monthly"}
@@ -264,7 +264,7 @@ export default function GameWinnersScreen() {
             <InfoItem>
               <InfoLabel>Draw Time</InfoLabel>
               <InfoValue>
-                {activeTab === "daily" ? "7:30 PM Daily" : "End of Month"}
+                {activeTab === "daily" ? "Every 7 Days" : "End of Month"}
               </InfoValue>
             </InfoItem>
           </InfoCard>
@@ -292,7 +292,7 @@ export default function GameWinnersScreen() {
                     {FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "-" : winner.amount}
                   </Amount>
                   <TypeBadge $monthly={winner.type === "monthly"}>
-                    {winner.type === "monthly" ? "MONTHLY" : "DAILY"}
+                    {winner.type === "monthly" ? "MONTHLY" : "WEEKLY"}
                   </TypeBadge>
                 </PrizeSide>
               </WinnerRow>

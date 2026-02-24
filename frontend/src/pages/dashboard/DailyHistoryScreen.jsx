@@ -56,7 +56,7 @@ const DailyHistoryScreen = () => {
           <IconButton onClick={() => navigate(-1)} aria-label="Go back">
             <ArrowLeft size={20} />
           </IconButton>
-          <Title>Daily Plays History</Title>
+          <Title>Weekly Plays History</Title>
           <IconButton onClick={onRefresh} aria-label="Refresh">
             <RefreshCcw size={18} />
           </IconButton>
@@ -77,7 +77,7 @@ const DailyHistoryScreen = () => {
           <EmptyCard>
             <History size={32} />
             <h3>No plays yet</h3>
-            <p>Buy a data bundle to get tickets and start playing daily draws.</p>
+            <p>Buy a data bundle to get tickets and start playing weekly draws.</p>
             <Primary onClick={() => navigate("/buy-data")}>Buy Bundle</Primary>
           </EmptyCard>
         ) : (

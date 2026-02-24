@@ -96,9 +96,9 @@ const DailyNumberDrawScreen = () => {
     return (
       <Page>
         <Card>
-          <Title>Daily Number Draw</Title>
+          <Title>Weekly Number Draw</Title>
           <Muted>
-            The Daily Number Draw feature is temporarily disabled for review.
+            The Weekly Number Draw feature is temporarily disabled for review.
           </Muted>
           <PrimaryButton onClick={() => navigate("/")}>Return Home</PrimaryButton>
         </Card>
@@ -114,7 +114,7 @@ const DailyNumberDrawScreen = () => {
           <IconButton onClick={() => navigate(-1)}>
             <ArrowLeft size={20} />
           </IconButton>
-          <Title>Daily Number Draw</Title>
+          <Title>Weekly Number Draw</Title>
           <IconButton onClick={() => navigate("/daily-history")} aria-label="Open history">
             <History size={20} />
             {historyCount > 0 && <HistoryBadge>{historyCount}</HistoryBadge>}
@@ -123,7 +123,7 @@ const DailyNumberDrawScreen = () => {
 
         <Card>
           <Muted>
-            Select 5 letters from A-Z then a-z (52 total). Each play consumes 1 ticket.
+            Select 5 letters from A-Z then a-z (52 total). Each play consumes 1 ticket, and results are released after 7 days.
           </Muted>
           <TicketRow>
             <Ticket size={18} color="#ff7a00" />
@@ -161,7 +161,7 @@ const DailyNumberDrawScreen = () => {
           <ModalCard>
             <CheckCircle2 size={54} color="#22c55e" />
             <h3>Submitted</h3>
-            <p>Your letters were entered. Results are drawn at 7:00 PM.</p>
+            <p>Your letters were entered. Weekly results are released after 7 days.</p>
             <PrimaryButton onClick={() => setSuccessModal(false)}>OK</PrimaryButton>
           </ModalCard>
         </Overlay>

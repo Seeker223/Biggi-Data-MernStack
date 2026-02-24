@@ -364,7 +364,7 @@ const HomeScreen = () => {
             <TicketCount>{tickets}</TicketCount>
           </TicketText>
           <InfoText>
-            ✅ Buy Any Bundle → Unlock Daily Games + Monthly Draw
+            ✅ Buy Any Bundle → Unlock Weekly Game + Monthly Draw
           </InfoText>
 
           {/* CONTENT SECTION */}
@@ -374,7 +374,7 @@ const HomeScreen = () => {
               <BundleGlowOverlay />
               <BundleLeft>
                 <WifiIcon size={28} />
-                <BundleTitle>Buy Data Bundle Daily</BundleTitle>
+                <BundleTitle>Buy Data Bundle</BundleTitle>
                 <SmallBtn onClick={goToBundle}>
                   <SmallBtnText>Buy Now</SmallBtnText>
                 </SmallBtn>
@@ -388,16 +388,16 @@ const HomeScreen = () => {
                     <TicketBadgeText>{tickets}</TicketBadgeText>
                   </TicketBadge>
                 </TicketIconContainer>
-                <BundleDesc>Win Daily Tickets + Monthly Draw Entry!</BundleDesc>
+                <BundleDesc>Use Tickets for Weekly Draw + Monthly Draw Entry!</BundleDesc>
               </BundleRight>
             </BundleCard>
 
             {/* DAILY GAME */}
             <GameCard>
               <GamepadIcon size={28} />
-              <GameTitle>Daily Number Picker Game</GameTitle>
+              <GameTitle>Weekly Number Picker Game</GameTitle>
               <GameSubtitle>
-                {FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "Win (prize hidden)" : "Win ₦2,000 Daily"}
+                {FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "Win (prize hidden)" : "Win ₦2,000 Weekly"}
               </GameSubtitle>
               <PlayBtn 
                 onClick={handleDailyGame} 
@@ -493,7 +493,7 @@ const HomeScreen = () => {
             <ModalBox>
               <AlertCircle size={42} color="#FF7A00" />
               <ModalTitle>No Tickets Available</ModalTitle>
-              <ModalMsg>You need at least 1 ticket to play daily games.</ModalMsg>
+              <ModalMsg>You need at least 1 ticket to play weekly games.</ModalMsg>
               <ModalBtn onClick={goToBundle}>
                 <ModalBtnText>Buy Data Bundle</ModalBtnText>
               </ModalBtn>
