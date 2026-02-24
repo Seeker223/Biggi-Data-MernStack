@@ -136,6 +136,8 @@ const HomeScreen = () => {
   const mainBalance = Number(user.mainBalance || 0);
   const rewardBalance = Number(user.rewardBalance || 0);
   const tickets = Number(user.tickets || 0);
+  const dataBundleCount = Number(user.dataBundleCount || 0);
+  const totalSavings = Number(user.totalSavings || 0);
 
   const goToDeposit = () => navigate('/deposit');
   const goToWithdraw = () => navigate('/withdraw');
@@ -358,6 +360,19 @@ const HomeScreen = () => {
               </RedeemBtn>
             </BalanceRow>
           </WalletCard>
+
+          <StatsContainer>
+            <StatCard>
+              <Wifi size={22} color="#ff7a00" />
+              <StatValue>{dataBundleCount}</StatValue>
+              <StatLabel>Bundles Purchased</StatLabel>
+            </StatCard>
+            <StatCard>
+              <Wallet size={22} color="#ff7a00" />
+              <StatValue>N{totalSavings.toLocaleString()}</StatValue>
+              <StatLabel>Total Savings</StatLabel>
+            </StatCard>
+          </StatsContainer>
 
           {/* TICKETS */}
           <TicketText>
@@ -674,16 +689,16 @@ const fadeInUp = keyframes`
 // Styled Components
 const PageContainer = styled.div`
   min-height: 100vh;
-  background-color: #ffffff; /* Changed to white */
+  background-color: #000;
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding: 20px;
+  padding: 0;
   overflow-x: hidden;
 
   @media (min-height: 700px) {
-    align-items: center;
-    padding: 40px 20px;
+    align-items: flex-start;
+    padding: 0;
   }
 `;
 
@@ -693,6 +708,8 @@ const ContentContainer = styled.div`
   display: flex;
   flex-direction: column;
   position: relative;
+  background: #000;
+  min-height: 100vh;
 `;
 
 const LoadingContainer = styled.div`
@@ -700,7 +717,7 @@ const LoadingContainer = styled.div`
   justify-content: center;
   align-items: center;
   height: 100vh;
-  background-color: #ffffff;
+  background-color: #000;
   width: 100%;
 `;
 
@@ -721,14 +738,15 @@ const ScrollContainer = styled.div`
   padding-bottom: 100px;
   min-height: 100vh;
   width: 100%;
+  padding-top: 4px;
 `;
 
 const Header = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin: 0 0 24px 0;
-  padding: 0 4px;
+  margin: 18px 0 20px 0;
+  padding: 0 16px;
   width: 100%;
 `;
 
@@ -781,7 +799,7 @@ const UserText = styled.div`
 `;
 
 const WelcomeText = styled.h2`
-  color: #000; /* Changed to black for contrast on white */
+  color: #fff;
   font-size: 20px;
   font-weight: 700;
   margin: 0;
@@ -792,7 +810,7 @@ const WelcomeText = styled.h2`
 `;
 
 const SubText = styled.p`
-  color: #666; /* Darker gray for contrast */
+  color: #bbb;
   font-size: 14px;
   margin: 4px 0 0 0;
 
@@ -843,10 +861,10 @@ const DownloadAppText = styled.span`
 `;
 
 const BellButton = styled.button`
-  background-color: #f8f9fa;
+  background-color: #fff;
   padding: 12px;
   border-radius: 30px;
-  border: 1px solid #e0e0e0;
+  border: none;
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   transition: all 0.2s;
@@ -1011,7 +1029,7 @@ const Divider = styled.div`
 `;
 
 const TicketText = styled.div`
-  color: #000; /* Changed to black for contrast */
+  color: #fff;
   font-size: 16px;
   text-align: center;
   margin: 0 0 8px 0;
@@ -1028,7 +1046,7 @@ const TicketCount = styled.span`
 `;
 
 const InfoText = styled.div`
-  color: #333; /* Darker gray for contrast */
+  color: #ddd;
   font-size: 14px;
   margin: 0 0 24px 0;
   text-align: center;
@@ -1040,17 +1058,22 @@ const InfoText = styled.div`
 `;
 
 const ContentSection = styled.div`
-  background-color: #f8f9fa; /* Light gray background for content section */
-  border-radius: 24px;
+  background: linear-gradient(180deg, #ffffff 0%, #f7f7f7 100%);
+  border-top-left-radius: 40px;
+  border-top-right-radius: 40px;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
   padding: 24px 16px 40px;
   margin-top: 20px;
   width: 100%;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  border: 1px solid #e0e0e0;
+  box-shadow: none;
+  border: none;
+  min-height: 58vh;
 
   @media (max-width: 480px) {
     padding: 20px 12px 40px;
-    border-radius: 20px;
+    border-top-left-radius: 34px;
+    border-top-right-radius: 34px;
   }
 `;
 
@@ -1480,6 +1503,35 @@ const MonthlyBtnText = styled.span`
   @media (max-width: 480px) {
     font-size: 14px;
   }
+`;
+
+const StatsContainer = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 0 16px;
+  margin: 2px 0 10px;
+`;
+
+const StatCard = styled.div`
+  background: #222;
+  border-radius: 12px;
+  padding: 16px 12px;
+  text-align: center;
+`;
+
+const StatValue = styled.div`
+  margin-top: 8px;
+  color: #fff;
+  font-size: 22px;
+  font-weight: 800;
+`;
+
+const StatLabel = styled.div`
+  margin-top: 5px;
+  color: #bbb;
+  font-size: 12px;
+  font-weight: 600;
 `;
 
 const TopRandomCard = styled.div`

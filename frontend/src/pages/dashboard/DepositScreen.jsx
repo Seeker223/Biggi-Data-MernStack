@@ -63,6 +63,7 @@ const DepositScreen = () => {
 
   const [amount, setAmount] = useState("");
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState("idle");
   const [txRef, setTxRef] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -297,9 +298,7 @@ const DepositScreen = () => {
           <BackButton
             onClick={() => {
               if (isProcessing) {
-                if (window.confirm("A payment is being processed. Are you sure you want to leave?")) {
-                  navigate(-1);
-                }
+                setShowLeaveConfirm(true);
               } else {
                 navigate(-1);
               }
@@ -383,6 +382,32 @@ const DepositScreen = () => {
             </ModalContent>
           </ModalOverlay>
         )}
+
+        {showLeaveConfirm && (
+          <ModalOverlay onClick={() => setShowLeaveConfirm(false)}>
+            <ModalContent onClick={(e) => e.stopPropagation()}>
+              <ModalTitle>Transaction In Progress</ModalTitle>
+              <ModalDetails>
+                <ModalDetailLabel>
+                  A payment is being processed. Are you sure you want to leave this page?
+                </ModalDetailLabel>
+              </ModalDetails>
+              <ModalButtons>
+                <SecondaryButton onClick={() => setShowLeaveConfirm(false)}>
+                  Stay
+                </SecondaryButton>
+                <PrimaryButton
+                  onClick={() => {
+                    setShowLeaveConfirm(false);
+                    navigate(-1);
+                  }}
+                >
+                  Leave
+                </PrimaryButton>
+              </ModalButtons>
+            </ModalContent>
+          </ModalOverlay>
+        )}
       </ContentContainer>
     </PageContainer>
   );
@@ -411,7 +436,7 @@ const PageContainer = styled.div`
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding: 20px;
+  padding: 0;
   overflow-y: auto;
 `;
 
@@ -422,6 +447,7 @@ const ContentContainer = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
+  min-height: 100vh;
 `;
 
 const Toast = styled.div`
@@ -467,9 +493,11 @@ const Header = styled.div`
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  margin-bottom: 24px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 16px;
+  padding: 18px 16px 20px;
+  background: linear-gradient(90deg, #ff7a00 0%, #ff5c00 100%);
+  border-bottom-left-radius: 30px;
+  border-bottom-right-radius: 30px;
 `;
 
 const BackButton = styled.button`
@@ -480,13 +508,13 @@ const BackButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #000;
+  color: #fff;
 `;
 
 const HeaderTitle = styled.h1`
-  font-size: 18px;
-  font-weight: 700;
-  color: #000;
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff;
   margin: 0;
 `;
 
@@ -494,6 +522,7 @@ const MainContent = styled.div`
   width: 100%;
   display: flex;
   flex-direction: column;
+  padding: 0 16px 20px;
 `;
 
 const Label = styled.label`

@@ -98,6 +98,7 @@ const WithdrawScreen = () => {
   const [showBankList, setShowBankList] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   
   // Toast state
@@ -290,17 +291,15 @@ const WithdrawScreen = () => {
 
         {/* HEADER */}
         <Header>
-          <BackButton onClick={() => {
-            if (isProcessing) {
-              if (window.confirm(
-                "A withdrawal is being processed. Are you sure you want to leave?"
-              )) {
+          <BackButton
+            onClick={() => {
+              if (isProcessing) {
+                setShowLeaveConfirm(true);
+              } else {
                 navigate(-1);
               }
-            } else {
-              navigate(-1);
-            }
-          }}>
+            }}
+          >
             <ChevronLeft size={26} />
           </BackButton>
           <HeaderTitle>Withdraw Funds</HeaderTitle>
@@ -616,6 +615,33 @@ const WithdrawScreen = () => {
             </ConfirmModalContent>
           </ModalOverlay>
         )}
+
+        {showLeaveConfirm && (
+          <ModalOverlay onClick={() => setShowLeaveConfirm(false)}>
+            <ConfirmModalContent onClick={(e) => e.stopPropagation()}>
+              <ModalTitle>Transaction In Progress</ModalTitle>
+              <ModalDetails>
+                <ModalDetailLabel>
+                  A withdrawal is being processed. Are you sure you want to leave this page?
+                </ModalDetailLabel>
+              </ModalDetails>
+              <ModalButtons>
+                <ModalButton $cancel onClick={() => setShowLeaveConfirm(false)}>
+                  <ModalButtonCancelText>Stay</ModalButtonCancelText>
+                </ModalButton>
+                <ModalButton
+                  $confirm
+                  onClick={() => {
+                    setShowLeaveConfirm(false);
+                    navigate(-1);
+                  }}
+                >
+                  <ModalButtonConfirmText>Leave</ModalButtonConfirmText>
+                </ModalButton>
+              </ModalButtons>
+            </ConfirmModalContent>
+          </ModalOverlay>
+        )}
       </ContentContainer>
     </PageContainer>
   );
@@ -671,12 +697,12 @@ const PageContainer = styled.div`
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding: 20px;
+  padding: 0;
   overflow-y: auto;
 
   @media (min-height: 700px) {
-    align-items: center;
-    padding: 40px 20px;
+    align-items: flex-start;
+    padding: 0;
   }
 `;
 
@@ -687,6 +713,7 @@ const ContentContainer = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
+  min-height: 100vh;
 `;
 
 const DisabledContainer = styled.div`
@@ -742,9 +769,11 @@ const Header = styled.div`
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  margin-bottom: 24px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 16px;
+  padding: 18px 16px 20px;
+  background: linear-gradient(90deg, #ff7a00 0%, #ff5c00 100%);
+  border-bottom-left-radius: 30px;
+  border-bottom-right-radius: 30px;
 `;
 
 const BackButton = styled.button`
@@ -755,7 +784,7 @@ const BackButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  color: ${BRAND_COLORS.textPrimary};
+  color: #fff;
   
   &:hover {
     opacity: 0.7;
@@ -763,9 +792,9 @@ const BackButton = styled.button`
 `;
 
 const HeaderTitle = styled.h1`
-  font-size: 18px;
-  font-weight: 700;
-  color: ${BRAND_COLORS.textPrimary};
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff;
   margin: 0;
 `;
 
@@ -773,7 +802,7 @@ const ScrollContainer = styled.div`
   width: 100%;
   max-height: calc(100vh - 150px);
   overflow-y: auto;
-  padding-bottom: 20px;
+  padding: 0 16px 20px;
 `;
 
 const BalanceCard = styled.div`

@@ -188,15 +188,16 @@ export default RedeemScreen;
 
 const PageContainer = styled.div`
   min-height: 100vh;
-  background: #fff;
+  background: #ffffff;
   display: flex;
   justify-content: center;
-  padding: 20px;
+  padding: 0;
 `;
 
 const ContentContainer = styled.div`
   width: 100%;
   max-width: 440px;
+  min-height: 100vh;
 `;
 
 const Toast = styled.div`
@@ -221,31 +222,35 @@ const Header = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 16px;
+  padding: 18px 16px 20px;
+  background: linear-gradient(90deg, #ff7a00 0%, #ff5c00 100%);
+  border-bottom-left-radius: 30px;
+  border-bottom-right-radius: 30px;
 `;
 
 const BackButton = styled.button`
-  background: none;
+  background: transparent;
   border: none;
   cursor: pointer;
   padding: 4px;
-  color: #000;
+  color: #fff;
 `;
 
 const HeaderTitle = styled.h1`
-  font-size: 18px;
-  font-weight: 700;
+  font-size: 22px;
+  font-weight: 800;
   margin: 0;
+  color: #fff;
 `;
 
 const BalanceCard = styled.div`
-  background: #f8f9fa;
-  border: 1px solid #ececec;
-  border-radius: 16px;
-  padding: 18px;
-  margin-bottom: 16px;
+  background: #fff;
+  border: 1px solid #f0f0f0;
+  border-radius: 22px;
+  padding: 20px;
+  margin: 0 16px 16px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
 `;
 
 const BalanceTop = styled.div`
@@ -287,10 +292,11 @@ const RateText = styled.span`
 
 const Card = styled.div`
   background: #fff;
-  border-radius: 16px;
-  border: 1px solid #ececec;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
-  padding: 18px;
+  border-radius: 20px;
+  border: 1px solid #f0f0f0;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+  padding: 20px;
+  margin: 0 16px;
 `;
 
 const SectionTitle = styled.h2`

@@ -21,6 +21,8 @@ import SelectPlanScreen from './pages/dashboard/SelectPlanScreen';
 import BuyDataSuccessScreen from './pages/dashboard/BuyDataSuccessScreen';
 import NotificationScreen from './pages/dashboard/NotificationScreen';
 import ProfileScreen from './pages/dashboard/ProfileScreen';
+import EditProfileScreen from './pages/dashboard/EditProfileScreen';
+import SettingsScreen from './pages/dashboard/SettingsScreen';
 import WalletScreen from './pages/dashboard/WalletScreen';
 import DailyLuckyDrawScreen from './pages/dashboard/DailyLuckyDrawScreen';
 import DailyNumberDrawScreen from './pages/dashboard/DailyNumberDrawScreen';
@@ -87,6 +89,12 @@ function App() {
             </Route>
             <Route element={<ProtectedRoute />}>
               <Route path="/profile" element={<ProfileScreen />} />
+            </Route>
+            <Route element={<ProtectedRoute />}>
+              <Route path="/edit-profile" element={<EditProfileScreen />} />
+            </Route>
+            <Route element={<ProtectedRoute />}>
+              <Route path="/settings" element={<SettingsScreen />} />
             </Route>
             <Route element={<ProtectedRoute />}>
               <Route path="/wallet" element={<WalletScreen />} />

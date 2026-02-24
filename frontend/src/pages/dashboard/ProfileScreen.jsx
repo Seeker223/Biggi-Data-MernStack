@@ -1,94 +1,224 @@
-import React, { useContext } from "react";
+import React, { useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
+import { User, Settings, Headset, LogOut, ChevronRight } from "lucide-react";
 import FloatingBottomNav from "../../components/FloatingBottomNav";
 import { AuthContext } from "../../context/AuthContext";
+
+const DEFAULT_AVATAR = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 
 const ProfileScreen = () => {
   const navigate = useNavigate();
   const { user, logout } = useContext(AuthContext);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   if (!user) return null;
 
-  return (
-    <Wrap>
-      <Card>
-        <Title>Profile</Title>
-        <Avatar
-          src={user.photo || "https://cdn-icons-png.flaticon.com/512/149/149071.png"}
-          alt="profile"
-        />
-        <Name>{user.username}</Name>
-        <Sub>ID: {String(user._id || "").slice(-8)}</Sub>
+  const options = [
+    {
+      icon: <User size={20} color="#fff" />,
+      label: "Edit Profile",
+      onClick: () => navigate("/edit-profile"),
+    },
+    {
+      icon: <Settings size={20} color="#fff" />,
+      label: "Settings",
+      onClick: () => navigate("/settings"),
+    },
+    {
+      icon: <Headset size={20} color="#fff" />,
+      label: "Support",
+      onClick: () => navigate("/notifications"),
+    },
+    {
+      icon: <LogOut size={20} color="#fff" />,
+      label: "Logout",
+      onClick: () => setShowLogoutConfirm(true),
+    },
+  ];
 
-        <Action onClick={() => navigate("/")}>Back Home</Action>
-        <Action onClick={() => navigate("/notifications")}>Notifications</Action>
-        <Danger
-          onClick={() => {
-            if (window.confirm("Logout now?")) logout();
-          }}
-        >
-          Logout
-        </Danger>
-      </Card>
+  return (
+    <Page>
+      <Container>
+        <Title>Profile</Title>
+        <Content>
+          <Avatar src={user.photo || DEFAULT_AVATAR} alt="Profile" />
+          <Name>{user.username || "User"}</Name>
+          <IdText>ID: {String(user._id || "").slice(-8)}</IdText>
+
+          <Options>
+            {options.map((item) => (
+              <Option key={item.label} onClick={item.onClick}>
+                <Left>
+                  <IconCircle>{item.icon}</IconCircle>
+                  <Label>{item.label}</Label>
+                </Left>
+                <ChevronRight size={18} color="#666" />
+              </Option>
+            ))}
+          </Options>
+        </Content>
+      </Container>
+
+      {showLogoutConfirm && (
+        <ModalOverlay>
+          <ModalCard>
+            <ModalTitle>Logout</ModalTitle>
+            <ModalText>Are you sure you want to logout?</ModalText>
+            <ModalRow>
+              <ModalButton $secondary onClick={() => setShowLogoutConfirm(false)}>
+                Cancel
+              </ModalButton>
+              <ModalButton
+                onClick={() => {
+                  setShowLogoutConfirm(false);
+                  logout();
+                }}
+              >
+                Logout
+              </ModalButton>
+            </ModalRow>
+          </ModalCard>
+        </ModalOverlay>
+      )}
+
       <FloatingBottomNav />
-    </Wrap>
+    </Page>
   );
 };
 
 export default ProfileScreen;
 
-const Wrap = styled.div`
+const Page = styled.div`
   min-height: 100vh;
   background: #f5f5f5;
+  padding: 18px 14px 96px;
   display: flex;
   justify-content: center;
-  padding: 20px 14px 100px;
 `;
 
-const Card = styled.div`
+const Container = styled.div`
   width: 100%;
-  max-width: 440px;
-  background: #fff;
-  border-radius: 16px;
-  padding: 20px;
-  text-align: center;
+  max-width: 460px;
 `;
 
 const Title = styled.h1`
-  margin: 0 0 14px;
-  font-size: 22px;
+  margin: 0 0 10px;
+  font-size: 24px;
+  color: #1a1a1a;
+  font-weight: 800;
+`;
+
+const Content = styled.div`
+  background: #f5f5f5;
+  border-radius: 30px;
+  padding: 24px 14px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 `;
 
 const Avatar = styled.img`
   width: 100px;
   height: 100px;
   border-radius: 50%;
-  border: 3px solid #222;
+  border: 4px solid #000;
   object-fit: cover;
 `;
 
 const Name = styled.h2`
+  margin: 10px 0 4px;
   font-size: 20px;
-  margin: 10px 0 6px;
+  font-weight: 700;
+  color: #003322;
 `;
 
-const Sub = styled.p`
-  color: #666;
-  margin: 0 0 16px;
+const IdText = styled.p`
+  margin: 0;
+  color: #555;
+  font-size: 14px;
 `;
 
-const Action = styled.button`
-  width: 100%;
-  border: 0;
-  border-radius: 10px;
-  padding: 12px;
-  margin-top: 10px;
-  background: #ececec;
+const Options = styled.div`
+  width: 88%;
+  margin-top: 28px;
+  display: grid;
+  gap: 14px;
+`;
+
+const Option = styled.button`
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0;
   cursor: pointer;
 `;
 
-const Danger = styled(Action)`
-  background: #d62828;
+const Left = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 14px;
+`;
+
+const IconCircle = styled.div`
+  width: 44px;
+  height: 44px;
+  border-radius: 22px;
+  display: grid;
+  place-items: center;
+  background: #007bff;
+`;
+
+const Label = styled.span`
+  font-size: 16px;
+  color: #003322;
+  font-weight: 500;
+`;
+
+const ModalOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: grid;
+  place-items: center;
+  z-index: 1200;
+  padding: 18px;
+`;
+
+const ModalCard = styled.div`
+  width: 100%;
+  max-width: 320px;
+  background: #fff;
+  border-radius: 14px;
+  padding: 18px;
+  text-align: center;
+`;
+
+const ModalTitle = styled.h3`
+  margin: 0;
+  font-size: 20px;
+  color: #111;
+`;
+
+const ModalText = styled.p`
+  margin: 8px 0 14px;
+  color: #555;
+`;
+
+const ModalRow = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+`;
+
+const ModalButton = styled.button`
+  border: none;
+  border-radius: 10px;
+  padding: 10px 12px;
   color: #fff;
+  font-weight: 700;
+  background: ${(p) => (p.$secondary ? "#777" : "#ff7a00")};
+  cursor: pointer;
 `;

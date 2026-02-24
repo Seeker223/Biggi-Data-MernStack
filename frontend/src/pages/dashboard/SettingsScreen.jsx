@@ -1,76 +1,144 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import Header from "../../components/Header";
-import BottomNav from "../../components/BottomNav";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigate } from "react-router-dom";
+import styled from "styled-components";
+import { ArrowLeft, Bell, Lock, FileText, Trash2, ChevronRight } from "lucide-react";
 import FloatingBottomNav from "../../components/FloatingBottomNav";
+import { Alert } from "../../utils/alert";
 
 export default function SettingsScreen() {
-  const navigation = useNavigation();
+  const navigate = useNavigate();
 
   const settings = [
-    { icon: "notifications-outline", label: "Notification Settings", route: "screens/NotificationSettingsScreen" },
-    { icon: "lock-closed-outline", label: "Password Settings", route: "resetpassword" },
-    { icon: "information-circle-outline", label: "Terms And Conditions", route:"screens/terms" },
-    { icon: "trash-outline", label: "Delete Account", route:"screens/deleteAccount" },
+    {
+      icon: <Bell size={20} color="#fff" />,
+      label: "Notification Settings",
+      onClick: () => navigate("/notifications"),
+    },
+    {
+      icon: <Lock size={20} color="#fff" />,
+      label: "Password Settings",
+      onClick: () => navigate("/forgot-password"),
+    },
+    {
+      icon: <FileText size={20} color="#fff" />,
+      label: "Terms And Conditions",
+      onClick: () => Alert.alert("Terms", "Terms page will be added to web shortly."),
+    },
+    {
+      icon: <Trash2 size={20} color="#fff" />,
+      label: "Delete Account",
+      onClick: () => Alert.alert("Delete Account", "Delete account flow will be added shortly."),
+    },
   ];
 
   return (
-    <View style={styles.container}>
-      <Header title="Settings" />
+    <Page>
+      <Container>
+        <Header>
+          <IconButton onClick={() => navigate(-1)}>
+            <ArrowLeft size={20} />
+          </IconButton>
+          <Title>Settings</Title>
+          <Spacer />
+        </Header>
 
-      <View style={styles.content}>
-        {settings.map((item, index) => (
-          <TouchableOpacity
-            key={index}
-            style={styles.option}
-            onPress={() => item.route && navigation.navigate(item.route)}
-          >
-            <View style={styles.iconCircle}>
-              <Ionicons name={item.icon} size={22} color="#fff" />
-            </View>
-            <Text style={styles.label}>{item.label}</Text>
-            <Ionicons name="chevron-forward" size={20} color="#555" style={{ marginLeft: "auto" }} />
-          </TouchableOpacity>
-        ))}
-      </View>
-
+        <Content>
+          {settings.map((item) => (
+            <Option key={item.label} onClick={item.onClick}>
+              <Left>
+                <IconCircle>{item.icon}</IconCircle>
+                <Label>{item.label}</Label>
+              </Left>
+              <ChevronRight size={20} color="#555" />
+            </Option>
+          ))}
+        </Content>
+      </Container>
       <FloatingBottomNav />
-    </View>
+    </Page>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F5F5F5" },
-  content: {
-    flex: 1,
-    padding: 25,
-    backgroundColor: "#F5F5F5",
-    borderTopLeftRadius: 35,
-    borderTopRightRadius: 35,
-    marginTop: 5,
-  },
-  option: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    borderRadius: 15,
-    paddingVertical: 15,
-    paddingHorizontal: 15,
-    marginBottom: 15,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  iconCircle: {
-    backgroundColor: "#007BFF",
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  label: { marginLeft: 15, fontSize: 16, color: "#000", fontWeight: "500" },
-});
+const Page = styled.div`
+  min-height: 100vh;
+  background: #f5f5f5;
+  padding: 16px 14px 96px;
+  display: flex;
+  justify-content: center;
+`;
+
+const Container = styled.div`
+  width: 100%;
+  max-width: 460px;
+`;
+
+const Header = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const IconButton = styled.button`
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: #fff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+`;
+
+const Title = styled.h1`
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+`;
+
+const Spacer = styled.div`
+  width: 36px;
+`;
+
+const Content = styled.div`
+  margin-top: 10px;
+  padding: 18px;
+  background: #f5f5f5;
+  border-top-left-radius: 35px;
+  border-top-right-radius: 35px;
+`;
+
+const Option = styled.button`
+  width: 100%;
+  border: none;
+  background: #fff;
+  border-radius: 15px;
+  padding: 15px;
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+`;
+
+const Left = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+`;
+
+const IconCircle = styled.div`
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  background: #007bff;
+  display: grid;
+  place-items: center;
+`;
+
+const Label = styled.span`
+  font-size: 16px;
+  color: #000;
+  font-weight: 500;
+`;
+

@@ -13,7 +13,6 @@ import { AuthContext } from "../../context/AuthContext";
 import { FEATURE_FLAGS } from "../../constants/featureFlags";
 import { claimDailyReward, getMonthlyWinners } from "../../services/api";
 import { toLetters } from "../../utils/drawLetters";
-import showAlert from "../../utils/alert";
 
 export default function GameWinnersScreen() {
   const navigate = useNavigate();
@@ -24,6 +23,20 @@ export default function GameWinnersScreen() {
   const [claiming, setClaiming] = useState(false);
   const [lastClaimAmount, setLastClaimAmount] = useState(0);
   const [claimFallbackInfo, setClaimFallbackInfo] = useState(false);
+  const [infoModal, setInfoModal] = useState({
+    visible: false,
+    title: "",
+    message: "",
+    buttonText: "OK",
+  });
+  const [actionModal, setActionModal] = useState({
+    visible: false,
+    title: "",
+    message: "",
+    confirmText: "Continue",
+    cancelText: "Cancel",
+    onConfirm: null,
+  });
   const [monthlyProgress, setMonthlyProgress] = useState({
     purchases: 0,
     required: 5,
@@ -137,9 +150,13 @@ export default function GameWinnersScreen() {
 
   const handleClaim = async () => {
     if (FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM) {
-      showAlert(
-        "Feature Disabled: Claiming rewards is temporarily disabled for Play Store review."
-      );
+      setInfoModal({
+        visible: true,
+        title: "Feature Disabled",
+        message:
+          "Claiming rewards is temporarily disabled for Play Store review.",
+        buttonText: "Close",
+      });
       return;
     }
 
@@ -197,7 +214,12 @@ export default function GameWinnersScreen() {
           setClaimFallbackInfo(true);
           setSuccessVisible(true);
         } else {
-          showAlert(errorMessage || "Failed to claim reward(s). Please try again.");
+          setInfoModal({
+            visible: true,
+            title: "Claim Failed",
+            message: errorMessage || "Failed to claim reward(s). Please try again.",
+            buttonText: "Close",
+          });
         }
       } finally {
         setClaiming(false);
@@ -213,10 +235,15 @@ export default function GameWinnersScreen() {
       return;
     }
 
-    const goToDraw = window.confirm(
-      "No Rewards to Claim.\n\nYou don't have any unclaimed rewards yet.\nKeep playing weekly draws to win prizes.\n\nClick OK to Play Weekly Draw, or Cancel to close."
-    );
-    if (goToDraw) navigate("/daily-draw");
+    setActionModal({
+      visible: true,
+      title: "No Rewards to Claim",
+      message:
+        "You don't have any unclaimed rewards yet. Keep playing weekly draws to win prizes.",
+      confirmText: "Play Weekly Draw",
+      cancelText: "Close",
+      onConfirm: () => navigate("/daily-draw"),
+    });
   };
 
   const handleCheckMonthlyEligibility = () => {
@@ -224,8 +251,14 @@ export default function GameWinnersScreen() {
       ? `Top 3 buyers in ${monthlyBoardMonth || "this month"} are selected as monthly winners (prize hidden).\n\nLive board shows up to top 100 ranks by purchase count.\n\nBuy more bundles to climb the ranking.\n\nClick OK to Buy Data, or Cancel to close.`
       : `Top 3 buyers in ${monthlyBoardMonth || "this month"} are selected as monthly winners.\n\nPrize per winner: N5,000\nLive board shows up to top 100 ranks by purchase count.\n\nBuy more bundles to climb the ranking.\n\nClick OK to Buy Data, or Cancel to close.`;
 
-    const goBuy = window.confirm(message);
-    if (goBuy) navigate("/buy-data");
+    setActionModal({
+      visible: true,
+      title: "Monthly Eligibility",
+      message: message.replaceAll("\n\n", "\n"),
+      confirmText: "Buy Data",
+      cancelText: "Close",
+      onConfirm: () => navigate("/buy-data"),
+    });
   };
 
   return (
@@ -390,19 +423,70 @@ export default function GameWinnersScreen() {
           </ModalCard>
         </ModalOverlay>
       )}
+
+      {infoModal.visible && (
+        <ModalOverlay>
+          <ModalCard>
+            <ModalTitle>{infoModal.title}</ModalTitle>
+            <ModalMessage>{infoModal.message}</ModalMessage>
+            <ModalButton
+              onClick={() =>
+                setInfoModal((prev) => ({
+                  ...prev,
+                  visible: false,
+                }))
+              }
+            >
+              {infoModal.buttonText}
+            </ModalButton>
+          </ModalCard>
+        </ModalOverlay>
+      )}
+
+      {actionModal.visible && (
+        <ModalOverlay>
+          <ModalCard>
+            <ModalTitle>{actionModal.title}</ModalTitle>
+            <ModalMessage style={{ whiteSpace: "pre-line" }}>
+              {actionModal.message}
+            </ModalMessage>
+            <ModalButton
+              onClick={() => {
+                const callback = actionModal.onConfirm;
+                setActionModal((prev) => ({ ...prev, visible: false, onConfirm: null }));
+                if (typeof callback === "function") callback();
+              }}
+            >
+              {actionModal.confirmText}
+            </ModalButton>
+            <ModalButton
+              $secondary
+              onClick={() =>
+                setActionModal((prev) => ({
+                  ...prev,
+                  visible: false,
+                  onConfirm: null,
+                }))
+              }
+            >
+              {actionModal.cancelText}
+            </ModalButton>
+          </ModalCard>
+        </ModalOverlay>
+      )}
     </Page>
   );
 }
 
 const Page = styled.div`
   min-height: 100vh;
-  background: linear-gradient(180deg, #2b006a 0%, #a000a6 100%);
-  padding: 20px;
+  background: #000;
+  padding: 18px 0 0;
 `;
 
 const Wrapper = styled.div`
   width: 100%;
-  max-width: 520px;
+  max-width: 440px;
   margin: 0 auto;
 `;
 
@@ -410,7 +494,8 @@ const Header = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 18px;
+  padding: 0 16px;
 `;
 
 const IconButton = styled.button`
@@ -418,8 +503,8 @@ const IconButton = styled.button`
   height: 36px;
   border-radius: 18px;
   border: none;
-  background: rgba(255, 255, 255, 0.2);
-  color: #fff;
+  background: #fff;
+  color: #ff7a00;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -440,9 +525,12 @@ const Spacer = styled.div`
 
 const Card = styled.div`
   background: #fff;
-  border-radius: 24px;
-  padding: 18px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  border-top-left-radius: 38px;
+  border-top-right-radius: 38px;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  padding: 20px 16px 22px;
+  min-height: calc(100vh - 92px);
 `;
 
 const TitlePill = styled.div`

@@ -1,197 +1,285 @@
-import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  Switch,
-  TouchableOpacity,
-  Image,
-  ActivityIndicator,
-} from "react-native";
-import Header from "../../components/Header";
+import React, { useContext, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import styled from "styled-components";
+import { ArrowLeft, Camera } from "lucide-react";
 import FloatingBottomNav from "../../components/FloatingBottomNav";
-import * as ImagePicker from "expo-image-picker";
-import { fetchUser, updateUserProfile, updateAvatar } from "../../utils/api";
+import { AuthContext } from "../../context/AuthContext";
+import { updateAvatar, updateUserProfile } from "../../services/api";
 import { Alert as ModalAlert } from "../../utils/alert";
 
+const DEFAULT_AVATAR = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+
 export default function EditProfileScreen() {
-  const [isEnabled, setIsEnabled] = useState(true);
+  const navigate = useNavigate();
+  const { user, refreshUser, updateUser } = useContext(AuthContext);
   const [loading, setLoading] = useState(false);
-  const [avatar, setAvatar] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState("");
+  const [selectedFile, setSelectedFile] = useState(null);
   const [username, setUsername] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [userId, setUserId] = useState("");
-
-  // ----------------------------------------------------
-  // Load user info
-  // ----------------------------------------------------
-  const loadUser = async () => {
-    try {
-      const res = await fetchUser();
-      const u = res.data.user;
-
-      setUsername(u.username);
-      setPhone(u.phoneNumber || "");
-      setEmail(u.email || "");
-      setAvatar(u.photo || null);
-      setUserId(u._id?.slice(-8));
-    } catch (err) {
-      console.log("User fetch failed:", err);
-    }
-  };
 
   useEffect(() => {
-    loadUser();
-  }, []);
+    if (!user) return;
+    setUsername(user.username || "");
+    setPhone(user.phoneNumber || "");
+    setEmail(user.email || "");
+    setAvatarPreview(user.photo || "");
+  }, [user]);
 
-  // ----------------------------------------------------
-  // Pick Image (avatar)
-  // ----------------------------------------------------
-  const pickAvatar = async () => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
+  const userIdShort = useMemo(() => String(user?._id || "").slice(-8), [user?._id]);
 
-      if (!result.canceled && result.assets?.length > 0) {
-        const img = result.assets[0];
-        setAvatar(img.uri);
-        await uploadAvatar(img);
-      }
-    } catch (err) {
-      console.log("Picker error:", err);
-      ModalAlert.alert("Error", "Failed to select image.");
-    }
+  const onPickAvatar = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setSelectedFile(file);
+    setAvatarPreview(URL.createObjectURL(file));
   };
 
-  // ----------------------------------------------------
-  // Upload Avatar
-  // ----------------------------------------------------
-  const uploadAvatar = async (image) => {
+  const uploadSelectedAvatar = async () => {
+    if (!selectedFile) return;
     try {
       setLoading(true);
-      const fileUri = image.uri.startsWith("file://") ? image.uri : `file://${image.uri}`;
-
       const formData = new FormData();
-      formData.append("avatar", {
-        uri: fileUri,
-        type: "image/jpeg",
-        name: "avatar.jpg",
-      });
+      formData.append("photo", selectedFile);
 
       const res = await updateAvatar(formData);
+      const photoUrl = res?.user?.photo || res?.photo || res?.avatar || "";
 
-      if (res.data?.success) {
-        setAvatar(res.data.user.photo);
-        ModalAlert.alert("Success", "Avatar updated successfully!");
-      } else {
-        ModalAlert.alert("Error", res.data?.msg || "Upload failed");
+      if (!res?.success && !photoUrl) {
+        throw new Error(res?.msg || "Upload failed");
       }
+
+      if (photoUrl) updateUser({ photo: photoUrl });
+      await refreshUser?.();
+      setSelectedFile(null);
+      ModalAlert.alert("Success", "Avatar updated successfully!");
     } catch (err) {
-      console.log("Avatar upload failed:", err);
-      ModalAlert.alert("Error", "Failed to upload avatar.");
+      ModalAlert.alert("Error", err?.message || "Failed to upload avatar.");
     } finally {
       setLoading(false);
     }
   };
 
-  // ----------------------------------------------------
-  // Update profile
-  // ----------------------------------------------------
   const submitProfile = async () => {
     try {
       setLoading(true);
-
-      const payload = {
+      const res = await updateUserProfile({
         username,
         phoneNumber: phone,
         email,
-      };
+      });
 
-      const res = await updateUserProfile(payload);
-
-      if (res.data?.success) {
+      if (res?.data?.success) {
+        await refreshUser?.();
         ModalAlert.alert("Success", "Profile updated successfully!");
       } else {
-        ModalAlert.alert("Error", res.data?.msg || "Update failed");
+        ModalAlert.alert("Error", res?.data?.msg || "Update failed");
       }
     } catch (err) {
-      console.log("Profile update error:", err);
-      ModalAlert.alert("Error", "Failed to update profile.");
+      ModalAlert.alert("Error", err?.response?.data?.message || "Failed to update profile.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <View style={styles.container}>
-      <Header title="Edit My Profile" />
+    <Page>
+      <Container>
+        <Header>
+          <IconButton onClick={() => navigate(-1)} aria-label="Back">
+            <ArrowLeft size={20} />
+          </IconButton>
+          <Title>Edit My Profile</Title>
+          <Spacer />
+        </Header>
 
-      <View style={styles.content}>
-        <TouchableOpacity onPress={pickAvatar}>
-          <Image
-            source={{
-              uri: avatar || "https://cdn-icons-png.flaticon.com/512/149/149071.png",
-            }}
-            style={styles.avatar}
-          />
-        </TouchableOpacity>
-
-        <Text style={styles.name}>{username || "Loading..."}</Text>
-        <Text style={styles.id}>ID: {userId}</Text>
-
-        <View style={styles.section}>
-          <Text style={styles.label}>Username</Text>
-          <TextInput style={styles.input} value={username} onChangeText={setUsername} />
-
-          <Text style={styles.label}>Phone</Text>
-          <TextInput style={styles.input} value={phone} onChangeText={setPhone} />
-
-          <Text style={styles.label}>Email Address</Text>
-          <TextInput style={styles.input} value={email} onChangeText={setEmail} />
-
-          <View style={styles.toggleRow}>
-            <Text style={styles.label}>Push Notifications</Text>
-            <Switch
-              trackColor={{ false: "#ccc", true: "#FF7A00" }}
-              thumbColor="#fff"
-              onValueChange={() => setIsEnabled(!isEnabled)}
-              value={isEnabled}
+        <Content>
+          <AvatarWrap>
+            <Avatar src={avatarPreview || user?.photo || DEFAULT_AVATAR} alt="Profile avatar" />
+            <AvatarPick htmlFor="avatar-input">
+              <Camera size={16} />
+            </AvatarPick>
+            <HiddenInput
+              id="avatar-input"
+              type="file"
+              accept="image/*"
+              onChange={onPickAvatar}
             />
-          </View>
+          </AvatarWrap>
+          <Name>{username || "User"}</Name>
+          <IdText>ID: {userIdShort}</IdText>
 
-          <TouchableOpacity style={styles.button} onPress={submitProfile}>
-            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Update Profile</Text>}
-          </TouchableOpacity>
-        </View>
-      </View>
+          {selectedFile && (
+            <UploadBtn type="button" onClick={uploadSelectedAvatar} disabled={loading}>
+              {loading ? "Uploading..." : "Upload Avatar"}
+            </UploadBtn>
+          )}
 
+          <Section>
+            <Label>Username</Label>
+            <Input value={username} onChange={(e) => setUsername(e.target.value)} />
+
+            <Label>Phone</Label>
+            <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
+
+            <Label>Email Address</Label>
+            <Input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+
+            <PrimaryBtn type="button" onClick={submitProfile} disabled={loading}>
+              {loading ? "Saving..." : "Update Profile"}
+            </PrimaryBtn>
+          </Section>
+        </Content>
+      </Container>
       <FloatingBottomNav />
-    </View>
+    </Page>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F5F5F5" },
-  content: {
-    alignItems: "center",
-    backgroundColor: "#F5F5F5",
-    borderTopLeftRadius: 35,
-    borderTopRightRadius: 35,
-    paddingTop: 30,
-    flex: 1,
-  },
-  avatar: { width: 100, height: 100, borderRadius: 50, borderWidth: 4, borderColor: "#000" },
-  name: { fontSize: 18, fontWeight: "700", marginTop: 10, color: "#003322" },
-  id: { color: "#555" },
-  section: { width: "85%", marginTop: 30 },
-  label: { color: "#000", fontSize: 14, marginTop: 15 },
-  input: { backgroundColor: "#D9D9D9", borderRadius: 10, padding: 10, marginTop: 5 },
-  toggleRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 15 },
-  button: { backgroundColor: "#FF7A00", padding: 15, borderRadius: 25, alignItems: "center", marginTop: 25 },
-  buttonText: { color: "#fff", fontWeight: "700", fontSize: 16 },
-});
+const Page = styled.div`
+  min-height: 100vh;
+  background: #f5f5f5;
+  padding: 16px 14px 96px;
+  display: flex;
+  justify-content: center;
+`;
+
+const Container = styled.div`
+  width: 100%;
+  max-width: 460px;
+`;
+
+const Header = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+`;
+
+const IconButton = styled.button`
+  border: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: #fff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+`;
+
+const Title = styled.h1`
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+`;
+
+const Spacer = styled.div`
+  width: 36px;
+`;
+
+const Content = styled.div`
+  align-items: center;
+  background: #f5f5f5;
+  border-top-left-radius: 35px;
+  border-top-right-radius: 35px;
+  padding-top: 20px;
+  display: flex;
+  flex-direction: column;
+`;
+
+const AvatarWrap = styled.div`
+  position: relative;
+`;
+
+const Avatar = styled.img`
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  border: 4px solid #000;
+  object-fit: cover;
+`;
+
+const AvatarPick = styled.label`
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 32px;
+  height: 32px;
+  border-radius: 16px;
+  border: 2px solid #fff;
+  background: #ff7a00;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+`;
+
+const HiddenInput = styled.input`
+  display: none;
+`;
+
+const Name = styled.h2`
+  font-size: 18px;
+  font-weight: 700;
+  margin: 10px 0 4px;
+  color: #003322;
+`;
+
+const IdText = styled.p`
+  color: #555;
+  margin: 0;
+`;
+
+const UploadBtn = styled.button`
+  margin-top: 12px;
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 16px;
+  background: #222;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+`;
+
+const Section = styled.div`
+  width: 85%;
+  margin-top: 22px;
+  display: grid;
+`;
+
+const Label = styled.label`
+  color: #000;
+  font-size: 14px;
+  margin-top: 14px;
+`;
+
+const Input = styled.input`
+  background: #d9d9d9;
+  border: 0;
+  border-radius: 10px;
+  padding: 10px;
+  margin-top: 5px;
+  outline: none;
+`;
+
+const PrimaryBtn = styled.button`
+  margin-top: 24px;
+  border: 0;
+  border-radius: 25px;
+  background: #ff7a00;
+  color: #fff;
+  font-weight: 700;
+  font-size: 16px;
+  padding: 14px;
+  cursor: pointer;
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+`;
+
