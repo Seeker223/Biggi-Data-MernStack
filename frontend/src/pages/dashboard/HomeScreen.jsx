@@ -37,7 +37,6 @@ const HomeScreen = () => {
     refreshUser, 
     authLoading, 
     updateUser,
-    pushNotification,
     notificationCount,
     markNotificationsAsSeen,
     logout
@@ -240,15 +239,6 @@ const HomeScreen = () => {
       setPreviewVisible(false);
       setSelectedImage(null);
       setSelectedFile(null);
-      pushNotification?.(
-        {
-          type: "Profile",
-          status: "success",
-          message: "Profile photo updated successfully.",
-          createdAt: new Date().toISOString(),
-        },
-        user
-      );
       showUploadModal("Success", "Profile photo updated successfully!", "success");
     } catch (err) {
       showUploadModal(

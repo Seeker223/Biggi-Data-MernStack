@@ -3,45 +3,22 @@ import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { ArrowLeft, Bell, RefreshCw } from "lucide-react";
 import { AuthContext } from "../../context/AuthContext";
-import api from "../../utils/api";
-
-const LOCAL_NOTIFICATIONS_KEY = "bd_local_notifications";
-const getUserKey = (userLike) =>
-  userLike?._id || userLike?.id || userLike?.email || "anonymous";
+import { getNotifications } from "../../services/api";
 
 const NotificationScreen = () => {
   const navigate = useNavigate();
   const { user, markNotificationsAsSeen } = useContext(AuthContext);
   const [loading, setLoading] = useState(true);
-  const [deposits, setDeposits] = useState([]);
-  const [withdrawals, setWithdrawals] = useState([]);
-  const [localNotifications, setLocalNotifications] = useState([]);
+  const [items, setItems] = useState([]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [depRes, wdRes] = await Promise.allSettled([
-        api.get("/wallet/deposit-history"),
-        api.get("/wallet/withdraw-history"),
-      ]);
-
-      if (depRes.status === "fulfilled") {
-        setDeposits(depRes.value.data?.deposits || []);
-      }
-      if (wdRes.status === "fulfilled") {
-        setWithdrawals(wdRes.value.data?.withdrawals || []);
-      }
-      try {
-        const raw = localStorage.getItem(LOCAL_NOTIFICATIONS_KEY);
-        const parsed = raw ? JSON.parse(raw) : [];
-        const key = getUserKey(user);
-        const filtered = (Array.isArray(parsed) ? parsed : []).filter(
-          (item) => !item?.userKey || item.userKey === key
-        );
-        setLocalNotifications(filtered);
-      } catch {
-        setLocalNotifications([]);
-      }
+      const res = await getNotifications();
+      const backendItems = res?.data?.notifications || res?.notifications || [];
+      setItems(Array.isArray(backendItems) ? backendItems : []);
+    } catch {
+      setItems([]);
     } finally {
       setLoading(false);
     }
@@ -52,32 +29,12 @@ const NotificationScreen = () => {
     fetchData();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const items = useMemo(() => {
-    const d = deposits.map((x) => ({
-      type: "Deposit",
-      status: x.status || "created",
-      amount: x.amount || 0,
-      createdAt: x.createdAt,
-    }));
-    const w = withdrawals.map((x) => ({
-      type: "Withdrawal",
-      status: x.status || "created",
-      amount: x.amount || 0,
-      createdAt: x.createdAt,
-    }));
-    const l = localNotifications.map((x) => ({
-      type: x.type || "Notification",
-      status: x.status || "created",
-      amount: x.amount ?? null,
-      message: x.message || "",
-      createdAt: x.createdAt,
-    }));
-    return [...d, ...w, ...l].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  }, [deposits, withdrawals, localNotifications]);
-
-  const redeemCount = useMemo(
-    () => localNotifications.filter((item) => item?.type === "Redeem").length,
-    [localNotifications]
+  const sortedItems = useMemo(
+    () =>
+      [...items].sort(
+        (a, b) => new Date(b?.createdAt || 0).getTime() - new Date(a?.createdAt || 0).getTime()
+      ),
+    [items]
   );
 
   return (
@@ -95,25 +52,25 @@ const NotificationScreen = () => {
 
         <Stats>
           <Stat>
-            <StatNumber>{deposits.length}</StatNumber>
-            <StatLabel>Deposits</StatLabel>
+            <StatNumber>{sortedItems.length}</StatNumber>
+            <StatLabel>Total</StatLabel>
           </Stat>
           <Stat>
-            <StatNumber>{withdrawals.length}</StatNumber>
-            <StatLabel>Withdrawals</StatLabel>
+            <StatNumber>{sortedItems.filter((x) => x?.type === "Welcome").length}</StatNumber>
+            <StatLabel>Welcome</StatLabel>
           </Stat>
           <Stat>
-            <StatNumber>{user?.dailyNumberDraw?.length || 0}</StatNumber>
-            <StatLabel>Games</StatLabel>
-          </Stat>
-          <Stat>
-            <StatNumber>{redeemCount}</StatNumber>
+            <StatNumber>{sortedItems.filter((x) => x?.type === "Redeem").length}</StatNumber>
             <StatLabel>Redeems</StatLabel>
+          </Stat>
+          <Stat>
+            <StatNumber>{sortedItems.filter((x) => x?.type === "Signout").length}</StatNumber>
+            <StatLabel>Signouts</StatLabel>
           </Stat>
         </Stats>
 
         {loading && <Empty>Loading notifications...</Empty>}
-        {!loading && items.length === 0 && (
+        {!loading && sortedItems.length === 0 && (
           <Empty>
             <Bell size={48} color="#FF7A00" />
             <p>No notifications yet.</p>
@@ -121,16 +78,16 @@ const NotificationScreen = () => {
         )}
 
         {!loading &&
-          items.map((item, idx) => (
-            <Card key={`${item.type}-${idx}`}>
+          sortedItems.map((item, idx) => (
+            <Card key={item?._id || `${item?.type || "Notification"}-${idx}`}>
               <Row>
-                <Type>{item.type}</Type>
-                {item.amount !== null && item.amount !== undefined ? (
+                <Type>{item?.type || "Notification"}</Type>
+                {item?.amount !== null && item?.amount !== undefined ? (
                   <Amount>₦{Number(item.amount).toLocaleString()}</Amount>
                 ) : null}
               </Row>
-              <Meta>{item.message || item.status}</Meta>
-              <Time>{new Date(item.createdAt).toLocaleString()}</Time>
+              <Meta>{item?.message || item?.status || "info"}</Meta>
+              <Time>{new Date(item?.createdAt || Date.now()).toLocaleString()}</Time>
             </Card>
           ))}
       </Container>
@@ -223,7 +180,6 @@ const Amount = styled.div`
 const Meta = styled.div`
   margin-top: 4px;
   color: #444;
-  text-transform: capitalize;
 `;
 
 const Time = styled.div`
