@@ -148,27 +148,32 @@ export default DailyHistoryScreen;
 
 const Page = styled.div`
   min-height: 100vh;
-  background: #0a0a0a;
-  padding: 16px;
+  background: #fff;
+  padding: 0;
 `;
 
 const Container = styled.div`
   width: 100%;
-  max-width: 760px;
+  max-width: 440px;
   margin: 0 auto;
+  min-height: 100vh;
 `;
 
 const Header = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
+  padding: 18px 16px 20px;
+  background: linear-gradient(90deg, #ff7a00 0%, #ff5c00 100%);
+  border-bottom-left-radius: 30px;
+  border-bottom-right-radius: 30px;
 `;
 
 const Title = styled.h1`
   margin: 0;
-  color: #ff8c00;
-  font-size: 22px;
+  color: #fff;
+  font-size: 20px;
   font-weight: 800;
 `;
 
@@ -180,12 +185,15 @@ const IconButton = styled.button`
   display: grid;
   place-items: center;
   cursor: pointer;
+  color: #ff7a00;
+  background: #fff;
 `;
 
 const Summary = styled.div`
-  background: #111;
-  border-radius: 12px;
+  background: #f9f9f9;
+  border-radius: 16px;
   padding: 14px;
+  margin: 0 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -194,7 +202,7 @@ const Summary = styled.div`
 
 const SummaryText = styled.p`
   margin: 0;
-  color: #fff;
+  color: #111;
 `;
 
 const Primary = styled.button`
@@ -212,15 +220,18 @@ const Primary = styled.button`
 `;
 
 const SmallText = styled.p`
-  margin: 8px 2px 0;
-  color: #ddd;
+  margin: 8px 18px 0;
+  color: #666;
   font-size: 13px;
 `;
 
 const EmptyCard = styled.div`
   margin-top: 14px;
+  margin-left: 16px;
+  margin-right: 16px;
   background: #fff;
   border-radius: 12px;
+  border: 1px solid #f0f0f0;
   padding: 24px 16px;
   text-align: center;
   h3 {
@@ -234,9 +245,12 @@ const EmptyCard = styled.div`
 
 const List = styled.div`
   margin-top: 12px;
+  margin-left: 16px;
+  margin-right: 16px;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  padding-bottom: 20px;
 `;
 
 const Card = styled.div`

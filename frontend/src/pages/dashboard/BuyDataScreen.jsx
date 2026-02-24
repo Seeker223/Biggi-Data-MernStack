@@ -212,14 +212,14 @@ const slideUp = keyframes`
 
 const PageContainer = styled.div`
   min-height: 100vh;
-  background-color: #f8f9fa;
+  background-color: #fff;
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding: 20px;
+  padding: 0;
   @media (min-height: 700px) {
-    align-items: center;
-    padding: 40px 20px;
+    align-items: flex-start;
+    padding: 0;
   }
 `;
 
@@ -228,6 +228,7 @@ const ContentContainer = styled.div`
   max-width: 440px;
   display: flex;
   flex-direction: column;
+  min-height: 100vh;
 `;
 
 const Header = styled.div`
@@ -235,28 +236,30 @@ const Header = styled.div`
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  margin-bottom: 24px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid #e0e0e0;
+  margin-bottom: 18px;
+  padding: 18px 16px 20px;
+  background: linear-gradient(90deg, #ff7a00 0%, #ff5c00 100%);
+  border-bottom-left-radius: 30px;
+  border-bottom-right-radius: 30px;
 `;
 
 const BackButton = styled.button`
-  background: none;
+  background: transparent;
   border: none;
   cursor: pointer;
   padding: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #000;
+  color: #fff;
   border-radius: 8px;
-  &:hover { background-color: #f0f0f0; }
+  &:hover { background-color: rgba(255, 255, 255, 0.15); }
 `;
 
 const HeaderTitle = styled.h1`
-  font-size: 18px;
-  font-weight: 700;
-  color: #000;
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff;
   margin: 0;
   text-align: center;
   flex: 1;
@@ -264,14 +267,16 @@ const HeaderTitle = styled.h1`
 
 const FormContainer = styled.div`
   background-color: #fff;
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border-radius: 20px;
+  padding: 20px;
+  margin: 0 16px 20px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  border: 1px solid #f0f0f0;
   width: 100%;
 `;
 
 const FormTitle = styled.h2`
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 700;
   color: #000;
   margin-bottom: 24px;
@@ -281,7 +286,7 @@ const FormTitle = styled.h2`
 const Form = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 `;
 
 const InputGroup = styled.div`

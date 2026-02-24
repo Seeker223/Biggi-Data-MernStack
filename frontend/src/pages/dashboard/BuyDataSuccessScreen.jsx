@@ -2,6 +2,7 @@ import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { FEATURE_FLAGS } from "../../constants/featureFlags";
+import { CheckCircle2 } from "lucide-react";
 
 const BuyDataSuccessScreen = () => {
   const navigate = useNavigate();
@@ -16,7 +17,9 @@ const BuyDataSuccessScreen = () => {
   return (
     <Wrap>
       <Card>
-        <Check>Success</Check>
+        <Check>
+          <CheckCircle2 size={72} color="#4CAF50" />
+        </Check>
         <Title>Data Purchase Successful</Title>
         <Meta>Phone: {phone || "-"}</Meta>
         <Meta>Network: {network || "-"}</Meta>
@@ -44,21 +47,25 @@ const Wrap = styled.div`
   justify-content: center;
   align-items: center;
   padding: 20px;
-  background: #fff;
+  background: #f5f5f5;
 `;
 
 const Card = styled.div`
   width: 100%;
   max-width: 420px;
-  border: 1px solid #eee;
-  border-radius: 14px;
-  padding: 20px;
+  border: 1px solid #f0f0f0;
+  border-radius: 20px;
+  padding: 24px;
   text-align: center;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.08);
 `;
 
 const Check = styled.div`
   color: #12a150;
   font-weight: 800;
+  display: grid;
+  place-items: center;
 `;
 
 const Title = styled.h1`
@@ -68,6 +75,7 @@ const Title = styled.h1`
 
 const Meta = styled.p`
   margin: 6px 0;
+  color: #444;
 `;
 
 const Btn = styled.button`
