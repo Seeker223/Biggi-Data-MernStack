@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { AuthContext } from "../../context/AuthContext";
 import { FEATURE_FLAGS } from "../../constants/featureFlags";
-import { claimDailyReward } from "../../services/api";
+import { claimDailyReward, getMonthlyWinners } from "../../services/api";
 import { toLetters } from "../../utils/drawLetters";
 
 export default function GameWinnersScreen() {
@@ -28,6 +28,8 @@ export default function GameWinnersScreen() {
     required: 5,
     isEligible: false,
   });
+  const [monthlyRanks, setMonthlyRanks] = useState([]);
+  const [monthlyBoardMonth, setMonthlyBoardMonth] = useState("");
 
   useEffect(() => {
     if (!user) return;
@@ -38,6 +40,43 @@ export default function GameWinnersScreen() {
       isEligible: purchases >= 5,
     });
   }, [user]);
+
+  useEffect(() => {
+    let mounted = true;
+    const now = new Date();
+    const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    setMonthlyBoardMonth(month);
+
+    const loadMonthlyBoard = async () => {
+      try {
+        const res = await getMonthlyWinners(month);
+        if (!mounted) return;
+        const rankings = Array.isArray(res?.data?.rankings) ? res.data.rankings : [];
+        const normalized = rankings.map((item) => ({
+          name: item.username || "Player",
+          id: String(item.userId || item.rank || ""),
+          type: "monthly",
+          amount:
+            FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM
+              ? "-"
+              : item.isWinner
+              ? "N5,000"
+              : "-",
+          date: `Rank #${item.rank}`,
+          note: `${item.purchasesCount} purchase${item.purchasesCount === 1 ? "" : "s"}${item.isWinner ? " • Top 3 Winner" : ""}`,
+          isWinner: Boolean(item.isWinner),
+        }));
+        setMonthlyRanks(normalized.slice(0, 100));
+      } catch (error) {
+        if (mounted) setMonthlyRanks([]);
+      }
+    };
+
+    loadMonthlyBoard();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const userWins = useMemo(
     () =>
@@ -62,32 +101,6 @@ export default function GameWinnersScreen() {
     [user]
   );
 
-  const monthlyWinners = [
-    {
-      name: "Michael Brown",
-      id: "789012",
-      type: "monthly",
-      amount: FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "-" : "N5,000",
-      date: "Jan 31, 2024",
-      note: "Monthly Draw Winner",
-    },
-    {
-      name: "James Wilson",
-      id: "345678",
-      type: "monthly",
-      amount: FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "-" : "N5,000",
-      date: "Dec 31, 2023",
-      note: "Monthly Draw Winner",
-    },
-    {
-      name: "Robert Taylor",
-      id: "901234",
-      type: "monthly",
-      amount: FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "-" : "N5,000",
-      date: "Nov 30, 2023",
-      note: "Monthly Draw Winner",
-    },
-  ];
 
   const dailyWinners = [
     {
@@ -118,7 +131,7 @@ export default function GameWinnersScreen() {
   ];
 
   const winners =
-    activeTab === "daily" ? dailyWinners.slice(0, 10) : monthlyWinners;
+    activeTab === "daily" ? dailyWinners.slice(0, 10) : monthlyRanks;
   const claimableWins = userWins.filter((win) => !win.claimed && win.gameId);
 
   const handleClaim = async () => {
@@ -207,12 +220,8 @@ export default function GameWinnersScreen() {
 
   const handleCheckMonthlyEligibility = () => {
     const message = FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM
-      ? `You need ${monthlyProgress.required} data purchases this month to qualify for the monthly draw (prize hidden).\n\nYour purchases this month: ${monthlyProgress.purchases}/${monthlyProgress.required}\nStatus: ${
-          monthlyProgress.isEligible ? "ELIGIBLE" : "Not yet eligible"
-        }\n\nMonthly draw happens at the end of each month.\nWinners are automatically selected from all eligible players.\n\nClick OK to Buy Data, or Cancel to close.`
-      : `You need ${monthlyProgress.required} data purchases this month to qualify for the N5,000 monthly draw.\n\nYour purchases this month: ${monthlyProgress.purchases}/${monthlyProgress.required}\nStatus: ${
-          monthlyProgress.isEligible ? "ELIGIBLE" : "Not yet eligible"
-        }\n\nMonthly draw happens at the end of each month.\nWinners are automatically selected from all eligible players.\n\nClick OK to Buy Data, or Cancel to close.`;
+      ? `Top 3 buyers in ${monthlyBoardMonth || "this month"} are selected as monthly winners (prize hidden).\n\nLive board shows up to top 100 ranks by purchase count.\n\nBuy more bundles to climb the ranking.\n\nClick OK to Buy Data, or Cancel to close.`
+      : `Top 3 buyers in ${monthlyBoardMonth || "this month"} are selected as monthly winners.\n\nPrize per winner: N5,000\nLive board shows up to top 100 ranks by purchase count.\n\nBuy more bundles to climb the ranking.\n\nClick OK to Buy Data, or Cancel to close.`;
 
     const goBuy = window.confirm(message);
     if (goBuy) navigate("/buy-data");

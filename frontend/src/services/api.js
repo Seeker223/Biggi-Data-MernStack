@@ -223,13 +223,13 @@ export const getDailyGameHistory = () => api.get("/game/daily/history");
 
 // MONTHLY GAMES
 export const getMonthlyEligibility = () => 
-  api.get("/game/monthly/eligibility");
+  api.get("/monthly-game/eligibility");
 
 export const getMonthlyWinners = (month) => 
-  api.get("/game/monthly/winners", month ? { params: { month } } : {});
+  api.get("/monthly-game/winners", month ? { params: { month } } : {});
 
 export const updateMonthlyPurchase = () => 
-  api.post("/game/monthly/purchase");
+  api.post("/monthly-game/purchase");
 
 // GAME TICKETS
 export const getGameTickets = () => api.get("/game/tickets");
