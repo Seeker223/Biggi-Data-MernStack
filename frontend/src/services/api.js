@@ -301,10 +301,10 @@ export const getUserGameStats = async () => {
 };
 
 export const claimDailyReward = (gameId) =>
-  api.post("/game/daily/claim", { gameId });
+  api.post("/daily-game/claim", { gameId });
 
 export const claimMonthlyReward = (month) =>
-  api.post("/game/monthly/claim", { month });
+  api.post("/monthly-game/claim", { month });
 
 // -----------------------------------------------------------
 // NOTIFICATIONS

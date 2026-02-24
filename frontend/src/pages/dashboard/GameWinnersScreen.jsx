@@ -11,13 +11,17 @@ import {
 } from "lucide-react";
 import { AuthContext } from "../../context/AuthContext";
 import { FEATURE_FLAGS } from "../../constants/featureFlags";
+import { claimDailyReward } from "../../services/api";
 
 export default function GameWinnersScreen() {
   const navigate = useNavigate();
-  const { user } = useContext(AuthContext);
+  const { user, refreshUser, updateUser } = useContext(AuthContext);
 
   const [activeTab, setActiveTab] = useState("daily");
   const [successVisible, setSuccessVisible] = useState(false);
+  const [claiming, setClaiming] = useState(false);
+  const [lastClaimAmount, setLastClaimAmount] = useState(0);
+  const [claimFallbackInfo, setClaimFallbackInfo] = useState(false);
   const [monthlyProgress, setMonthlyProgress] = useState({
     purchases: 0,
     required: 5,
@@ -40,6 +44,8 @@ export default function GameWinnersScreen() {
         .filter((game) => game.isWinner)
         .map((game) => ({
           name: user?.username || "You",
+          gameId: game?._id || game?.id || null,
+          claimed: Boolean(game?.claimed || game?.rewardClaimed || game?.isClaimed),
           id: user?._id?.slice(-6) || "000000",
           type: "daily",
           amount: FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "-" : "N2,000",
@@ -112,8 +118,9 @@ export default function GameWinnersScreen() {
 
   const winners =
     activeTab === "daily" ? dailyWinners.slice(0, 10) : monthlyWinners;
+  const claimableWins = userWins.filter((win) => !win.claimed && win.gameId);
 
-  const handleClaim = () => {
+  const handleClaim = async () => {
     if (FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM) {
       window.alert(
         "Feature Disabled: Claiming rewards is temporarily disabled for Play Store review."
@@ -121,7 +128,72 @@ export default function GameWinnersScreen() {
       return;
     }
 
+    if (claimableWins.length > 0) {
+      setClaiming(true);
+      try {
+        let totalClaimed = 0;
+        let latestBalances = null;
+
+        for (const win of claimableWins) {
+          const res = await claimDailyReward(win.gameId);
+          const payload = res?.data || {};
+          const claimedAmount = Number(
+            payload.claimedAmount ?? payload.amount ?? payload.prize ?? 2000
+          );
+          totalClaimed += claimedAmount;
+
+          if (payload.user || payload.rewardBalance !== undefined || payload.mainBalance !== undefined) {
+            latestBalances = payload;
+          }
+        }
+
+        if (latestBalances) {
+          updateUser({
+            rewardBalance:
+              latestBalances.user?.rewardBalance ?? latestBalances.rewardBalance ?? user?.rewardBalance,
+            mainBalance:
+              latestBalances.user?.mainBalance ?? latestBalances.mainBalance ?? user?.mainBalance,
+          });
+        } else if (totalClaimed > 0) {
+          updateUser({
+            rewardBalance: Number(user?.rewardBalance || 0) + totalClaimed,
+          });
+        }
+
+        await refreshUser?.();
+        setLastClaimAmount(totalClaimed);
+        setClaimFallbackInfo(false);
+        setSuccessVisible(true);
+      } catch (error) {
+        const status = error?.response?.status;
+        const errorMessage =
+          error?.response?.data?.message ||
+          error?.response?.data?.error ||
+          error?.message ||
+          "";
+
+        const isClaimRouteMissing =
+          status === 404 ||
+          /cannot post|not found|route/i.test(errorMessage);
+
+        if (isClaimRouteMissing) {
+          await refreshUser?.();
+          setLastClaimAmount(0);
+          setClaimFallbackInfo(true);
+          setSuccessVisible(true);
+        } else {
+          window.alert(errorMessage || "Failed to claim reward(s). Please try again.");
+        }
+      } finally {
+        setClaiming(false);
+      }
+      return;
+    }
+
     if (userWins.length > 0) {
+      await refreshUser?.();
+      setLastClaimAmount(0);
+      setClaimFallbackInfo(true);
       setSuccessVisible(true);
       return;
     }
@@ -233,13 +305,17 @@ export default function GameWinnersScreen() {
           <ActionRow>
             <ActionButton
               onClick={handleClaim}
-              disabled={userWins.length === 0 || FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM}
+              disabled={claiming || userWins.length === 0 || FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM}
             >
               <DollarSign size={18} />
               {FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM
                 ? "Claiming Disabled"
+                : claiming
+                ? "Claiming..."
+                : claimableWins.length > 0
+                ? `Claim N${(claimableWins.length * 2000).toLocaleString()}`
                 : userWins.length > 0
-                ? `Claim N${(userWins.length * 2000).toLocaleString()}`
+                ? "Check Rewards"
                 : "No Rewards"}
             </ActionButton>
 
@@ -281,7 +357,9 @@ export default function GameWinnersScreen() {
             <ModalMessage>
               {FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM
                 ? "Rewards have been added to your reward balance."
-                : `N${(userWins.length * 2000).toLocaleString()} has been added to your reward balance.`}
+                : claimFallbackInfo || lastClaimAmount <= 0
+                ? "Rewards are processed automatically after draw. Please check your redeem balance."
+                : `N${lastClaimAmount.toLocaleString()} has been added to your reward balance.`}
             </ModalMessage>
             <ModalSubText>
               You can redeem your rewards anytime from your wallet.
