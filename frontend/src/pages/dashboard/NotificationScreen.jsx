@@ -4,21 +4,42 @@ import styled from "styled-components";
 import { ArrowLeft, Bell, RefreshCw } from "lucide-react";
 import { AuthContext } from "../../context/AuthContext";
 import { getNotifications } from "../../services/api";
+import api from "../../utils/api";
 
 const NotificationScreen = () => {
   const navigate = useNavigate();
   const { user, markNotificationsAsSeen } = useContext(AuthContext);
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState([]);
+  const [depositCount, setDepositCount] = useState(0);
+  const [withdrawalCount, setWithdrawalCount] = useState(0);
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const res = await getNotifications();
-      const backendItems = res?.data?.notifications || res?.notifications || [];
+      const [notifRes, depRes, wdRes] = await Promise.allSettled([
+        getNotifications(),
+        api.get("/wallet/deposit-history"),
+        api.get("/wallet/withdraw-history"),
+      ]);
+
+      const backendItems =
+        notifRes.status === "fulfilled"
+          ? notifRes.value?.data?.notifications || notifRes.value?.notifications || []
+          : [];
       setItems(Array.isArray(backendItems) ? backendItems : []);
+
+      const deposits =
+        depRes.status === "fulfilled" ? depRes.value?.data?.deposits || [] : [];
+      const withdrawals =
+        wdRes.status === "fulfilled" ? wdRes.value?.data?.withdrawals || [] : [];
+
+      setDepositCount(Array.isArray(deposits) ? deposits.length : 0);
+      setWithdrawalCount(Array.isArray(withdrawals) ? withdrawals.length : 0);
     } catch {
       setItems([]);
+      setDepositCount(0);
+      setWithdrawalCount(0);
     } finally {
       setLoading(false);
     }
@@ -56,16 +77,16 @@ const NotificationScreen = () => {
             <StatLabel>Total</StatLabel>
           </Stat>
           <Stat>
-            <StatNumber>{sortedItems.filter((x) => x?.type === "Welcome").length}</StatNumber>
-            <StatLabel>Welcome</StatLabel>
+            <StatNumber>{depositCount}</StatNumber>
+            <StatLabel>Deposits</StatLabel>
           </Stat>
           <Stat>
-            <StatNumber>{sortedItems.filter((x) => x?.type === "Redeem").length}</StatNumber>
-            <StatLabel>Redeems</StatLabel>
+            <StatNumber>{Number(user?.dailyNumberDraw?.length || 0)}</StatNumber>
+            <StatLabel>Games</StatLabel>
           </Stat>
           <Stat>
-            <StatNumber>{sortedItems.filter((x) => x?.type === "Signout").length}</StatNumber>
-            <StatLabel>Signouts</StatLabel>
+            <StatNumber>{withdrawalCount}</StatNumber>
+            <StatLabel>Withdrawals</StatLabel>
           </Stat>
         </Stats>
 
