@@ -23,6 +23,7 @@ export default function GameWinnersScreen() {
   const [claiming, setClaiming] = useState(false);
   const [lastClaimAmount, setLastClaimAmount] = useState(0);
   const [claimFallbackInfo, setClaimFallbackInfo] = useState(false);
+  const [monthlyLimitHit, setMonthlyLimitHit] = useState(false);
   const [infoModal, setInfoModal] = useState({
     visible: false,
     title: "",
@@ -165,17 +166,33 @@ export default function GameWinnersScreen() {
       try {
         let totalClaimed = 0;
         let latestBalances = null;
+        let limitHit = false;
 
         for (const win of claimableWins) {
-          const res = await claimDailyReward(win.gameId);
-          const payload = res?.data || {};
-          const claimedAmount = Number(
-            payload.claimedAmount ?? payload.amount ?? payload.prize ?? 2000
-          );
-          totalClaimed += claimedAmount;
+          try {
+            const res = await claimDailyReward(win.gameId);
+            const payload = res?.data || {};
+            const claimedAmount = Number(
+              payload.claimedAmount ?? payload.amount ?? payload.prize ?? 2000
+            );
+            totalClaimed += claimedAmount;
 
-          if (payload.user || payload.rewardBalance !== undefined || payload.mainBalance !== undefined) {
-            latestBalances = payload;
+            if (payload.user || payload.rewardBalance !== undefined || payload.mainBalance !== undefined) {
+              latestBalances = payload;
+            }
+          } catch (err) {
+            const errorMessage =
+              err?.response?.data?.message ||
+              err?.response?.data?.error ||
+              err?.message ||
+              "";
+
+            if (/only one weekly reward per month/i.test(errorMessage)) {
+              limitHit = true;
+              break;
+            }
+
+            throw err;
           }
         }
 
@@ -195,7 +212,17 @@ export default function GameWinnersScreen() {
         await refreshUser?.();
         setLastClaimAmount(totalClaimed);
         setClaimFallbackInfo(false);
-        setSuccessVisible(true);
+        setMonthlyLimitHit(limitHit);
+        if (totalClaimed > 0) {
+          setSuccessVisible(true);
+        } else if (limitHit) {
+          setInfoModal({
+            visible: true,
+            title: "Monthly Claim Limit",
+            message: "You can claim only one weekly reward per month.",
+            buttonText: "Close",
+          });
+        }
       } catch (error) {
         const status = error?.response?.status;
         const errorMessage =
@@ -216,8 +243,11 @@ export default function GameWinnersScreen() {
         } else {
           setInfoModal({
             visible: true,
-            title: "Claim Failed",
-            message: errorMessage || "Failed to claim reward(s). Please try again.",
+            title: /only one weekly reward per month/i.test(errorMessage)
+              ? "Monthly Claim Limit"
+              : "Claim Failed",
+            message:
+              errorMessage || "Failed to claim reward(s). Please try again.",
             buttonText: "Close",
           });
         }
@@ -406,7 +436,9 @@ export default function GameWinnersScreen() {
                 : `N${lastClaimAmount.toLocaleString()} has been added to your reward balance.`}
             </ModalMessage>
             <ModalSubText>
-              You can redeem your rewards anytime from your wallet.
+              {monthlyLimitHit
+                ? "Monthly limit reached: only one weekly reward can be claimed per month."
+                : "You can redeem your rewards anytime from your wallet."}
             </ModalSubText>
 
             <ModalButton
