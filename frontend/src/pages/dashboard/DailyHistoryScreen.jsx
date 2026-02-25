@@ -89,6 +89,7 @@ const DailyHistoryScreen = () => {
               const matched = result.length
                 ? picked.filter((n) => result.includes(n)).length
                 : 0;
+              const hasResult = result.length > 0;
               const dateStr = item.createdAt
                 ? new Date(item.createdAt).toLocaleString()
                 : "Unknown date";
@@ -117,7 +118,11 @@ const DailyHistoryScreen = () => {
                       </NumberWrap>
                     </Row>
 
-                    {result.length > 0 && (
+                    {!hasResult && (
+                      <PendingText>Pending until month end</PendingText>
+                    )}
+
+                    {hasResult && (
                       <Row>
                         <Label>Draw:</Label>
                         <NumberWrap>
@@ -291,6 +296,13 @@ const DateText = styled.p`
   margin: 4px 0 0;
   color: #666;
   font-size: 12px;
+`;
+
+const PendingText = styled.p`
+  margin: 8px 0 0;
+  color: #d97706;
+  font-size: 12px;
+  font-weight: 700;
 `;
 
 const Row = styled.div`
