@@ -11,6 +11,7 @@ import AlertModalHost from './components/AlertModalHost';
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
 import ForgotPassword from './pages/auth/ForgotPassword';
+import LaunchScreen from './pages/LaunchScreen';
 import HomeScreen from './pages/dashboard/HomeScreen';
 import DepositScreen from './pages/dashboard/DepositScreen';
 import WithdrawScreen from './pages/dashboard/WithdrawScreen';// Add this import
@@ -64,6 +65,7 @@ function App() {
         <Router>
           <Routes>
             {/* Public Routes */}
+            <Route path="/launch" element={<LaunchScreen />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
