@@ -11,7 +11,7 @@ const ProtectedRoute = () => {
     return <BrandLoader text="Loading Biggi Data..." />;
   }
 
-  if (!user) return <Navigate to="/login" />;
+  if (!user) return <Navigate to="/launch" />;
 
   const userRole = user?.userRole;
   if (!userRole && location.pathname !== "/user-role") {
