@@ -138,7 +138,7 @@ const HomeScreen = () => {
   const tickets = Number(user.tickets || 0);
   const dataBundleCount = Number(user.dataBundleCount || 0);
   const totalSavings = Number(user.totalSavings || 0);
-  const role = String(user?.role || user?.userRole || "").toLowerCase();
+  const role = String(user?.userRole || "").toLowerCase();
   const isPrivateRole = role === "private";
   const isMerchantRole = role === "merchant";
 

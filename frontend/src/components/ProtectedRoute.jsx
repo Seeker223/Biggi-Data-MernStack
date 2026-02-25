@@ -13,8 +13,8 @@ const ProtectedRoute = () => {
 
   if (!user) return <Navigate to="/login" />;
 
-  const role = user?.role || user?.userRole;
-  if (!role && location.pathname !== "/user-role") {
+  const userRole = user?.userRole;
+  if (!userRole && location.pathname !== "/user-role") {
     return <Navigate to="/user-role" replace />;
   }
 
