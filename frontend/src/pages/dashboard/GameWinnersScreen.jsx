@@ -307,7 +307,7 @@ export default function GameWinnersScreen() {
             <InfoItem>
               <InfoLabel>Draw Time</InfoLabel>
               <InfoValue>
-                {activeTab === "daily" ? "Every 7 Days" : "End of Month"}
+                {activeTab === "daily" ? "End of Month" : "End of Month"}
               </InfoValue>
             </InfoItem>
           </InfoCard>

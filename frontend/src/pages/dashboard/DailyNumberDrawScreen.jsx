@@ -109,7 +109,7 @@ const DailyNumberDrawScreen = () => {
         <HelpText>
           Select 5 letters from A-Z then a-z (52 total). Each play consumes 1 ticket.
           <br />
-          Results are released after 7 days.
+          Results are released at month end.
         </HelpText>
 
         <TicketRow>
@@ -144,7 +144,7 @@ const DailyNumberDrawScreen = () => {
           <ModalCard>
             <CheckCircle2 size={64} color="#4cd964" />
             <ModalTitle>Submitted</ModalTitle>
-            <ModalMessage>Your letters were entered. Weekly results are released after 7 days.</ModalMessage>
+            <ModalMessage>Your letters were entered. Weekly results are released at month end.</ModalMessage>
             <ModalButton onClick={() => setSuccessModal(false)}>OK</ModalButton>
           </ModalCard>
         </Overlay>
