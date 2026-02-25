@@ -62,7 +62,16 @@ const SelectNetworkScreen = () => {
   const returnTo = location.state?.returnTo || "/buy-data";
 
   const onSelect = (selectedNetwork) => {
-    navigate("/select-plan", { state: { selectedNetwork, returnTo } });
+    navigate("/select-plan", {
+      state: {
+        selectedNetwork: {
+          code: selectedNetwork.code,
+          label: selectedNetwork.label,
+          network: selectedNetwork.label,
+        },
+        returnTo,
+      },
+    });
   };
 
   return (
