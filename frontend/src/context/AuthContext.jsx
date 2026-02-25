@@ -127,7 +127,7 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     setUser(null);
     delete api.defaults.headers.common["Authorization"];
-    window.location.href = "/login";
+    window.location.href = "/launch";
   };
 
   const refreshUser = useCallback(async () => {
