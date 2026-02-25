@@ -29,6 +29,7 @@ import DailyNumberDrawScreen from './pages/dashboard/DailyNumberDrawScreen';
 import DailyHistoryScreen from './pages/dashboard/DailyHistoryScreen';
 import GameWinnersScreen from './pages/dashboard/GameWinnersScreen';
 import TopRandomScreen from './pages/dashboard/TopRandomScreen';
+import UserRoleScreen from './pages/dashboard/UserRoleScreen';
 import TermsScreen from './pages/dashboard/terms';
 import DeleteAccountScreen from './pages/dashboard/deleteAccount';
 import DepositHistoryScreen from './pages/dashboard/DepositHistoryScreen';
@@ -121,6 +122,9 @@ function App() {
             </Route>
             <Route element={<ProtectedRoute />}>
               <Route path="/top-random" element={<TopRandomScreen />} />
+            </Route>
+            <Route element={<ProtectedRoute />}>
+              <Route path="/user-role" element={<UserRoleScreen />} />
             </Route>
             <Route element={<ProtectedRoute />}>
               <Route path="/terms" element={<TermsScreen />} />

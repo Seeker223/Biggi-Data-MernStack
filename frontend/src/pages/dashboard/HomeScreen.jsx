@@ -138,6 +138,9 @@ const HomeScreen = () => {
   const tickets = Number(user.tickets || 0);
   const dataBundleCount = Number(user.dataBundleCount || 0);
   const totalSavings = Number(user.totalSavings || 0);
+  const role = String(user?.role || user?.userRole || "").toLowerCase();
+  const isPrivateRole = role === "private";
+  const isMerchantRole = role === "merchant";
 
   const goToDeposit = () => navigate('/deposit');
   const goToWithdraw = () => navigate('/withdraw');
@@ -380,7 +383,7 @@ const HomeScreen = () => {
             <TicketCount>{tickets}</TicketCount>
           </TicketText>
           <InfoText>
-            ✅ Buy Any Bundle → Unlock Weekly Game + Monthly Draw
+            ✅ Buy Any Bundle → Unlock Weekly Game{isMerchantRole ? " + Monthly Draw" : " + Top Random Picks"}
           </InfoText>
 
           {/* CONTENT SECTION */}
@@ -424,71 +427,75 @@ const HomeScreen = () => {
             </GameCard>
 
             {/* MONTHLY GAME */}
-            <MonthlyGameCard $pulse={monthlyEligibility.isEligible}>
-              <MonthlyHeader>
-                <TrophyIcon size={24} />
-                <MonthlyTitle>Monthly Draw</MonthlyTitle>
-                {monthlyEligibility.isEligible && (
-                  <EligibleBadge>
-                    <EligibleText>ELIGIBLE</EligibleText>
-                  </EligibleBadge>
-                )}
-              </MonthlyHeader>
-              
-              <MonthlyPrize>
-                {FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "Prize hidden" : "₦5,000"}
-              </MonthlyPrize>
-              <MonthlySubtitle>Monthly Jackpot</MonthlySubtitle>
-              
-              {/* Monthly Progress */}
-              <ProgressContainer>
-                <ProgressLabels>
-                  <ProgressText>
-                    {monthlyEligibility.purchases}/{monthlyEligibility.required} purchases
-                  </ProgressText>
-                  <ProgressPercent>
-                    {Math.round(monthlyEligibility.progress)}%
-                  </ProgressPercent>
-                </ProgressLabels>
-                <ProgressBar>
-                  <ProgressFill 
-                    $width={monthlyEligibility.progress} 
-                    $color={monthlyEligibility.isEligible ? '#4CAF50' : '#8E2DE2'}
-                  />
-                </ProgressBar>
-                <DaysLeftText>
-                  {monthlyEligibility.daysLeft} days left this month
-                </DaysLeftText>
-              </ProgressContainer>
-              
-              <MonthlyBtn 
-                onClick={() => navigate('/game-winner')}
-                $eligible={monthlyEligibility.isEligible}
-              >
-                {monthlyEligibility.isEligible ? (
-                  <>
-                    <CheckCircle size={18} />
-                    <MonthlyBtnText>You're Eligible!</MonthlyBtnText>
-                  </>
-                ) : (
-                  <>
-                    <Info size={18} />
-                    <MonthlyBtnText>Check Eligibility</MonthlyBtnText>
-                  </>
-                )}
-              </MonthlyBtn>
-            </MonthlyGameCard>
+            {(isMerchantRole || !role) && (
+              <MonthlyGameCard $pulse={monthlyEligibility.isEligible}>
+                <MonthlyHeader>
+                  <TrophyIcon size={24} />
+                  <MonthlyTitle>Monthly Draw</MonthlyTitle>
+                  {monthlyEligibility.isEligible && (
+                    <EligibleBadge>
+                      <EligibleText>ELIGIBLE</EligibleText>
+                    </EligibleBadge>
+                  )}
+                </MonthlyHeader>
+                
+                <MonthlyPrize>
+                  {FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "Prize hidden" : "₦5,000"}
+                </MonthlyPrize>
+                <MonthlySubtitle>Monthly Jackpot</MonthlySubtitle>
+                
+                {/* Monthly Progress */}
+                <ProgressContainer>
+                  <ProgressLabels>
+                    <ProgressText>
+                      {monthlyEligibility.purchases}/{monthlyEligibility.required} purchases
+                    </ProgressText>
+                    <ProgressPercent>
+                      {Math.round(monthlyEligibility.progress)}%
+                    </ProgressPercent>
+                  </ProgressLabels>
+                  <ProgressBar>
+                    <ProgressFill 
+                      $width={monthlyEligibility.progress} 
+                      $color={monthlyEligibility.isEligible ? '#4CAF50' : '#8E2DE2'}
+                    />
+                  </ProgressBar>
+                  <DaysLeftText>
+                    {monthlyEligibility.daysLeft} days left this month
+                  </DaysLeftText>
+                </ProgressContainer>
+                
+                <MonthlyBtn 
+                  onClick={() => navigate('/game-winner')}
+                  $eligible={monthlyEligibility.isEligible}
+                >
+                  {monthlyEligibility.isEligible ? (
+                    <>
+                      <CheckCircle size={18} />
+                      <MonthlyBtnText>You're Eligible!</MonthlyBtnText>
+                    </>
+                  ) : (
+                    <>
+                      <Info size={18} />
+                      <MonthlyBtnText>Check Eligibility</MonthlyBtnText>
+                    </>
+                  )}
+                </MonthlyBtn>
+              </MonthlyGameCard>
+            )}
 
-            <TopRandomCard>
-              <TopRandomTitle>Top Random Monthly Picks</TopRandomTitle>
-              <TopRandomDesc>
-                10 random users who bought data this month win ₦2,000 each.
-              </TopRandomDesc>
-              <TopRandomBtn onClick={goToTopRandom}>
-                <Trophy size={18} />
-                <TopRandomBtnText>Open Top Random Picks</TopRandomBtnText>
-              </TopRandomBtn>
-            </TopRandomCard>
+            {(isPrivateRole || isMerchantRole || !role) && (
+              <TopRandomCard>
+                <TopRandomTitle>Top Random Monthly Picks</TopRandomTitle>
+                <TopRandomDesc>
+                  10 random users who bought data this month win ₦2,000 each.
+                </TopRandomDesc>
+                <TopRandomBtn onClick={goToTopRandom}>
+                  <Trophy size={18} />
+                  <TopRandomBtnText>Open Top Random Picks</TopRandomBtnText>
+                </TopRandomBtn>
+              </TopRandomCard>
+            )}
           </ContentSection>
         </ScrollContainer>
 
