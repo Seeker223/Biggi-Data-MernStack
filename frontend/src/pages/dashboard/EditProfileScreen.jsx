@@ -18,6 +18,7 @@ export default function EditProfileScreen() {
   const [username, setUsername] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [stateValue, setStateValue] = useState("");
 
   useEffect(() => {
     if (!user) return;
@@ -25,6 +26,7 @@ export default function EditProfileScreen() {
     setPhone(user.phoneNumber || "");
     setEmail(user.email || "");
     setAvatarPreview(user.photo || "");
+    setStateValue(user.state || "");
   }, [user]);
 
   const userIdShort = useMemo(() => String(user?._id || "").slice(-8), [user?._id]);
@@ -68,6 +70,7 @@ export default function EditProfileScreen() {
         username,
         phoneNumber: phone,
         email,
+        state: stateValue,
       });
 
       if (res?.data?.success) {
@@ -129,6 +132,19 @@ export default function EditProfileScreen() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
+
+            <Label>State</Label>
+            <Select
+              value={stateValue}
+              onChange={(e) => setStateValue(e.target.value)}
+            >
+              <option value="">Select state</option>
+              {NIGERIA_STATES.map((state) => (
+                <option key={state} value={state}>
+                  {state}
+                </option>
+              ))}
+            </Select>
 
             <PrimaryBtn type="button" onClick={submitProfile} disabled={loading}>
               {loading ? "Saving..." : "Update Profile"}
@@ -267,6 +283,15 @@ const Input = styled.input`
   outline: none;
 `;
 
+const Select = styled.select`
+  background: #d9d9d9;
+  border: 0;
+  border-radius: 10px;
+  padding: 10px;
+  margin-top: 5px;
+  outline: none;
+`;
+
 const PrimaryBtn = styled.button`
   margin-top: 24px;
   border: 0;
@@ -282,4 +307,43 @@ const PrimaryBtn = styled.button`
     cursor: not-allowed;
   }
 `;
+
+const NIGERIA_STATES = [
+  "Abia",
+  "Adamawa",
+  "Akwa Ibom",
+  "Anambra",
+  "Bauchi",
+  "Bayelsa",
+  "Benue",
+  "Borno",
+  "Cross River",
+  "Delta",
+  "Ebonyi",
+  "Edo",
+  "Ekiti",
+  "Enugu",
+  "Gombe",
+  "Imo",
+  "Jigawa",
+  "Kaduna",
+  "Kano",
+  "Katsina",
+  "Kebbi",
+  "Kogi",
+  "Kwara",
+  "Lagos",
+  "Nasarawa",
+  "Niger",
+  "Ogun",
+  "Ondo",
+  "Osun",
+  "Oyo",
+  "Plateau",
+  "Rivers",
+  "Sokoto",
+  "Taraba",
+  "Yobe",
+  "Zamfara",
+];
 
