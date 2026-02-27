@@ -24,7 +24,7 @@ const DailyLuckyDrawScreen = () => {
 
         <Hero>
           <Trophy size={34} color="#fff" />
-          <HeroTitle>{FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "Prize Hidden" : "Win N2,000 Daily"}</HeroTitle>
+          <HeroTitle>{FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "Prize Hidden" : "Win N10,000 Daily"}</HeroTitle>
           <HeroSub>Draw time: 7:30 PM every day</HeroSub>
         </Hero>
 

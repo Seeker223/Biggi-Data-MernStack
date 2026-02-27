@@ -99,7 +99,7 @@ const TopRandomScreen = () => {
           </Row>
           <Row>
             <Label>Prize per Winner</Label>
-            <Value>₦{Number(status?.prizeAmount || 2000).toLocaleString()}</Value>
+            <Value>₦{Number(status?.prizeAmount || 10000).toLocaleString()}</Value>
           </Row>
           <Row>
             <Label>Winners</Label>
@@ -130,7 +130,7 @@ const TopRandomScreen = () => {
               disabled={!canClaim || FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM}
             >
               <Gift size={16} />
-              {claiming ? "Claiming..." : canClaim ? "Claim ₦2,000" : "No Reward To Claim"}
+              {claiming ? "Claiming..." : canClaim ? "Claim ₦10,000" : "No Reward To Claim"}
             </PrimaryButton>
             <SecondaryButton onClick={() => navigate("/redeem")}>
               Go to Redeem

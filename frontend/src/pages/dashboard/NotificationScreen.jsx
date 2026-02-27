@@ -95,7 +95,7 @@ const NotificationScreen = () => {
       type: "games",
       title: "Weekly Draw",
       message: g?.isWinner ? "Winner ticket" : "Played ticket",
-      amount: g?.isWinner ? Number(g?.prizeAmount || 2000) : null,
+      amount: g?.isWinner ? Number(g?.prizeAmount || 10000) : null,
       createdAt: g?.createdAt || new Date().toISOString(),
       status: g?.isWinner ? "winner" : "played",
     }));

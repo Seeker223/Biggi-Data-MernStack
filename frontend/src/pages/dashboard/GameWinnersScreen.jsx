@@ -75,7 +75,7 @@ export default function GameWinnersScreen() {
             FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM
               ? "-"
               : item.isWinner
-              ? "N5,000"
+              ? "N10,000"
               : "-",
           date: `Rank #${item.rank}`,
           note: `${item.purchasesCount} purchase${item.purchasesCount === 1 ? "" : "s"}${item.isWinner ? " • Top 3 Winner" : ""}`,
@@ -103,7 +103,7 @@ export default function GameWinnersScreen() {
           claimed: Boolean(game?.claimed || game?.rewardClaimed || game?.isClaimed),
           id: user?._id?.slice(-6) || "000000",
           type: "weekly",
-          amount: FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "-" : "N2,000",
+          amount: FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "-" : "N10,000",
           date: new Date(game.createdAt).toLocaleDateString("en-US", {
             month: "short",
             day: "numeric",
@@ -122,7 +122,7 @@ export default function GameWinnersScreen() {
       name: "Alex Johnson",
       id: "123456",
       type: "weekly",
-      amount: FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "-" : "N2,000",
+      amount: FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "-" : "N10,000",
       date: "This Week",
       numbers: ["A", "F", "M", "Q", "z"],
     },
@@ -130,7 +130,7 @@ export default function GameWinnersScreen() {
       name: "Sarah Williams",
       id: "234567",
       type: "weekly",
-      amount: FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "-" : "N2,000",
+      amount: FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "-" : "N10,000",
       date: "Last Week",
       numbers: ["C", "R", "X", "g", "p"],
     },
@@ -138,7 +138,7 @@ export default function GameWinnersScreen() {
       name: "Emma Davis",
       id: "456789",
       type: "weekly",
-      amount: FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "-" : "N2,000",
+      amount: FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "-" : "N10,000",
       date: "2 Weeks Ago",
       numbers: ["K", "O", "U", "d", "y"],
     },
@@ -173,7 +173,7 @@ export default function GameWinnersScreen() {
             const res = await claimDailyReward(win.gameId);
             const payload = res?.data || {};
             const claimedAmount = Number(
-              payload.claimedAmount ?? payload.amount ?? payload.prize ?? 2000
+              payload.claimedAmount ?? payload.amount ?? payload.prize ?? 10000
             );
             totalClaimed += claimedAmount;
 
@@ -279,7 +279,7 @@ export default function GameWinnersScreen() {
   const handleCheckMonthlyEligibility = () => {
     const message = FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM
       ? `Top 3 buyers in ${monthlyBoardMonth || "this month"} are selected as monthly winners (prize hidden).\n\nLive board shows up to top 100 ranks by purchase count.\n\nBuy more bundles to climb the ranking.\n\nClick OK to Buy Data, or Cancel to close.`
-      : `Top 3 buyers in ${monthlyBoardMonth || "this month"} are selected as monthly winners.\n\nPrize per winner: N5,000\nLive board shows up to top 100 ranks by purchase count.\n\nBuy more bundles to climb the ranking.\n\nClick OK to Buy Data, or Cancel to close.`;
+      : `Top 3 buyers in ${monthlyBoardMonth || "this month"} are selected as monthly winners.\n\nPrize per winner: N10,000\nLive board shows up to top 100 ranks by purchase count.\n\nBuy more bundles to climb the ranking.\n\nClick OK to Buy Data, or Cancel to close.`;
 
     setActionModal({
       visible: true,
@@ -329,8 +329,8 @@ export default function GameWinnersScreen() {
                 {FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM
                   ? "Prize hidden"
                   : activeTab === "daily"
-                  ? "N2,000"
-                  : "N5,000"}
+                  ? "N10,000"
+                  : "N10,000"}
               </InfoValue>
             </InfoItem>
             <InfoDivider />
@@ -387,7 +387,7 @@ export default function GameWinnersScreen() {
                 : claiming
                 ? "Claiming..."
                 : claimableWins.length > 0
-                ? `Claim N${(claimableWins.length * 2000).toLocaleString()}`
+                ? `Claim N${(claimableWins.length * 10000).toLocaleString()}`
                 : userWins.length > 0
                 ? "Check Rewards"
                 : "No Rewards"}

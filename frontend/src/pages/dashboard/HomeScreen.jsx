@@ -215,7 +215,7 @@ const HomeScreen = () => {
         "Monthly Draw Eligible! 🎉",
         FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM
           ? `You've made ${monthlyEligibility.purchases} purchases this month.\n\nYou're automatically entered into the monthly draw (prize hidden).\n\nDraw happens at the end of the month (${monthlyEligibility.daysLeft} days left).`
-          : `You've made ${monthlyEligibility.purchases} purchases this month.\n\nYou're automatically entered into the ₦5,000 monthly draw!\n\nDraw happens at the end of the month (${monthlyEligibility.daysLeft} days left).`,
+          : `You've made ${monthlyEligibility.purchases} purchases this month.\n\nYou're automatically entered into the ₦10,000 monthly draw!\n\nDraw happens at the end of the month (${monthlyEligibility.daysLeft} days left).`,
         true
       );
     } else {
@@ -223,7 +223,7 @@ const HomeScreen = () => {
         "Monthly Draw Eligibility",
         FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM
           ? `You need ${monthlyEligibility.required} data purchases this month to qualify for the monthly draw (prize hidden).\n\nYour purchases this month: ${monthlyEligibility.purchases}/${monthlyEligibility.required}\nProgress: ${Math.round(monthlyEligibility.progress)}%\nDays left this month: ${monthlyEligibility.daysLeft}\n\nKeep buying data bundles to qualify!`
-          : `You need ${monthlyEligibility.required} data purchases this month to qualify for the ₦5,000 monthly draw.\n\nYour purchases this month: ${monthlyEligibility.purchases}/${monthlyEligibility.required}\nProgress: ${Math.round(monthlyEligibility.progress)}%\nDays left this month: ${monthlyEligibility.daysLeft}\n\nKeep buying data bundles to qualify!`,
+          : `You need ${monthlyEligibility.required} data purchases this month to qualify for the ₦10,000 monthly draw.\n\nYour purchases this month: ${monthlyEligibility.purchases}/${monthlyEligibility.required}\nProgress: ${Math.round(monthlyEligibility.progress)}%\nDays left this month: ${monthlyEligibility.daysLeft}\n\nKeep buying data bundles to qualify!`,
         false
       );
     }
@@ -450,7 +450,7 @@ const HomeScreen = () => {
               <GamepadIcon size={28} />
               <GameTitle>Weekly Number Picker Game</GameTitle>
               <GameSubtitle>
-                {FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "Win (prize hidden)" : "Win ₦2,000 Weekly"}
+                {FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "Win (prize hidden)" : "Win ₦10,000 Weekly"}
               </GameSubtitle>
               <PlayBtn 
                 onClick={handleDailyGame} 
@@ -474,7 +474,7 @@ const HomeScreen = () => {
                 </MonthlyHeader>
                 
                 <MonthlyPrize>
-                  {FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "Prize hidden" : "₦5,000"}
+                  {FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "Prize hidden" : "₦10,000"}
                 </MonthlyPrize>
                 <MonthlySubtitle>Monthly Jackpot</MonthlySubtitle>
                 
@@ -522,7 +522,7 @@ const HomeScreen = () => {
               <TopRandomCard>
                 <TopRandomTitle>Top Random Monthly Picks</TopRandomTitle>
                 <TopRandomDesc>
-                  10 random users who bought data this month win ₦2,000 each.
+                  10 random users who bought data this month win ₦10,000 each.
                 </TopRandomDesc>
                 <TopRandomBtn onClick={goToTopRandom}>
                   <Trophy size={18} />
