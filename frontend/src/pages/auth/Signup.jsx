@@ -332,6 +332,7 @@ const NIGERIA_STATES = [
   "Sokoto",
   "Taraba",
   "Yobe",
+  "Abuja",
   "Zamfara",
 ];
 
