@@ -6,12 +6,21 @@ import FloatingBottomNav from "../../components/FloatingBottomNav";
 import { AuthContext } from "../../context/AuthContext";
 
 const DEFAULT_AVATAR = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+const normalizeSiteUrl = (raw) => {
+  const value = String(raw || "").trim();
+  if (!value) return "https://biggidata.com.ng";
+  return /^https?:\/\//i.test(value) ? value : `https://${value}`;
+};
 
 const ProfileScreen = () => {
   const navigate = useNavigate();
   const { user, logout } = useContext(AuthContext);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [copied, setCopied] = useState(false);
+  const siteBaseUrl = normalizeSiteUrl(
+    import.meta.env.VITE_PUBLIC_SITE_URL || "https://biggidata.com.ng"
+  );
+  const referralLink = `${siteBaseUrl.replace(/\/$/, "")}/signup?ref=${user?.referralCode || ""}`;
 
   if (!user) return null;
 
@@ -55,16 +64,14 @@ const ProfileScreen = () => {
           {user.referralCode && (
             <ReferralRow>
               <ReferralInput
-                value={`${window.location.origin}/signup?ref=${user.referralCode}`}
+                value={referralLink}
                 readOnly
               />
               <CopyButton
                 type="button"
                 onClick={async () => {
                   try {
-                    await navigator.clipboard.writeText(
-                      `${window.location.origin}/signup?ref=${user.referralCode}`
-                    );
+                    await navigator.clipboard.writeText(referralLink);
                     setCopied(true);
                     setTimeout(() => setCopied(false), 1500);
                   } catch {
