@@ -76,6 +76,7 @@ const HomeScreen = () => {
     message: "",
     type: "success"
   });
+  const [stateModalVisible, setStateModalVisible] = useState(false);
 
   const [isUploading, setIsUploading] = useState(false);
 
@@ -86,6 +87,14 @@ const HomeScreen = () => {
   useEffect(() => {
     calculateMonthlyEligibility();
   }, [user?.dataBundleCount]);
+
+  useEffect(() => {
+    if (user && !user.state) {
+      setStateModalVisible(true);
+    } else {
+      setStateModalVisible(false);
+    }
+  }, [user?.state, user]);
 
   const calculateMonthlyEligibility = () => {
     const purchases = user?.dataBundleCount || 0;
@@ -626,6 +635,23 @@ const HomeScreen = () => {
                 onClick={() => setUploadModalVisible(false)}
               >
                 <ModalBtnText>OK</ModalBtnText>
+              </ModalBtn>
+            </ModalBox>
+          </ModalOverlay>
+        )}
+
+        {/* STATE REQUIRED MODAL */}
+        {stateModalVisible && (
+          <ModalOverlay>
+            <ModalBox>
+              <Info size={42} color="#FF7A00" />
+              <ModalTitle>Complete Your Profile</ModalTitle>
+              <ModalMsg>Please choose your state to continue using Biggi Data.</ModalMsg>
+              <ModalBtn onClick={() => navigate("/edit-profile")}>
+                <ModalBtnText>Set State</ModalBtnText>
+              </ModalBtn>
+              <ModalBtn $secondary onClick={() => setStateModalVisible(false)}>
+                <ModalBtnText>Later</ModalBtnText>
               </ModalBtn>
             </ModalBox>
           </ModalOverlay>
