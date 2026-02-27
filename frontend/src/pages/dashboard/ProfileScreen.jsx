@@ -50,6 +50,7 @@ const ProfileScreen = () => {
           <Avatar src={user.photo || DEFAULT_AVATAR} alt="Profile" />
           <Name>{user.username || "User"}</Name>
           <IdText>ID: {String(user._id || "").slice(-8)}</IdText>
+          <IdText>Referral Code: {user.referralCode || "—"}</IdText>
 
           <Options>
             {options.map((item) => (

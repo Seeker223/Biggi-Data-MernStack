@@ -14,6 +14,7 @@ const Signup = () => {
     phoneNumber: '',
     birthDate: '',
     state: '',
+    referralCode: '',
     password: '',
     confirmPassword: '',
   });
@@ -27,7 +28,7 @@ const Signup = () => {
 
   const handleRegister = async (e) => {
     e.preventDefault();
-    const { username, email, password, phoneNumber, birthDate, confirmPassword, state } = form;
+    const { username, email, password, phoneNumber, birthDate, confirmPassword, state, referralCode } = form;
 
     if (!username || !email || !password || !confirmPassword) {
       showModal('Please fill all required fields.', 'error');
@@ -56,7 +57,7 @@ const Signup = () => {
 
     setLoading(true);
     try {
-      const res = await register({ username, email, password, phoneNumber, birthDate, state });
+      const res = await register({ username, email, password, phoneNumber, birthDate, state, referralCode });
       
       if (res.success) {
         showModal('Registration successful! Welcome to Biggi Data.', 'success');
@@ -182,6 +183,17 @@ const Signup = () => {
                   </option>
                 ))}
               </SelectInput>
+            </InputWrapper>
+
+            {/* Referral Code */}
+            <InputWrapper>
+              <Label>Invitation Referral Code (optional)</Label>
+              <TextInput
+                type="text"
+                placeholder="Enter referral code"
+                value={form.referralCode}
+                onChange={(e) => setForm({ ...form, referralCode: e.target.value })}
+              />
             </InputWrapper>
 
             {/* Password */}

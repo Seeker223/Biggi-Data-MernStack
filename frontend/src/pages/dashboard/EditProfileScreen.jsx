@@ -19,6 +19,7 @@ export default function EditProfileScreen() {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [stateValue, setStateValue] = useState("");
+  const [referralInvite, setReferralInvite] = useState("");
 
   useEffect(() => {
     if (!user) return;
@@ -27,6 +28,7 @@ export default function EditProfileScreen() {
     setEmail(user.email || "");
     setAvatarPreview(user.photo || "");
     setStateValue(user.state || "");
+    setReferralInvite(user.referredByCode || "");
   }, [user]);
 
   const userIdShort = useMemo(() => String(user?._id || "").slice(-8), [user?._id]);
@@ -71,6 +73,7 @@ export default function EditProfileScreen() {
         phoneNumber: phone,
         email,
         state: stateValue,
+        referredByCode: referralInvite,
       });
 
       if (res?.data?.success) {
@@ -145,6 +148,13 @@ export default function EditProfileScreen() {
                 </option>
               ))}
             </Select>
+
+            <Label>Invitation Referral Code</Label>
+            <Input
+              value={referralInvite}
+              onChange={(e) => setReferralInvite(e.target.value)}
+              placeholder="Enter referral code"
+            />
 
             <PrimaryBtn type="button" onClick={submitProfile} disabled={loading}>
               {loading ? "Saving..." : "Update Profile"}

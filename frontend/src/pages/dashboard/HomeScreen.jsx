@@ -77,6 +77,7 @@ const HomeScreen = () => {
     type: "success"
   });
   const [stateModalVisible, setStateModalVisible] = useState(false);
+  const [referralModalVisible, setReferralModalVisible] = useState(false);
 
   const [isUploading, setIsUploading] = useState(false);
 
@@ -95,6 +96,14 @@ const HomeScreen = () => {
       setStateModalVisible(false);
     }
   }, [user?.state, user]);
+
+  useEffect(() => {
+    if (user && !user.referredByCode) {
+      setReferralModalVisible(true);
+    } else {
+      setReferralModalVisible(false);
+    }
+  }, [user?.referredByCode, user]);
 
   const calculateMonthlyEligibility = () => {
     const purchases = user?.dataBundleCount || 0;
@@ -651,6 +660,23 @@ const HomeScreen = () => {
                 <ModalBtnText>Set State</ModalBtnText>
               </ModalBtn>
               <ModalBtn $secondary onClick={() => setStateModalVisible(false)}>
+                <ModalBtnText>Later</ModalBtnText>
+              </ModalBtn>
+            </ModalBox>
+          </ModalOverlay>
+        )}
+
+        {/* REFERRAL CODE REQUIRED MODAL */}
+        {referralModalVisible && (
+          <ModalOverlay>
+            <ModalBox>
+              <Info size={42} color="#FF7A00" />
+              <ModalTitle>Referral Code</ModalTitle>
+              <ModalMsg>Please provide your invitation referral code.</ModalMsg>
+              <ModalBtn onClick={() => navigate("/edit-profile")}>
+                <ModalBtnText>Enter Code</ModalBtnText>
+              </ModalBtn>
+              <ModalBtn $secondary onClick={() => setReferralModalVisible(false)}>
                 <ModalBtnText>Later</ModalBtnText>
               </ModalBtn>
             </ModalBox>
