@@ -78,6 +78,8 @@ const HomeScreen = () => {
   });
   const [stateModalVisible, setStateModalVisible] = useState(false);
   const [referralModalVisible, setReferralModalVisible] = useState(false);
+  const [referralWinModalVisible, setReferralWinModalVisible] = useState(false);
+  const [referralWinModalData, setReferralWinModalData] = useState({ message: "", amount: null });
 
   const [isUploading, setIsUploading] = useState(false);
 
@@ -104,6 +106,20 @@ const HomeScreen = () => {
       setReferralModalVisible(false);
     }
   }, [user?.referredByCode, user]);
+
+  useEffect(() => {
+    const items = Array.isArray(user?.notificationItems) ? user.notificationItems : [];
+    const unreadReferral = items.find(
+      (item) => item?.type === "Referral Reward" && !item?.seen
+    );
+    if (unreadReferral) {
+      setReferralWinModalData({
+        message: unreadReferral.message || "You earned a referral reward.",
+        amount: unreadReferral.amount ?? null,
+      });
+      setReferralWinModalVisible(true);
+    }
+  }, [user?.notificationItems]);
 
   const calculateMonthlyEligibility = () => {
     const purchases = user?.dataBundleCount || 0;
@@ -678,6 +694,28 @@ const HomeScreen = () => {
               </ModalBtn>
               <ModalBtn $secondary onClick={() => setReferralModalVisible(false)}>
                 <ModalBtnText>Later</ModalBtnText>
+              </ModalBtn>
+            </ModalBox>
+          </ModalOverlay>
+        )}
+
+        {/* REFERRAL WIN MODAL */}
+        {referralWinModalVisible && (
+          <ModalOverlay>
+            <ModalBox>
+              <CheckCircle size={42} color="#4CAF50" />
+              <ModalTitle>Referral Reward</ModalTitle>
+              <ModalMsg>{referralWinModalData.message}</ModalMsg>
+              {referralWinModalData.amount !== null && (
+                <ModalMsg>₦{Number(referralWinModalData.amount).toLocaleString()} added to reward balance.</ModalMsg>
+              )}
+              <ModalBtn
+                onClick={() => {
+                  setReferralWinModalVisible(false);
+                  markNotificationsAsSeen();
+                }}
+              >
+                <ModalBtnText>OK</ModalBtnText>
               </ModalBtn>
             </ModalBox>
           </ModalOverlay>
