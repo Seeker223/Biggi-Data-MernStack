@@ -153,7 +153,8 @@ export default function EditProfileScreen() {
             <Input
               value={referralInvite}
               onChange={(e) => setReferralInvite(e.target.value)}
-              placeholder="Enter referral code"
+              placeholder={user?.referredByCode ? "Referral code already set" : "Enter referral code"}
+              disabled={Boolean(user?.referredByCode)}
             />
 
             <PrimaryBtn type="button" onClick={submitProfile} disabled={loading}>
