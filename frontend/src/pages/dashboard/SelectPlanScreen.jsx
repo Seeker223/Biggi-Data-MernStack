@@ -25,9 +25,28 @@ const SelectPlanScreen = () => {
   const [error, setError] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
   const PRICE_OVERRIDES = {
-    mtn: { "500MB": 450, "1GB": 550 },
-    glo: { "500MB": 330, "1GB": 440 },
-    airtel: { "500MB": 580, "1GB": 890 },
+    mtn: {
+      "500MB|7 days": 400,
+      "1GB|7 days": 550,
+      "1GB|1 day": 300,
+    },
+    glo: {
+      "500MB|30 days": 300,
+      "1GB|30 days": 500,
+    },
+    airtel: {
+      "500MB|7 days": 500,
+      "1GB|7 days": 800,
+      "1GB|1 day": 500,
+    },
+  };
+
+  const DEFAULT_VALIDITY = {
+    mtn: "7 days",
+    glo: "30 days",
+    airtel: "7 days",
+    "9mobile": "7 days",
+    etisalat: "7 days",
   };
 
   const normalizeText = (value) => String(value || "").toLowerCase().replace(/\s+/g, " ").trim();
@@ -72,17 +91,41 @@ const SelectPlanScreen = () => {
         const picked = pickClosestPlan(plansWithSize, target.targetMb, usedIds);
         if (!picked) return null;
         usedIds.add(picked.id);
+        const validity =
+          DEFAULT_VALIDITY[networkKey] || picked.plan.validity || picked.plan.duration || "7 days";
+        const sizeLabel = target.label;
+        const priceKey = `${sizeLabel}|${validity}`;
+        const price = PRICE_OVERRIDES[networkKey]?.[priceKey];
+        if (price === undefined) return null;
         return {
           ...picked.plan,
           name: `${networkLabel} ${target.label}`,
           plan_name: `${networkLabel} ${target.label}`,
-          validity: "7 days",
-          amount: PRICE_OVERRIDES[networkKey]?.[target.label] ?? picked.plan.amount,
+          validity,
+          amount: price,
         };
       })
       .filter(Boolean);
 
-    return selected;
+    const oneDayPlans = selected
+      .map((plan) => {
+        const sizeMatch = String(plan.name || plan.plan_name || "").match(/(500MB|1GB)/i);
+        const sizeLabel = sizeMatch ? sizeMatch[1].toUpperCase() : "1GB";
+        const priceKey = `${sizeLabel}|1 day`;
+        const price = PRICE_OVERRIDES[networkKey]?.[priceKey];
+        if (price === undefined) return null;
+        return {
+          ...plan,
+          name: `${plan.name} (1 Day)`,
+          plan_name: `${plan.plan_name} (1 Day)`,
+          validity: "1 day",
+          amount: price,
+          uiId: `${plan.plan_id || plan._id || plan.id}-1day`,
+        };
+      })
+      .filter(Boolean);
+
+    return [...oneDayPlans, ...selected];
   };
 
   useEffect(() => {
@@ -208,7 +251,7 @@ const SelectPlanScreen = () => {
 
         <PlansWrap>
           {filtered.map((plan, index) => (
-            <PlanItem key={plan.plan_id || plan._id || index} onClick={() => onSelectPlan(plan)} $popular={isPopular(index)}>
+            <PlanItem key={plan.uiId || plan.plan_id || plan._id || index} onClick={() => onSelectPlan(plan)} $popular={isPopular(index)}>
               {isPopular(index) ? <PopularTag>POPULAR</PopularTag> : null}
               <PlanTop>
                 <PlanName>{plan.name || plan.plan_name}</PlanName>
