@@ -1,7 +1,7 @@
 import React, { useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
-import { User, Settings, Headset, LogOut, ChevronRight, ReceiptText } from "lucide-react";
+import { User, Settings, Headset, LogOut, ChevronRight, ReceiptText, Copy } from "lucide-react";
 import FloatingBottomNav from "../../components/FloatingBottomNav";
 import { AuthContext } from "../../context/AuthContext";
 
@@ -11,6 +11,7 @@ const ProfileScreen = () => {
   const navigate = useNavigate();
   const { user, logout } = useContext(AuthContext);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   if (!user) return null;
 
@@ -51,6 +52,31 @@ const ProfileScreen = () => {
           <Name>{user.username || "User"}</Name>
           <IdText>ID: {String(user._id || "").slice(-8)}</IdText>
           <IdText>Referral Code: {user.referralCode || "—"}</IdText>
+          {user.referralCode && (
+            <ReferralRow>
+              <ReferralInput
+                value={`${window.location.origin}/signup?ref=${user.referralCode}`}
+                readOnly
+              />
+              <CopyButton
+                type="button"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(
+                      `${window.location.origin}/signup?ref=${user.referralCode}`
+                    );
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 1500);
+                  } catch {
+                    setCopied(false);
+                  }
+                }}
+              >
+                <Copy size={16} />
+                {copied ? "Copied" : "Copy"}
+              </CopyButton>
+            </ReferralRow>
+          )}
 
           <Options>
             {options.map((item) => (
@@ -186,6 +212,36 @@ const Label = styled.span`
   font-size: 16px;
   color: #003322;
   font-weight: 500;
+`;
+
+const ReferralRow = styled.div`
+  margin-top: 10px;
+  width: 94%;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+`;
+
+const ReferralInput = styled.input`
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 12px;
+  color: #111;
+  background: #f9fafb;
+`;
+
+const CopyButton = styled.button`
+  border: none;
+  border-radius: 10px;
+  background: #ff7a00;
+  color: #fff;
+  font-weight: 700;
+  padding: 8px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
 `;
 
 const ModalOverlay = styled.div`

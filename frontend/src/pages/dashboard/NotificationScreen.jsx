@@ -11,7 +11,7 @@ import {
   Trophy,
 } from "lucide-react";
 import { AuthContext } from "../../context/AuthContext";
-import { getNotifications } from "../../services/api";
+import { getNotifications, getReferralStats } from "../../services/api";
 import api from "../../utils/api";
 
 const NotificationScreen = () => {
@@ -22,14 +22,16 @@ const NotificationScreen = () => {
   const [depositHistory, setDepositHistory] = useState([]);
   const [withdrawHistory, setWithdrawHistory] = useState([]);
   const [backendNotifications, setBackendNotifications] = useState([]);
+  const [referrals, setReferrals] = useState([]);
 
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const [notifRes, depRes, wdRes] = await Promise.allSettled([
+      const [notifRes, depRes, wdRes, referralRes] = await Promise.allSettled([
         getNotifications(),
         api.get("/wallet/deposit-history"),
         api.get("/wallet/withdraw-history"),
+        getReferralStats(),
       ]);
 
       const notifications =
@@ -40,10 +42,15 @@ const NotificationScreen = () => {
         depRes.status === "fulfilled" ? depRes.value?.data?.deposits || [] : [];
       const withdrawals =
         wdRes.status === "fulfilled" ? wdRes.value?.data?.withdrawals || [] : [];
+      const referralList =
+        referralRes.status === "fulfilled"
+          ? referralRes.value?.data?.referrals || referralRes.value?.referrals || []
+          : [];
 
       setBackendNotifications(Array.isArray(notifications) ? notifications : []);
       setDepositHistory(Array.isArray(deposits) ? deposits : []);
       setWithdrawHistory(Array.isArray(withdrawals) ? withdrawals : []);
+      setReferrals(Array.isArray(referralList) ? referralList : []);
     } finally {
       setLoading(false);
     }
@@ -103,10 +110,20 @@ const NotificationScreen = () => {
       status: n?.status || "info",
     }));
 
-    return [...deposits, ...withdrawals, ...games, ...notices].sort(
+    const referralItems = referrals.map((r, idx) => ({
+      id: r?._id || `r-${idx}`,
+      type: "referrals",
+      title: "Referral",
+      message: `${r?.username || "User"} joined using your referral code.`,
+      amount: null,
+      createdAt: r?.createdAt || new Date().toISOString(),
+      status: "success",
+    }));
+
+    return [...deposits, ...withdrawals, ...games, ...notices, ...referralItems].sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
-  }, [depositHistory, withdrawHistory, gameHistory, backendNotifications]);
+  }, [depositHistory, withdrawHistory, gameHistory, backendNotifications, referrals]);
 
   const filteredItems = useMemo(() => {
     if (activeTab === "all") return merged;
@@ -118,6 +135,7 @@ const NotificationScreen = () => {
     withdrawals: withdrawHistory.length,
     games: gameHistory.length,
     wins: gameHistory.filter((g) => g?.isWinner).length,
+    referrals: referrals.length,
   };
 
   const iconFor = (item) => {
@@ -166,6 +184,11 @@ const NotificationScreen = () => {
             <StatValue>{stats.wins}</StatValue>
             <StatLabel>Wins</StatLabel>
           </StatItem>
+          <Divider />
+          <StatItem>
+            <StatValue>{stats.referrals}</StatValue>
+            <StatLabel>Referrals</StatLabel>
+          </StatItem>
         </StatsCard>
 
         <Tabs>
@@ -187,7 +210,31 @@ const NotificationScreen = () => {
           <Tab $active={activeTab === "games"} onClick={() => setActiveTab("games")}>
             Games
           </Tab>
+          <Tab
+            $active={activeTab === "referrals"}
+            onClick={() => setActiveTab("referrals")}
+          >
+            Referrals
+          </Tab>
         </Tabs>
+
+        <ReferralStrip>
+          {referrals.length === 0 ? (
+            <ReferralEmpty>No referrals yet.</ReferralEmpty>
+          ) : (
+            referrals.map((ref) => (
+              <ReferralCard key={ref?._id || ref?.username}>
+                <ReferralName>{ref?.username || "User"}</ReferralName>
+                <ReferralMeta>{ref?.state || "Nigeria"}</ReferralMeta>
+                <ReferralTime>
+                  {ref?.createdAt
+                    ? new Date(ref.createdAt).toLocaleDateString()
+                    : "—"}
+                </ReferralTime>
+              </ReferralCard>
+            ))
+          )}
+        </ReferralStrip>
 
         {loading ? (
           <Empty>Loading notifications...</Empty>
@@ -258,7 +305,7 @@ const HeaderTitle = styled.h1`
 
 const StatsCard = styled.div`
   display: grid;
-  grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr;
+  grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr auto 1fr;
   align-items: center;
   background: #f8f8f8;
   border: 1px solid #f0f0f0;
@@ -303,6 +350,46 @@ const Tab = styled.button`
   white-space: nowrap;
   color: ${(p) => (p.$active ? "#fff" : "#666")};
   background: ${(p) => (p.$active ? "#ff7a00" : "#f0f0f0")};
+`;
+
+const ReferralStrip = styled.div`
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+`;
+
+const ReferralCard = styled.div`
+  min-width: 160px;
+  background: #fff7f0;
+  border: 1px solid #ffe3cc;
+  border-radius: 14px;
+  padding: 10px 12px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.04);
+`;
+
+const ReferralName = styled.div`
+  font-size: 14px;
+  font-weight: 700;
+  color: #111;
+`;
+
+const ReferralMeta = styled.div`
+  font-size: 12px;
+  color: #666;
+`;
+
+const ReferralTime = styled.div`
+  font-size: 11px;
+  color: #888;
+  margin-top: 6px;
+`;
+
+const ReferralEmpty = styled.div`
+  font-size: 13px;
+  color: #777;
+  padding: 6px 2px;
 `;
 
 const List = styled.div`

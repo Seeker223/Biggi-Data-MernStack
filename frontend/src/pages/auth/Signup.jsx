@@ -1,5 +1,5 @@
-import React, { useState, useContext } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useEffect, useState, useContext } from 'react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import styled, { keyframes } from 'styled-components';
 import { Eye, EyeOff, CheckCircle, AlertCircle, Mail, Facebook } from 'lucide-react';
@@ -7,6 +7,7 @@ import { Eye, EyeOff, CheckCircle, AlertCircle, Mail, Facebook } from 'lucide-re
 const Signup = () => {
   const { register } = useContext(AuthContext);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [form, setForm] = useState({
     username: '',
@@ -25,6 +26,14 @@ const Signup = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [modalType, setModalType] = useState('success');
   const [modalMessage, setModalMessage] = useState('');
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const ref = params.get("ref") || params.get("referral") || params.get("code");
+    if (ref && !form.referralCode) {
+      setForm((prev) => ({ ...prev, referralCode: ref }));
+    }
+  }, [location.search, form.referralCode]);
 
   const handleRegister = async (e) => {
     e.preventDefault();
