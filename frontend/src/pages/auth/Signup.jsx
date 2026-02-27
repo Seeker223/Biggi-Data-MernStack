@@ -13,6 +13,7 @@ const Signup = () => {
     email: '',
     phoneNumber: '',
     birthDate: '',
+    state: '',
     password: '',
     confirmPassword: '',
   });
@@ -26,10 +27,14 @@ const Signup = () => {
 
   const handleRegister = async (e) => {
     e.preventDefault();
-    const { username, email, password, phoneNumber, birthDate, confirmPassword } = form;
+    const { username, email, password, phoneNumber, birthDate, confirmPassword, state } = form;
 
     if (!username || !email || !password || !confirmPassword) {
       showModal('Please fill all required fields.', 'error');
+      return;
+    }
+    if (!state) {
+      showModal('Please select your state.', 'error');
       return;
     }
 
@@ -51,7 +56,7 @@ const Signup = () => {
 
     setLoading(true);
     try {
-      const res = await register({ username, email, password, phoneNumber, birthDate });
+      const res = await register({ username, email, password, phoneNumber, birthDate, state });
       
       if (res.success) {
         showModal('Registration successful! Welcome to Biggi Data.', 'success');
@@ -161,6 +166,22 @@ const Signup = () => {
                 onChange={(e) => formatDate(e.target.value)}
                 maxLength={10}
               />
+            </InputWrapper>
+
+            {/* State */}
+            <InputWrapper>
+              <Label>State *</Label>
+              <SelectInput
+                value={form.state}
+                onChange={(e) => setForm({ ...form, state: e.target.value })}
+              >
+                <option value="">Select state</option>
+                {NIGERIA_STATES.map((state) => (
+                  <option key={state} value={state}>
+                    {state}
+                  </option>
+                ))}
+              </SelectInput>
             </InputWrapper>
 
             {/* Password */}
@@ -274,6 +295,45 @@ const Signup = () => {
 };
 
 export default Signup;
+
+const NIGERIA_STATES = [
+  "Abia",
+  "Adamawa",
+  "Akwa Ibom",
+  "Anambra",
+  "Bauchi",
+  "Bayelsa",
+  "Benue",
+  "Borno",
+  "Cross River",
+  "Delta",
+  "Ebonyi",
+  "Edo",
+  "Ekiti",
+  "Enugu",
+  "Gombe",
+  "Imo",
+  "Jigawa",
+  "Kaduna",
+  "Kano",
+  "Katsina",
+  "Kebbi",
+  "Kogi",
+  "Kwara",
+  "Lagos",
+  "Nasarawa",
+  "Niger",
+  "Ogun",
+  "Ondo",
+  "Osun",
+  "Oyo",
+  "Plateau",
+  "Rivers",
+  "Sokoto",
+  "Taraba",
+  "Yobe",
+  "Zamfara",
+];
 
 // Styled Components
 const PageContainer = styled.div`
@@ -791,5 +851,33 @@ const ModalButtonText = styled.span`
 
   @media (max-width: 480px) {
     font-size: 13px;
+  }
+`;
+
+const SelectInput = styled.select`
+  width: 100%;
+  background-color: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-size: 16px;
+  color: #111827;
+  font-family: inherit;
+  transition: all 0.2s ease;
+
+  &:focus {
+    outline: none;
+    border-color: #FF8000;
+    background-color: #FFFFFF;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 15px;
+    padding: 13px 16px;
+  }
+
+  @media (max-width: 360px) {
+    font-size: 14px;
+    padding: 12px 14px;
   }
 `;
