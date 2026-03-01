@@ -311,15 +311,20 @@ export default ProfileScreen;
 
 const Page = styled.div`
   min-height: 100vh;
+  width: 100%;
   background: #f5f5f5;
   padding: 0 14px 96px;
+  box-sizing: border-box;
   display: flex;
   justify-content: center;
+  overflow-x: hidden;
 `;
 
 const Container = styled.div`
   width: 100%;
   max-width: 460px;
+  min-width: 0;
+  box-sizing: border-box;
 `;
 
 const Title = styled.h1`
@@ -332,11 +337,13 @@ const Title = styled.h1`
 `;
 
 const Content = styled.div`
+  width: 100%;
   background: #fff;
   border-radius: 22px;
   border: 1px solid #ececec;
   margin-top: 8px;
   padding: 24px 14px 12px;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -364,7 +371,7 @@ const IdText = styled.p`
 `;
 
 const Options = styled.div`
-  width: 94%;
+  width: 100%;
   margin-top: 28px;
   display: grid;
   gap: 10px;
@@ -404,16 +411,20 @@ const Label = styled.span`
 
 const ReferralRow = styled.div`
   margin-top: 10px;
-  width: 94%;
+  width: 100%;
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 8px;
+  min-width: 0;
 `;
 
 const ReferralInput = styled.input`
   border: 1px solid #e5e7eb;
   border-radius: 10px;
   padding: 8px 10px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   font-size: 12px;
   color: #111;
   background: #f9fafb;
@@ -434,7 +445,8 @@ const CopyButton = styled.button`
 
 const BiometricBlock = styled.div`
   margin-top: 10px;
-  width: 94%;
+  width: 100%;
+  min-width: 0;
 `;
 
 const BioButton = styled.button`
@@ -464,12 +476,19 @@ const PinRow = styled.div`
   grid-template-columns: 1fr 1fr;
   gap: 8px;
   margin-top: 8px;
+  min-width: 0;
+  @media (max-width: 380px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 const PinInput = styled.input`
   border: 1px solid #e5e7eb;
   border-radius: 10px;
   padding: 10px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   font-size: 14px;
   background: #fff;
 `;
@@ -479,6 +498,10 @@ const PinActions = styled.div`
   grid-template-columns: 1fr 1fr;
   gap: 8px;
   margin-top: 8px;
+  min-width: 0;
+  @media (max-width: 380px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 const ModalOverlay = styled.div`
