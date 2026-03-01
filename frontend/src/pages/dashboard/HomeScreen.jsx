@@ -100,8 +100,29 @@ const HomeScreen = () => {
   }, [user?.state, user]);
 
   useEffect(() => {
-    if (user && !user.referredByCode) {
+    if (!user) {
+      setReferralModalVisible(false);
+      return;
+    }
+
+    const userId = user?._id || user?.id || "anonymous";
+    const storageKey = `referral_modal_last_shown_${userId}`;
+    const now = Date.now();
+    const DAY_MS = 24 * 60 * 60 * 1000;
+
+    if (user.referredByCode) {
+      setReferralModalVisible(false);
+      localStorage.removeItem(storageKey);
+      return;
+    }
+
+    const lastShownRaw = localStorage.getItem(storageKey);
+    const lastShown = Number(lastShownRaw || 0);
+    const shouldShow = !lastShown || Number.isNaN(lastShown) || now - lastShown >= DAY_MS;
+
+    if (shouldShow) {
       setReferralModalVisible(true);
+      localStorage.setItem(storageKey, String(now));
     } else {
       setReferralModalVisible(false);
     }
