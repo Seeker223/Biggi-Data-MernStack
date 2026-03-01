@@ -67,7 +67,10 @@ const ProfileScreen = () => {
     setBiometricLoading(true);
     try {
       const optionsRes = await beginBiometricRegistration();
-      const options = optionsRes?.data?.options;
+      const options = optionsRes?.data?.options || optionsRes?.options;
+      if (!options) {
+        throw new Error("Fingerprint setup options were not returned by server.");
+      }
       const credential = await createWebAuthnCredential(options);
       const verifyRes = await verifyBiometricRegistration(credential);
       const state = verifyRes?.data?.biometric || {};
