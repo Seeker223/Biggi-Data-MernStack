@@ -24,6 +24,30 @@ const SelectPlanScreen = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
+  const PRICE_OVERRIDES = {
+    mtn: {
+      "500MB|7 days": 400,
+      "1GB|7 days": 550,
+      "1GB|1 day": 300,
+    },
+    glo: {
+      "500MB|30 days": 300,
+      "1GB|30 days": 500,
+    },
+    airtel: {
+      "500MB|7 days": 500,
+      "1GB|7 days": 800,
+      "1GB|1 day": 500,
+    },
+    etisalat: {
+      "500MB|7 days": 400,
+      "1GB|7 days": 600,
+    },
+    "9mobile": {
+      "500MB|7 days": 400,
+      "1GB|7 days": 600,
+    },
+  };
 
   const DEFAULT_VALIDITY = {
     mtn: "7 days",
@@ -34,28 +58,82 @@ const SelectPlanScreen = () => {
   };
 
   const normalizeText = (value) => String(value || "").toLowerCase().replace(/\s+/g, " ").trim();
-  const buildSmePlans = (rawPlans, networkLabel, networkKey) => {
-    const normalized = rawPlans
+  const extractSizeInMb = (plan) => {
+    const source = `${plan?.name || ""} ${plan?.plan_name || ""}`;
+    const match = source.match(/(\d+(?:\.\d+)?)\s*(gb|mb)/i);
+    if (!match) return null;
+    const value = Number(match[1]);
+    if (Number.isNaN(value)) return null;
+    const unit = String(match[2] || "").toLowerCase();
+    return unit === "gb" ? value * 1024 : value;
+  };
+  const pickClosestPlan = (plansWithSize, targetMb, usedIds) => {
+    const available = plansWithSize.filter((p) => !usedIds.has(p.id));
+    if (available.length === 0) return null;
+    available.sort((a, b) => {
+      const da = Math.abs(a.sizeMb - targetMb);
+      const db = Math.abs(b.sizeMb - targetMb);
+      if (da !== db) return da - db;
+      return Number(a.plan.amount || 0) - Number(b.plan.amount || 0);
+    });
+    return available[0];
+  };
+  const buildLimitedPlans = (rawPlans, networkLabel, networkKey) => {
+    const plansWithSize = rawPlans
       .map((plan) => {
-        const category = String(plan?.category || "").trim();
+        const id = plan.plan_id || plan._id || plan.id;
+        return { id, sizeMb: extractSizeInMb(plan), plan };
+      })
+      .filter((entry) => entry.id && entry.sizeMb !== null);
+
+    if (plansWithSize.length === 0) return [];
+
+    const usedIds = new Set();
+    const targetConfigs = [
+      { targetMb: 500, label: "500MB" },
+      { targetMb: 1024, label: "1GB" },
+    ];
+
+    const selected = targetConfigs
+      .map((target) => {
+        const picked = pickClosestPlan(plansWithSize, target.targetMb, usedIds);
+        if (!picked) return null;
+        usedIds.add(picked.id);
         const validity =
-          plan?.validity || plan?.duration || DEFAULT_VALIDITY[networkKey] || "30 days";
-        const name = String(plan?.name || plan?.plan_name || "").trim();
-        const prefixedName =
-          name && !normalizeText(name).includes(normalizeText(networkLabel))
-            ? `${networkLabel} ${name}`
-            : name;
+          DEFAULT_VALIDITY[networkKey] || picked.plan.validity || picked.plan.duration || "7 days";
+        const sizeLabel = target.label;
+        const priceKey = `${sizeLabel}|${validity}`;
+        const price = PRICE_OVERRIDES[networkKey]?.[priceKey];
+        if (price === undefined) return null;
         return {
-          ...plan,
-          category,
+          ...picked.plan,
+          name: `${networkLabel} ${target.label}`,
+          plan_name: `${networkLabel} ${target.label}`,
           validity,
-          name: prefixedName || `${networkLabel} Data Plan`,
-          plan_name: prefixedName || `${networkLabel} Data Plan`,
+          amount: price,
         };
       })
-      .filter((plan) => normalizeText(plan.category).startsWith("sme"));
+      .filter(Boolean);
 
-    return normalized.sort((a, b) => Number(a.amount || 0) - Number(b.amount || 0));
+    const oneDayPlans = selected
+      .map((plan) => {
+        const sizeMatch = String(plan.name || plan.plan_name || "").match(/(500MB|1GB)/i);
+        const sizeLabel = sizeMatch ? sizeMatch[1].toUpperCase() : "1GB";
+        const priceKey = `${sizeLabel}|1 day`;
+        const price = PRICE_OVERRIDES[networkKey]?.[priceKey];
+        if (price === undefined) return null;
+        return {
+          ...plan,
+          name: `${plan.name} (1 Day)`,
+          plan_name: `${plan.plan_name} (1 Day)`,
+          validity: "1 day",
+          amount: price,
+          uiId: `${plan.plan_id || plan._id || plan.id}-1day`,
+        };
+      })
+      .filter(Boolean);
+
+    return [...oneDayPlans, ...selected];
   };
 
   useEffect(() => {
@@ -73,7 +151,7 @@ const SelectPlanScreen = () => {
         const networkKey = normalizeText(
           selectedNetwork?.code || selectedNetwork?.network || selectedNetwork?.label || ""
         );
-        setPlans(buildSmePlans(rawPlans, label || "DATA", networkKey));
+        setPlans(buildLimitedPlans(rawPlans, label || "DATA", networkKey));
       } catch (err) {
         if (!live) return;
         setError(err?.response?.data?.msg || "Could not load plans");
