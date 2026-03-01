@@ -172,14 +172,14 @@ export const disableBiometricAuth = () => api.delete("/auth/biometric");
 export const refreshUserBalance = () => api.get("/wallet/balance");
 export const getDepositHistory = () => api.get("/wallet/deposit-history");
 
-export const verifyFlutterwavePayment = (tx_ref) =>
-  api.post("/wallet/verify-flutterwave", { tx_ref });
+export const verifyFlutterwavePayment = (tx_ref, biometricProof = "") =>
+  api.post("/wallet/verify-flutterwave", { tx_ref, biometricProof });
 
 export const getDepositStatus = (tx_ref) =>
   api.get(`/wallet/deposit-status/${tx_ref}`);
 
-export const reconcilePayment = (tx_ref) =>
-  api.post("/wallet/reconcile-payment", { tx_ref });
+export const reconcilePayment = (tx_ref, biometricProof = "") =>
+  api.post("/wallet/reconcile-payment", { tx_ref, biometricProof });
 
 export const redeemRewards = (payload = {}) => api.post("/wallet/redeem", payload);
 

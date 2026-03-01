@@ -17,6 +17,7 @@ import {
   reconcilePayment,
   verifyFlutterwavePayment,
 } from "../../services/api";
+import { runBiometricTransactionCheck } from "../../services/biometric";
 
 const SERVICE_CHARGE = 0;
 const POLL_INTERVAL = 3000;
@@ -67,6 +68,7 @@ const DepositScreen = () => {
   const [paymentStatus, setPaymentStatus] = useState("idle");
   const [txRef, setTxRef] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [biometricProof, setBiometricProof] = useState("");
 
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
@@ -76,6 +78,7 @@ const DepositScreen = () => {
   const pollCount = useRef(0);
   const reconcileAttempts = useRef(0);
   const currentTxRef = useRef("");
+  const latestBiometricProof = useRef("");
 
   const showToast = (msg, type = "info") => {
     setToastMessage(msg);
@@ -88,6 +91,7 @@ const DepositScreen = () => {
     return () => {
       if (pollTimer.current) clearInterval(pollTimer.current);
       currentTxRef.current = "";
+      latestBiometricProof.current = "";
     };
   }, []);
 
@@ -103,6 +107,28 @@ const DepositScreen = () => {
     pollCount.current = 0;
     setIsProcessing(false);
     currentTxRef.current = "";
+    setBiometricProof("");
+    latestBiometricProof.current = "";
+  };
+
+  const ensureDepositBiometricProof = async () => {
+    try {
+      const proof = await runBiometricTransactionCheck({
+        action: "deposit",
+        amount: totalAmount,
+      });
+      setBiometricProof(proof);
+      latestBiometricProof.current = proof;
+      return proof;
+    } catch (bioError) {
+      const message = bioError?.response?.data?.message || bioError?.message || "";
+      if (/not enabled/i.test(message) || /authentication not enabled/i.test(message)) {
+        setBiometricProof("");
+        latestBiometricProof.current = "";
+        return "";
+      }
+      throw bioError;
+    }
   };
 
   const loadFlutterwaveCheckout = async () => {
@@ -126,7 +152,11 @@ const DepositScreen = () => {
     try {
       reconcileAttempts.current += 1;
       showToast(`Attempting reconciliation (${reconcileAttempts.current}/${RECONCILE_ATTEMPTS})`, "info");
-      const res = await reconcilePayment(reference);
+      let proof = latestBiometricProof.current || biometricProof;
+      if (!proof) {
+        proof = await ensureDepositBiometricProof();
+      }
+      const res = await reconcilePayment(reference, proof);
       if (res?.data?.success) {
         showToast("Payment reconciled successfully!", "success");
         await refreshUser();
@@ -221,6 +251,19 @@ const DepositScreen = () => {
       return;
     }
 
+    try {
+      await ensureDepositBiometricProof();
+    } catch (bioError) {
+      showToast(
+        bioError?.response?.data?.message ||
+          bioError?.message ||
+          "Fingerprint verification failed. Please try again.",
+        "error"
+      );
+      setIsProcessing(false);
+      return;
+    }
+
     window.FlutterwaveCheckout({
       public_key: FLUTTERWAVE_PUBLIC_KEY,
       tx_ref: txRef,
@@ -237,7 +280,12 @@ const DepositScreen = () => {
       },
       callback: async () => {
         try {
-          const res = await verifyFlutterwavePayment(txRef);
+          let proof = latestBiometricProof.current || biometricProof;
+          if (!proof) {
+            proof = await ensureDepositBiometricProof();
+          }
+
+          const res = await verifyFlutterwavePayment(txRef, proof);
           if (res?.data?.success) {
             setPaymentStatus("success");
             showToast("Payment verified and wallet credited!", "success");
@@ -247,7 +295,13 @@ const DepositScreen = () => {
             return;
           }
           startPolling(txRef);
-        } catch {
+        } catch (error) {
+          const message = error?.response?.data?.message || "";
+          if (/biometric/i.test(message)) {
+            showToast(message, "error");
+            setIsProcessing(false);
+            return;
+          }
           startPolling(txRef);
         }
       },
