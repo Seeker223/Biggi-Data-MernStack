@@ -1,9 +1,16 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { User, Settings, Headset, LogOut, ChevronRight, ReceiptText, Copy } from "lucide-react";
 import FloatingBottomNav from "../../components/FloatingBottomNav";
 import { AuthContext } from "../../context/AuthContext";
+import {
+  beginBiometricRegistration,
+  disableBiometricAuth,
+  getBiometricStatus,
+  verifyBiometricRegistration,
+} from "../../services/api";
+import { createWebAuthnCredential, isWebAuthnSupported } from "../../utils/webauthn";
 
 const DEFAULT_AVATAR = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 const normalizeSiteUrl = (raw) => {
@@ -17,12 +24,77 @@ const ProfileScreen = () => {
   const { user, logout } = useContext(AuthContext);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [biometric, setBiometric] = useState({ enabled: false, credentialsCount: 0 });
+  const [biometricLoading, setBiometricLoading] = useState(false);
+  const [bioNotice, setBioNotice] = useState("");
   const siteBaseUrl = normalizeSiteUrl(
     import.meta.env.VITE_PUBLIC_SITE_URL || "https://biggidata.com.ng"
   );
   const referralLink = `${siteBaseUrl.replace(/\/$/, "")}/signup?ref=${user?.referralCode || ""}`;
 
+  useEffect(() => {
+    if (!user) return undefined;
+    let mounted = true;
+    const loadBiometricStatus = async () => {
+      try {
+        const res = await getBiometricStatus();
+        const payload = res?.data?.biometric || {};
+        if (mounted) {
+          setBiometric({
+            enabled: Boolean(payload.enabled),
+            credentialsCount: Number(payload.credentialsCount || 0),
+          });
+        }
+      } catch {
+        if (mounted) {
+          setBiometric({ enabled: false, credentialsCount: 0 });
+        }
+      }
+    };
+    loadBiometricStatus();
+    return () => {
+      mounted = false;
+    };
+  }, [user]);
+
   if (!user) return null;
+
+  const handleEnableFingerprint = async () => {
+    if (!isWebAuthnSupported()) {
+      setBioNotice("Fingerprint is not supported on this device/browser.");
+      return;
+    }
+    setBiometricLoading(true);
+    try {
+      const optionsRes = await beginBiometricRegistration();
+      const options = optionsRes?.data?.options;
+      const credential = await createWebAuthnCredential(options);
+      const verifyRes = await verifyBiometricRegistration(credential);
+      const state = verifyRes?.data?.biometric || {};
+      setBiometric({
+        enabled: Boolean(state.enabled),
+        credentialsCount: Number(state.credentialsCount || 1),
+      });
+      setBioNotice("Fingerprint enabled successfully.");
+    } catch (error) {
+      setBioNotice(error?.response?.data?.message || error?.message || "Failed to enable fingerprint.");
+    } finally {
+      setBiometricLoading(false);
+    }
+  };
+
+  const handleDisableFingerprint = async () => {
+    setBiometricLoading(true);
+    try {
+      await disableBiometricAuth();
+      setBiometric({ enabled: false, credentialsCount: 0 });
+      setBioNotice("Fingerprint disabled.");
+    } catch (error) {
+      setBioNotice(error?.response?.data?.message || error?.message || "Failed to disable fingerprint.");
+    } finally {
+      setBiometricLoading(false);
+    }
+  };
 
   const options = [
     {
@@ -84,6 +156,21 @@ const ProfileScreen = () => {
               </CopyButton>
             </ReferralRow>
           )}
+          <BiometricBlock>
+            <IdText>
+              Fingerprint: {biometric.enabled ? "Enabled" : "Disabled"} {biometric.credentialsCount > 0 ? `(${biometric.credentialsCount})` : ""}
+            </IdText>
+            {bioNotice ? <BioNotice>{bioNotice}</BioNotice> : null}
+            {biometric.enabled ? (
+              <BioButton type="button" onClick={handleDisableFingerprint} disabled={biometricLoading}>
+                {biometricLoading ? "Please wait..." : "Disable Fingerprint"}
+              </BioButton>
+            ) : (
+              <BioButton type="button" onClick={handleEnableFingerprint} disabled={biometricLoading}>
+                {biometricLoading ? "Setting up..." : "Enable Fingerprint"}
+              </BioButton>
+            )}
+          </BiometricBlock>
 
           <Options>
             {options.map((item) => (
@@ -249,6 +336,33 @@ const CopyButton = styled.button`
   align-items: center;
   gap: 6px;
   cursor: pointer;
+`;
+
+const BiometricBlock = styled.div`
+  margin-top: 10px;
+  width: 94%;
+`;
+
+const BioButton = styled.button`
+  margin-top: 8px;
+  border: none;
+  border-radius: 10px;
+  background: #111;
+  color: #fff;
+  font-weight: 700;
+  padding: 10px 12px;
+  cursor: pointer;
+  width: 100%;
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+`;
+
+const BioNotice = styled.p`
+  margin: 6px 0 0;
+  color: #555;
+  font-size: 13px;
 `;
 
 const ModalOverlay = styled.div`

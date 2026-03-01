@@ -2,7 +2,9 @@ import React, { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import styled, { keyframes } from 'styled-components';
-import { Eye, EyeOff, CheckCircle, AlertCircle, Facebook, Mail } from 'lucide-react';
+import { Eye, EyeOff, CheckCircle, AlertCircle, Facebook, Mail, Fingerprint } from 'lucide-react';
+import { runBiometricLogin } from '../../services/biometric';
+import { isWebAuthnSupported } from '../../utils/webauthn';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -12,8 +14,9 @@ const Login = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
   const [modalType, setModalType] = useState('error');
+  const [biometricLoading, setBiometricLoading] = useState(false);
 
-  const { login } = useContext(AuthContext);
+  const { login, loginWithBiometricPayload } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const showModal = (message, type = 'error') => {
@@ -44,6 +47,36 @@ const Login = () => {
     }
   };
 
+  const handleBiometricLogin = async () => {
+    if (!isWebAuthnSupported()) {
+      showModal('Fingerprint login is not supported on this device/browser.', 'error');
+      return;
+    }
+    if (!email.trim()) {
+      showModal('Enter your username or email first, then use fingerprint login.', 'error');
+      return;
+    }
+
+    setBiometricLoading(true);
+    try {
+      const payload = await runBiometricLogin(email.trim());
+      const result = await loginWithBiometricPayload(payload);
+      if (!result.success) {
+        showModal(result.error || 'Fingerprint login failed.', 'error');
+      } else {
+        showModal('Fingerprint login successful!', 'success');
+        setTimeout(() => {
+          setModalVisible(false);
+          navigate('/');
+        }, 1200);
+      }
+    } catch (error) {
+      showModal(error?.response?.data?.message || error?.message || 'Fingerprint login failed.', 'error');
+    } finally {
+      setBiometricLoading(false);
+    }
+  };
+
   return (
     <PageContainer>
       <ContentContainer>
@@ -59,7 +92,7 @@ const Login = () => {
             <InputWrapper>
               <Label>Username or Email</Label>
               <TextInput
-                type="email"
+                type="text"
                 placeholder="example@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -99,6 +132,11 @@ const Login = () => {
             <SignupButton as={Link} to="/signup">
               Sign Up
             </SignupButton>
+
+            <BiometricButton type="button" onClick={handleBiometricLogin} disabled={biometricLoading}>
+              <Fingerprint size={18} />
+              {biometricLoading ? 'Verifying...' : 'Login with Fingerprint'}
+            </BiometricButton>
 
             <FingerprintText>
               Use <FingerprintHighlight>Fingerprint</FingerprintHighlight> To Access
@@ -669,5 +707,27 @@ const ModalButtonText = styled.span`
 
   @media (max-width: 480px) {
     font-size: 13px;
+  }
+`;
+
+const BiometricButton = styled.button`
+  margin-top: 12px;
+  width: 83%;
+  max-width: 300px;
+  border-radius: 50px;
+  padding: 12px;
+  border: 1px solid #111827;
+  background: #fff;
+  color: #111827;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 `;

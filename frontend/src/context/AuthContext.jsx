@@ -81,6 +81,32 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const loginWithBiometricPayload = async (payload) => {
+    try {
+      const { token: newToken, refreshToken: newRefreshToken, user: userData } = payload || {};
+      if (!newToken || !userData) {
+        return { success: false, error: "Biometric login failed" };
+      }
+
+      localStorage.setItem("userToken", newToken);
+      sessionStorage.setItem("userToken", newToken);
+      if (newRefreshToken) {
+        localStorage.setItem("refreshToken", newRefreshToken);
+        sessionStorage.setItem("refreshToken", newRefreshToken);
+      }
+      setToken(newToken);
+      setUser(userData);
+      api.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
+      setNotificationCountForUser(userData);
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: getAuthErrorMessage(error, "Biometric login failed"),
+      };
+    }
+  };
+
   const register = async (...args) => {
     try {
       const userData =
@@ -175,6 +201,7 @@ export const AuthProvider = ({ children }) => {
         authLoading: loading,
         notificationCount,
         login,
+        loginWithBiometricPayload,
         register,
         logout,
         refreshUser,

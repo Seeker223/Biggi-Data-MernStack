@@ -20,6 +20,7 @@ import {
 import { AuthContext } from '../../context/AuthContext';
 import { FEATURE_FLAGS } from '../../constants/featureFlags';
 import api from '../../services/api';
+import { runBiometricTransactionCheck } from '../../services/biometric';
 
 // Biggi Data Brand Colors
 const BRAND_COLORS = {
@@ -224,6 +225,19 @@ const WithdrawScreen = () => {
     setShowConfirm(false);
 
     try {
+      let biometricProof = "";
+      try {
+        biometricProof = await runBiometricTransactionCheck({
+          action: "withdraw",
+          amount: enteredAmount,
+        });
+      } catch (bioError) {
+        const message = bioError?.response?.data?.message || bioError?.message || "";
+        if (!/not enabled/i.test(message)) {
+          throw bioError;
+        }
+      }
+
       const txRef = `flw_withdraw_${user?._id || "user"}_${Date.now()}`;
       const payload = {
         tx_ref: txRef,
@@ -233,6 +247,7 @@ const WithdrawScreen = () => {
         beneficiary_name: accountName.trim(),
         narration: "Withdrawal from Biggi Data",
         currency: "NGN",
+        biometricProof,
       };
 
       const res = await api.post("/wallet/flutterwave-withdraw", payload);

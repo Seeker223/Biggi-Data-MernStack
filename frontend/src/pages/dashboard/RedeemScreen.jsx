@@ -5,6 +5,7 @@ import { ChevronLeft, Gift, Wallet, CheckCircle, AlertCircle } from "lucide-reac
 import { AuthContext } from "../../context/AuthContext";
 import { FEATURE_FLAGS } from "../../constants/featureFlags";
 import { redeemRewards } from "../../services/api";
+import { runBiometricTransactionCheck } from "../../services/biometric";
 
 const MIN_REDEEM = 100;
 const REDEEM_RATE_LABEL = "1 Reward Naira = 1 Naira";
@@ -47,7 +48,20 @@ const RedeemScreen = () => {
 
     setSubmitting(true);
     try {
-      const res = await redeemRewards({ amount: redeemAmount });
+      let biometricProof = "";
+      try {
+        biometricProof = await runBiometricTransactionCheck({
+          action: "redeem",
+          amount: redeemAmount,
+        });
+      } catch (bioError) {
+        const message = bioError?.response?.data?.message || bioError?.message || "";
+        if (!/not enabled/i.test(message)) {
+          throw bioError;
+        }
+      }
+
+      const res = await redeemRewards({ amount: redeemAmount, biometricProof });
       const data = res?.data || {};
       const redeemedAmount = Number(
         data.amountRedeemed ?? data.redeemedAmount ?? data.amount ?? redeemAmount

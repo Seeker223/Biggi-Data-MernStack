@@ -152,6 +152,19 @@ export const testBackendConnection = async () => {
 export const loginUser = (payload) => api.post("/auth/login", payload);
 export const registerUser = (payload) => api.post("/auth/register", payload);
 export const fetchUser = () => api.get("/auth/me");
+export const getBiometricStatus = () => api.get("/auth/biometric/status");
+export const beginBiometricRegistration = () => api.post("/auth/biometric/register/options");
+export const verifyBiometricRegistration = (credential) =>
+  api.post("/auth/biometric/register/verify", credential);
+export const beginBiometricLogin = (identifier) =>
+  api.post("/auth/biometric/login/options", { identifier });
+export const verifyBiometricLogin = (identifier, credential) =>
+  api.post("/auth/biometric/login/verify", { identifier, ...credential });
+export const beginBiometricTransaction = (action, amount) =>
+  api.post("/auth/biometric/transaction/options", { action, amount });
+export const verifyBiometricTransaction = (credential) =>
+  api.post("/auth/biometric/transaction/verify", credential);
+export const disableBiometricAuth = () => api.delete("/auth/biometric");
 
 // -----------------------------------------------------------
 // WALLET & PAYMENTS
