@@ -46,23 +46,30 @@ const RedeemScreen = () => {
 
   const handleRedeem = async () => {
     if (!canSubmit) return;
+    if (transactionPin && !/^\d{4}$/.test(transactionPin.trim())) {
+      showToast("Transaction PIN must be exactly 4 digits.", "error");
+      return;
+    }
 
     setSubmitting(true);
     try {
       let biometricProof = "";
-      try {
-        biometricProof = await runBiometricTransactionCheck({
-          action: "redeem",
-          amount: redeemAmount,
-        });
-      } catch (bioError) {
-        const message = bioError?.response?.data?.message || bioError?.message || "";
-        if (!/not enabled/i.test(message)) {
-          throw bioError;
+      const pinPayload = transactionPin.trim();
+      const hasPin = /^\d{4}$/.test(pinPayload);
+      if (!hasPin) {
+        try {
+          biometricProof = await runBiometricTransactionCheck({
+            action: "redeem",
+            amount: redeemAmount,
+          });
+        } catch (bioError) {
+          const message = bioError?.response?.data?.message || bioError?.message || "";
+          if (!/not enabled/i.test(message) && !/authentication not enabled/i.test(message)) {
+            throw bioError;
+          }
         }
       }
 
-      const pinPayload = transactionPin.trim();
       const res = await redeemRewards({ amount: redeemAmount, biometricProof, transactionPin: pinPayload });
       const data = res?.data || {};
       const redeemedAmount = Number(

@@ -204,6 +204,10 @@ const WithdrawScreen = () => {
       showToast("Insufficient balance", "error");
       return false;
     }
+    if (transactionPin && !/^\d{4}$/.test(transactionPin.trim())) {
+      showToast("Transaction PIN must be exactly 4 digits.", "error");
+      return false;
+    }
 
     return true;
   };
@@ -227,15 +231,18 @@ const WithdrawScreen = () => {
 
     try {
       let biometricProof = "";
-      try {
-        biometricProof = await runBiometricTransactionCheck({
-          action: "withdraw",
-          amount: enteredAmount,
-        });
-      } catch (bioError) {
-        const message = bioError?.response?.data?.message || bioError?.message || "";
-        if (!/not enabled/i.test(message)) {
-          throw bioError;
+      const hasPin = /^\d{4}$/.test(transactionPin.trim());
+      if (!hasPin) {
+        try {
+          biometricProof = await runBiometricTransactionCheck({
+            action: "withdraw",
+            amount: enteredAmount,
+          });
+        } catch (bioError) {
+          const message = bioError?.response?.data?.message || bioError?.message || "";
+          if (!/not enabled/i.test(message) && !/authentication not enabled/i.test(message)) {
+            throw bioError;
+          }
         }
       }
 

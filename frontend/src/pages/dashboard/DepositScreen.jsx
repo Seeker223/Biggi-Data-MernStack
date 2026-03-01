@@ -154,8 +154,9 @@ const DepositScreen = () => {
     try {
       reconcileAttempts.current += 1;
       showToast(`Attempting reconciliation (${reconcileAttempts.current}/${RECONCILE_ATTEMPTS})`, "info");
+      const hasPin = /^\d{4}$/.test(transactionPin.trim());
       let proof = latestBiometricProof.current || biometricProof;
-      if (!proof) {
+      if (!proof && !hasPin) {
         proof = await ensureDepositBiometricProof();
       }
       const res = await reconcilePayment(reference, proof, transactionPin.trim());
@@ -229,6 +230,10 @@ const DepositScreen = () => {
       showToast("Please wait for current transaction to complete", "info");
       return;
     }
+    if (transactionPin && !/^\d{4}$/.test(transactionPin.trim())) {
+      showToast("Transaction PIN must be exactly 4 digits.", "error");
+      return;
+    }
 
     const reference = `flw_${user?._id || "user"}_${Date.now()}`;
     setTxRef(reference);
@@ -253,17 +258,20 @@ const DepositScreen = () => {
       return;
     }
 
-    try {
-      await ensureDepositBiometricProof();
-    } catch (bioError) {
-      showToast(
-        bioError?.response?.data?.message ||
-          bioError?.message ||
-          "Fingerprint verification failed. Please try again.",
-        "error"
-      );
-      setIsProcessing(false);
-      return;
+    const hasPin = /^\d{4}$/.test(transactionPin.trim());
+    if (!hasPin) {
+      try {
+        await ensureDepositBiometricProof();
+      } catch (bioError) {
+        showToast(
+          bioError?.response?.data?.message ||
+            bioError?.message ||
+            "Fingerprint verification failed. Please try again.",
+          "error"
+        );
+        setIsProcessing(false);
+        return;
+      }
     }
 
     window.FlutterwaveCheckout({
@@ -282,8 +290,9 @@ const DepositScreen = () => {
       },
       callback: async () => {
         try {
+          const hasPin = /^\d{4}$/.test(transactionPin.trim());
           let proof = latestBiometricProof.current || biometricProof;
-          if (!proof) {
+          if (!proof && !hasPin) {
             proof = await ensureDepositBiometricProof();
           }
 

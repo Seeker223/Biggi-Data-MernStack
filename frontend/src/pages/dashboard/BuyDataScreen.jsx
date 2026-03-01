@@ -41,6 +41,7 @@ const BuyDataScreen = () => {
     if (!networkCode) return "Select a network";
     if (!plan) return "Select a data plan";
     if (!price || price <= 0) return "Invalid plan price";
+    if (transactionPin && !/^\d{4}$/.test(transactionPin.trim())) return "Transaction PIN must be exactly 4 digits";
     return null;
   };
 
@@ -55,15 +56,18 @@ const BuyDataScreen = () => {
 
     try {
       let biometricProof = "";
-      try {
-        biometricProof = await runBiometricTransactionCheck({
-          action: "data_purchase",
-          amount: price,
-        });
-      } catch (bioError) {
-        const message = bioError?.response?.data?.message || bioError?.message || "";
-        if (!/not enabled/i.test(message) && !/authentication not enabled/i.test(message)) {
-          throw bioError;
+      const hasPin = /^\d{4}$/.test(transactionPin.trim());
+      if (!hasPin) {
+        try {
+          biometricProof = await runBiometricTransactionCheck({
+            action: "data_purchase",
+            amount: price,
+          });
+        } catch (bioError) {
+          const message = bioError?.response?.data?.message || bioError?.message || "";
+          if (!/not enabled/i.test(message) && !/authentication not enabled/i.test(message)) {
+            throw bioError;
+          }
         }
       }
 
