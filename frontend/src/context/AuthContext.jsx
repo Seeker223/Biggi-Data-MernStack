@@ -3,6 +3,16 @@ import api from "../utils/api";
 
 export const AuthContext = createContext();
 
+const persistRefreshToken = (token) => {
+  if (!token) return;
+  localStorage.setItem("refreshToken", token);
+  sessionStorage.setItem("refreshToken", token);
+  localStorage.setItem("userRefreshToken", token);
+  sessionStorage.setItem("userRefreshToken", token);
+  localStorage.setItem("refresh_token", token);
+  sessionStorage.setItem("refresh_token", token);
+};
+
 const getAuthErrorMessage = (error, fallbackMessage) => {
   if (error?.response?.data?.error) return error.response.data.error;
   if (error?.code === "ERR_NETWORK") {
@@ -45,6 +55,9 @@ export const AuthProvider = ({ children }) => {
           api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
           const res = await api.get("/auth/me");
           setUser(res.data.user);
+          if (res?.data?.refreshToken) {
+            persistRefreshToken(res.data.refreshToken);
+          }
           setNotificationCountForUser(res.data.user);
         } catch (error) {
           console.error("Auth init error:", error);
@@ -64,8 +77,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem("userToken", newToken);
       sessionStorage.setItem("userToken", newToken);
       if (newRefreshToken) {
-        localStorage.setItem("refreshToken", newRefreshToken);
-        sessionStorage.setItem("refreshToken", newRefreshToken);
+        persistRefreshToken(newRefreshToken);
       }
       setToken(newToken);
       setUser(userData);
@@ -91,8 +103,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem("userToken", newToken);
       sessionStorage.setItem("userToken", newToken);
       if (newRefreshToken) {
-        localStorage.setItem("refreshToken", newRefreshToken);
-        sessionStorage.setItem("refreshToken", newRefreshToken);
+        persistRefreshToken(newRefreshToken);
       }
       setToken(newToken);
       setUser(userData);
@@ -126,8 +137,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem("userToken", newToken);
       sessionStorage.setItem("userToken", newToken);
       if (newRefreshToken) {
-        localStorage.setItem("refreshToken", newRefreshToken);
-        sessionStorage.setItem("refreshToken", newRefreshToken);
+        persistRefreshToken(newRefreshToken);
       }
       setToken(newToken);
       setUser(createdUser);
@@ -150,6 +160,10 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("refreshToken");
     sessionStorage.removeItem("userToken");
     sessionStorage.removeItem("refreshToken");
+    localStorage.removeItem("userRefreshToken");
+    sessionStorage.removeItem("userRefreshToken");
+    localStorage.removeItem("refresh_token");
+    sessionStorage.removeItem("refresh_token");
     setToken(null);
     setUser(null);
     delete api.defaults.headers.common["Authorization"];

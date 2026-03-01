@@ -20,15 +20,65 @@ const api = axios.create({
   timeout: 15000,
 });
 
+const getStoredRefreshToken = () =>
+  localStorage.getItem("refreshToken") ||
+  sessionStorage.getItem("refreshToken") ||
+  localStorage.getItem("userRefreshToken") ||
+  sessionStorage.getItem("userRefreshToken") ||
+  localStorage.getItem("refresh_token") ||
+  sessionStorage.getItem("refresh_token");
+
+const persistRefreshToken = (token) => {
+  if (!token) return;
+  localStorage.setItem("refreshToken", token);
+  sessionStorage.setItem("refreshToken", token);
+  localStorage.setItem("userRefreshToken", token);
+  sessionStorage.setItem("userRefreshToken", token);
+};
+
+const clearStoredTokens = () => {
+  localStorage.removeItem("userToken");
+  sessionStorage.removeItem("userToken");
+  localStorage.removeItem("refreshToken");
+  sessionStorage.removeItem("refreshToken");
+  localStorage.removeItem("userRefreshToken");
+  sessionStorage.removeItem("userRefreshToken");
+  localStorage.removeItem("refresh_token");
+  sessionStorage.removeItem("refresh_token");
+};
+
+let refreshHydrationPromise = null;
+const hydrateRefreshTokenIfMissing = async () => {
+  const token = localStorage.getItem("userToken") || sessionStorage.getItem("userToken");
+  if (!token || getStoredRefreshToken()) return;
+  if (!refreshHydrationPromise) {
+    refreshHydrationPromise = axios
+      .get(`${API_BASE_URL}/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 10000,
+      })
+      .then((res) => {
+        if (res?.data?.refreshToken) persistRefreshToken(res.data.refreshToken);
+      })
+      .catch(() => {})
+      .finally(() => {
+        refreshHydrationPromise = null;
+      });
+  }
+  await refreshHydrationPromise;
+};
+
 // -----------------------------------------------------------
 // 🔐 Attach access token automatically
 // -----------------------------------------------------------
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("userToken") || sessionStorage.getItem("userToken");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
+  return hydrateRefreshTokenIfMissing().then(() => {
+    const token = localStorage.getItem("userToken") || sessionStorage.getItem("userToken");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  });
 });
 
 // -----------------------------------------------------------
@@ -85,9 +135,9 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const refreshToken = localStorage.getItem("refreshToken") || sessionStorage.getItem("refreshToken");
+        const refreshToken = getStoredRefreshToken();
         if (!refreshToken) {
-          throw new Error("No refresh token available");
+          return Promise.reject(error);
         }
 
         const res = await axios.post(
@@ -100,10 +150,12 @@ api.interceptors.response.use(
         );
 
         const newAccessToken = res.data.accessToken;
+        const newRefreshToken = res.data.refreshToken || refreshToken;
 
         // Store in both localStorage and sessionStorage for safety
         localStorage.setItem("userToken", newAccessToken);
         sessionStorage.setItem("userToken", newAccessToken);
+        persistRefreshToken(newRefreshToken);
 
         api.defaults.headers.common.Authorization = `Bearer ${newAccessToken}`;
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
@@ -115,10 +167,7 @@ api.interceptors.response.use(
         processQueue(refreshError, null);
 
         // ❌ Refresh failed → force logout
-        localStorage.removeItem("userToken");
-        localStorage.removeItem("refreshToken");
-        sessionStorage.removeItem("userToken");
-        sessionStorage.removeItem("refreshToken");
+        clearStoredTokens();
         delete api.defaults.headers.common.Authorization;
 
         console.error("❌ Token refresh failed:", refreshError);
