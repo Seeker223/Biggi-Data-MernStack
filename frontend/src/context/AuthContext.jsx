@@ -61,7 +61,10 @@ export const AuthProvider = ({ children }) => {
           setNotificationCountForUser(res.data.user);
         } catch (error) {
           console.error("Auth init error:", error);
-          logout();
+          const status = Number(error?.response?.status || 0);
+          if (status === 401 || status === 403) {
+            logout();
+          }
         }
       }
       setLoading(false);

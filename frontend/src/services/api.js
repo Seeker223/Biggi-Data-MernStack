@@ -166,9 +166,13 @@ api.interceptors.response.use(
       } catch (refreshError) {
         processQueue(refreshError, null);
 
-        // ❌ Refresh failed → force logout
-        clearStoredTokens();
-        delete api.defaults.headers.common.Authorization;
+        // Only clear auth state when refresh token is truly invalid/expired.
+        // Avoid force-logout on transient network/proxy issues.
+        const refreshStatus = Number(refreshError?.response?.status || 0);
+        if (refreshStatus === 401 || refreshStatus === 400) {
+          clearStoredTokens();
+          delete api.defaults.headers.common.Authorization;
+        }
 
         console.error("❌ Token refresh failed:", refreshError);
         return Promise.reject(refreshError);
