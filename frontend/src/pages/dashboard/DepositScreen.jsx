@@ -15,6 +15,7 @@ import { FEATURE_FLAGS } from "../../constants/featureFlags";
 import {
   getDepositStatus,
   reconcilePayment,
+  verifyTransactionPin,
   verifyFlutterwavePayment,
 } from "../../services/api";
 import { runBiometricTransactionCheck } from "../../services/biometric";
@@ -236,6 +237,16 @@ const DepositScreen = () => {
   };
 
   const handleAuthSelection = async ({ transactionPin: selectedPin = "" }) => {
+    const pinValue = String(selectedPin || "").trim();
+    if (pinValue) {
+      try {
+        await verifyTransactionPin(pinValue);
+      } catch (error) {
+        showToast(error?.response?.data?.message || "Invalid transaction PIN.", "error");
+        return;
+      }
+    }
+
     setTransactionPin(selectedPin);
     setBiometricProof("");
     latestBiometricProof.current = "";

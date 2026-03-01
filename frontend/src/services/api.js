@@ -348,6 +348,8 @@ export const updateUserProfile = (payload) =>
 export const getTransactionSecurityStatus = () => api.get("/user/transaction-security");
 export const setTransactionPin = (pin, currentPin = "") =>
   api.post("/user/transaction-pin", { pin, currentPin });
+export const verifyTransactionPin = (pin) =>
+  api.post("/user/transaction-pin/verify", { pin });
 export const disableTransactionPin = (currentPin) =>
   api.delete("/user/transaction-pin", { data: { currentPin } });
 
