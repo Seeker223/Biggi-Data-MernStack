@@ -20,6 +20,20 @@ const api = axios.create({
   timeout: 15000,
 });
 
+const BIOMETRIC_TIMEOUT_MS = 45000;
+
+const withBiometricRetry = async (requestFn) => {
+  try {
+    return await requestFn();
+  } catch (error) {
+    const timedOut =
+      error?.code === "ECONNABORTED" ||
+      /timeout/i.test(String(error?.message || ""));
+    if (!timedOut) throw error;
+    return requestFn();
+  }
+};
+
 const getStoredRefreshToken = () =>
   localStorage.getItem("refreshToken") ||
   sessionStorage.getItem("refreshToken") ||
@@ -206,17 +220,30 @@ export const loginUser = (payload) => api.post("/auth/login", payload);
 export const registerUser = (payload) => api.post("/auth/register", payload);
 export const fetchUser = () => api.get("/auth/me");
 export const getBiometricStatus = () => api.get("/auth/biometric/status");
-export const beginBiometricRegistration = () => api.post("/auth/biometric/register/options");
+export const beginBiometricRegistration = () =>
+  withBiometricRetry(() =>
+    api.post("/auth/biometric/register/options", {}, { timeout: BIOMETRIC_TIMEOUT_MS })
+  );
 export const verifyBiometricRegistration = (credential) =>
-  api.post("/auth/biometric/register/verify", credential);
+  withBiometricRetry(() =>
+    api.post("/auth/biometric/register/verify", credential, { timeout: BIOMETRIC_TIMEOUT_MS })
+  );
 export const beginBiometricLogin = (identifier) =>
-  api.post("/auth/biometric/login/options", { identifier });
+  withBiometricRetry(() =>
+    api.post("/auth/biometric/login/options", { identifier }, { timeout: BIOMETRIC_TIMEOUT_MS })
+  );
 export const verifyBiometricLogin = (identifier, credential) =>
-  api.post("/auth/biometric/login/verify", { identifier, ...credential });
+  withBiometricRetry(() =>
+    api.post("/auth/biometric/login/verify", { identifier, ...credential }, { timeout: BIOMETRIC_TIMEOUT_MS })
+  );
 export const beginBiometricTransaction = (action, amount) =>
-  api.post("/auth/biometric/transaction/options", { action, amount });
+  withBiometricRetry(() =>
+    api.post("/auth/biometric/transaction/options", { action, amount }, { timeout: BIOMETRIC_TIMEOUT_MS })
+  );
 export const verifyBiometricTransaction = (credential) =>
-  api.post("/auth/biometric/transaction/verify", credential);
+  withBiometricRetry(() =>
+    api.post("/auth/biometric/transaction/verify", credential, { timeout: BIOMETRIC_TIMEOUT_MS })
+  );
 export const disableBiometricAuth = () => api.delete("/auth/biometric");
 
 // -----------------------------------------------------------
