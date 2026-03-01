@@ -241,6 +241,7 @@ const DepositScreen = () => {
     if (pinValue) {
       try {
         await verifyTransactionPin(pinValue);
+        showToast("PIN verified successfully.", "success");
       } catch (error) {
         showToast(error?.response?.data?.message || "Invalid transaction PIN.", "error");
         return;
