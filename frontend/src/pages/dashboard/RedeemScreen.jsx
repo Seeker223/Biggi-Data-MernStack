@@ -6,6 +6,7 @@ import { AuthContext } from "../../context/AuthContext";
 import { FEATURE_FLAGS } from "../../constants/featureFlags";
 import { redeemRewards } from "../../services/api";
 import { runBiometricTransactionCheck } from "../../services/biometric";
+import TransactionAuthSheet from "../../components/TransactionAuthSheet";
 
 const MIN_REDEEM = 100;
 const REDEEM_RATE_LABEL = "1 Reward Naira = 1 Naira";
@@ -16,7 +17,7 @@ const RedeemScreen = () => {
 
   const [amount, setAmount] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [transactionPin, setTransactionPin] = useState("");
+  const [showAuthSheet, setShowAuthSheet] = useState(false);
   const [toast, setToast] = useState({ visible: false, type: "info", message: "" });
   const [success, setSuccess] = useState({ visible: false, amount: 0 });
 
@@ -46,28 +47,20 @@ const RedeemScreen = () => {
 
   const handleRedeem = async () => {
     if (!canSubmit) return;
-    if (transactionPin && !/^\d{4}$/.test(transactionPin.trim())) {
-      showToast("Transaction PIN must be exactly 4 digits.", "error");
-      return;
-    }
+    setShowAuthSheet(true);
+  };
 
+  const processRedeem = async ({ transactionPin = "" } = {}) => {
     setSubmitting(true);
     try {
       let biometricProof = "";
       const pinPayload = transactionPin.trim();
       const hasPin = /^\d{4}$/.test(pinPayload);
       if (!hasPin) {
-        try {
-          biometricProof = await runBiometricTransactionCheck({
-            action: "redeem",
-            amount: redeemAmount,
-          });
-        } catch (bioError) {
-          const message = bioError?.response?.data?.message || bioError?.message || "";
-          if (!/not enabled/i.test(message) && !/authentication not enabled/i.test(message)) {
-            throw bioError;
-          }
-        }
+        biometricProof = await runBiometricTransactionCheck({
+          action: "redeem",
+          amount: redeemAmount,
+        });
       }
 
       const res = await redeemRewards({ amount: redeemAmount, biometricProof, transactionPin: pinPayload });
@@ -97,7 +90,6 @@ const RedeemScreen = () => {
       await refreshUser();
 
       setAmount("");
-      setTransactionPin("");
       setSuccess({ visible: true, amount: redeemedAmount });
       showToast(data?.message || "Reward redeemed successfully.", "success");
     } catch (error) {
@@ -108,6 +100,11 @@ const RedeemScreen = () => {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleAuthSelection = async (authPayload) => {
+    setShowAuthSheet(false);
+    await processRedeem(authPayload);
   };
 
   return (
@@ -153,16 +150,6 @@ const RedeemScreen = () => {
             onChange={(e) => setAmount(e.target.value)}
             disabled={submitting || FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM}
           />
-          <Input
-            type="password"
-            inputMode="numeric"
-            maxLength={4}
-            placeholder="4-digit PIN (optional)"
-            value={transactionPin}
-            onChange={(e) => setTransactionPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-            disabled={submitting || FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM}
-          />
-
           <HelperText $error={Boolean(amount) && !canSubmit}>
             {helperText}
           </HelperText>
@@ -213,6 +200,15 @@ const RedeemScreen = () => {
           </ModalCard>
         </ModalOverlay>
       )}
+
+      <TransactionAuthSheet
+        visible={showAuthSheet}
+        loading={submitting}
+        title="Authorize Redeem"
+        subtitle="Choose Fingerprint or your 4-digit PIN."
+        onClose={() => setShowAuthSheet(false)}
+        onSubmit={handleAuthSelection}
+      />
     </PageContainer>
   );
 };

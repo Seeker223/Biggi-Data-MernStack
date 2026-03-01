@@ -18,6 +18,7 @@ import {
   verifyFlutterwavePayment,
 } from "../../services/api";
 import { runBiometricTransactionCheck } from "../../services/biometric";
+import TransactionAuthSheet from "../../components/TransactionAuthSheet";
 
 const SERVICE_CHARGE = 0;
 const POLL_INTERVAL = 3000;
@@ -64,6 +65,7 @@ const DepositScreen = () => {
 
   const [amount, setAmount] = useState("");
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showAuthSheet, setShowAuthSheet] = useState(false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState("idle");
   const [txRef, setTxRef] = useState("");
@@ -230,15 +232,18 @@ const DepositScreen = () => {
       showToast("Please wait for current transaction to complete", "info");
       return;
     }
-    if (transactionPin && !/^\d{4}$/.test(transactionPin.trim())) {
-      showToast("Transaction PIN must be exactly 4 digits.", "error");
-      return;
-    }
+    setShowAuthSheet(true);
+  };
 
+  const handleAuthSelection = async ({ transactionPin: selectedPin = "" }) => {
+    setTransactionPin(selectedPin);
+    setBiometricProof("");
+    latestBiometricProof.current = "";
     const reference = `flw_${user?._id || "user"}_${Date.now()}`;
     setTxRef(reference);
-    setShowConfirm(true);
     reconcileAttempts.current = 0;
+    setShowAuthSheet(false);
+    setShowConfirm(true);
   };
 
   const handleFlutterwavePayment = async () => {
@@ -384,15 +389,6 @@ const DepositScreen = () => {
             onChange={(e) => setAmount(e.target.value)}
             disabled={isProcessing}
           />
-          <Input
-            type="password"
-            inputMode="numeric"
-            maxLength={4}
-            placeholder="4-digit PIN (optional)"
-            value={transactionPin}
-            onChange={(e) => setTransactionPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-            disabled={isProcessing}
-          />
 
           <Breakdown>
             <BreakdownRow>
@@ -482,6 +478,15 @@ const DepositScreen = () => {
             </ModalContent>
           </ModalOverlay>
         )}
+
+        <TransactionAuthSheet
+          visible={showAuthSheet}
+          loading={isProcessing}
+          title="Authorize Deposit"
+          subtitle="Choose Fingerprint or your 4-digit PIN."
+          onClose={() => setShowAuthSheet(false)}
+          onSubmit={handleAuthSelection}
+        />
       </ContentContainer>
     </PageContainer>
   );

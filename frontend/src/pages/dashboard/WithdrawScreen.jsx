@@ -21,6 +21,7 @@ import { AuthContext } from '../../context/AuthContext';
 import { FEATURE_FLAGS } from '../../constants/featureFlags';
 import api from '../../services/api';
 import { runBiometricTransactionCheck } from '../../services/biometric';
+import TransactionAuthSheet from '../../components/TransactionAuthSheet';
 
 // Biggi Data Brand Colors
 const BRAND_COLORS = {
@@ -99,9 +100,10 @@ const WithdrawScreen = () => {
   const [showBankList, setShowBankList] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showAuthSheet, setShowAuthSheet] = useState(false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [transactionPin, setTransactionPin] = useState("");
+  const [pendingAuth, setPendingAuth] = useState({ transactionPin: "" });
   
   // Toast state
   const [toastVisible, setToastVisible] = useState(false);
@@ -204,11 +206,6 @@ const WithdrawScreen = () => {
       showToast("Insufficient balance", "error");
       return false;
     }
-    if (transactionPin && !/^\d{4}$/.test(transactionPin.trim())) {
-      showToast("Transaction PIN must be exactly 4 digits.", "error");
-      return false;
-    }
-
     return true;
   };
 
@@ -221,29 +218,24 @@ const WithdrawScreen = () => {
 
     if (!validateForm()) return;
 
-    setShowConfirm(true);
+    setShowAuthSheet(true);
   };
 
   /* ---------------- PROCESS WITHDRAWAL ---------------- */
-  const processWithdrawal = async () => {
+  const processWithdrawal = async ({ transactionPin = "" } = {}) => {
     setIsProcessing(true);
     setShowConfirm(false);
+    setShowAuthSheet(false);
 
     try {
       let biometricProof = "";
-      const hasPin = /^\d{4}$/.test(transactionPin.trim());
+      const pinValue = transactionPin.trim();
+      const hasPin = /^\d{4}$/.test(pinValue);
       if (!hasPin) {
-        try {
-          biometricProof = await runBiometricTransactionCheck({
-            action: "withdraw",
-            amount: enteredAmount,
-          });
-        } catch (bioError) {
-          const message = bioError?.response?.data?.message || bioError?.message || "";
-          if (!/not enabled/i.test(message) && !/authentication not enabled/i.test(message)) {
-            throw bioError;
-          }
-        }
+        biometricProof = await runBiometricTransactionCheck({
+          action: "withdraw",
+          amount: enteredAmount,
+        });
       }
 
       const txRef = `flw_withdraw_${user?._id || "user"}_${Date.now()}`;
@@ -256,7 +248,7 @@ const WithdrawScreen = () => {
         narration: "Withdrawal from Biggi Data",
         currency: "NGN",
         biometricProof,
-        transactionPin: transactionPin.trim(),
+        transactionPin: pinValue,
       };
 
       const res = await api.post("/wallet/flutterwave-withdraw", payload);
@@ -271,7 +263,6 @@ const WithdrawScreen = () => {
       setAccountNumber("");
       setAccountName("");
       setSelectedBank(null);
-      setTransactionPin("");
 
       // Refresh user data
       await refreshUser();
@@ -285,6 +276,12 @@ const WithdrawScreen = () => {
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handleAuthSelection = async (authPayload) => {
+    setPendingAuth({ transactionPin: authPayload?.transactionPin || "" });
+    setShowAuthSheet(false);
+    setShowConfirm(true);
   };
 
   /* ---------------- RENDER VERIFY BUTTON ---------------- */
@@ -427,20 +424,6 @@ const WithdrawScreen = () => {
               />
             </InputContainer>
 
-            <InputContainer>
-              <InputLabel>Transaction PIN (Optional)</InputLabel>
-              <Input
-                type="password"
-                inputMode="numeric"
-                maxLength={4}
-                placeholder="Enter 4-digit PIN"
-                value={transactionPin}
-                onChange={(e) => setTransactionPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                disabled={isProcessing}
-                $disabled={isProcessing}
-              />
-            </InputContainer>
-
             {/* BREAKDOWN */}
             <Breakdown>
               <BreakdownRow>
@@ -497,8 +480,8 @@ const WithdrawScreen = () => {
           </InfoBox>
         </ScrollContainer>
 
-        {/* BANK SELECTION MODAL */}
-        {showBankList && (
+      {/* BANK SELECTION MODAL */}
+      {showBankList && (
           <ModalOverlay onClick={() => setShowBankList(false)}>
             <BankModalContent onClick={e => e.stopPropagation()}>
               <BankModalHeader>
@@ -590,6 +573,15 @@ const WithdrawScreen = () => {
           </ModalOverlay>
         )}
 
+        <TransactionAuthSheet
+          visible={showAuthSheet}
+          loading={isProcessing}
+          title="Authorize Withdrawal"
+          subtitle="Choose Fingerprint or your 4-digit PIN."
+          onClose={() => setShowAuthSheet(false)}
+          onSubmit={handleAuthSelection}
+        />
+
         {/* CONFIRMATION MODAL */}
         {showConfirm && (
           <ModalOverlay onClick={() => !isProcessing && setShowConfirm(false)}>
@@ -643,7 +635,11 @@ const WithdrawScreen = () => {
                   <ModalButtonCancelText>Cancel</ModalButtonCancelText>
                 </ModalButton>
 
-                <ModalButton $confirm onClick={processWithdrawal} disabled={isProcessing}>
+                <ModalButton
+                  $confirm
+                  onClick={() => processWithdrawal(pendingAuth)}
+                  disabled={isProcessing}
+                >
                   {isProcessing ? (
                     <Spinner size={16} />
                   ) : (

@@ -1,0 +1,231 @@
+import React, { useEffect, useState } from "react";
+import styled from "styled-components";
+import { Fingerprint, KeyRound, X } from "lucide-react";
+
+const TransactionAuthSheet = ({
+  visible,
+  loading = false,
+  title = "Authorize Transaction",
+  subtitle = "Choose how you want to authorize this action.",
+  onClose,
+  onSubmit,
+}) => {
+  const [method, setMethod] = useState("biometric");
+  const [pin, setPin] = useState("");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!visible) {
+      setMethod("biometric");
+      setPin("");
+      setError("");
+    }
+  }, [visible]);
+
+  if (!visible) return null;
+
+  const handleContinue = async () => {
+    if (method === "pin" && !/^\d{4}$/.test(pin.trim())) {
+      setError("Enter a valid 4-digit PIN.");
+      return;
+    }
+    setError("");
+    await onSubmit?.({
+      method,
+      transactionPin: method === "pin" ? pin.trim() : "",
+    });
+  };
+
+  return (
+    <Overlay onClick={() => !loading && onClose?.()}>
+      <Sheet onClick={(e) => e.stopPropagation()}>
+        <Handle />
+        <TopRow>
+          <TitleWrap>
+            <Title>{title}</Title>
+            <Subtitle>{subtitle}</Subtitle>
+          </TitleWrap>
+          <CloseButton type="button" onClick={() => !loading && onClose?.()} disabled={loading}>
+            <X size={18} />
+          </CloseButton>
+        </TopRow>
+
+        <MethodRow>
+          <MethodButton
+            type="button"
+            $active={method === "biometric"}
+            onClick={() => setMethod("biometric")}
+            disabled={loading}
+          >
+            <Fingerprint size={18} />
+            Fingerprint
+          </MethodButton>
+          <MethodButton
+            type="button"
+            $active={method === "pin"}
+            onClick={() => setMethod("pin")}
+            disabled={loading}
+          >
+            <KeyRound size={18} />
+            4-digit PIN
+          </MethodButton>
+        </MethodRow>
+
+        {method === "pin" ? (
+          <PinInput
+            type="password"
+            inputMode="numeric"
+            maxLength={4}
+            placeholder="Enter 4-digit PIN"
+            value={pin}
+            onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+            disabled={loading}
+          />
+        ) : (
+          <Hint>Use your registered fingerprint to continue.</Hint>
+        )}
+
+        {error ? <ErrorText>{error}</ErrorText> : null}
+
+        <ContinueButton type="button" onClick={handleContinue} disabled={loading}>
+          {loading ? "Please wait..." : "Continue"}
+        </ContinueButton>
+      </Sheet>
+    </Overlay>
+  );
+};
+
+export default TransactionAuthSheet;
+
+const Overlay = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 4000;
+`;
+
+const Sheet = styled.div`
+  width: 100%;
+  max-width: 440px;
+  background: #fff;
+  border-top-left-radius: 22px;
+  border-top-right-radius: 22px;
+  padding: 12px 16px 20px;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.2);
+`;
+
+const Handle = styled.div`
+  width: 42px;
+  height: 4px;
+  border-radius: 999px;
+  background: #dedede;
+  margin: 0 auto 12px;
+`;
+
+const TopRow = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+`;
+
+const TitleWrap = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const Title = styled.h3`
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: #111;
+`;
+
+const Subtitle = styled.p`
+  margin: 0;
+  font-size: 13px;
+  color: #666;
+`;
+
+const CloseButton = styled.button`
+  border: none;
+  background: #f2f2f2;
+  color: #333;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+`;
+
+const MethodRow = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 14px;
+`;
+
+const MethodButton = styled.button`
+  border: 1px solid ${(props) => (props.$active ? "#ff7a00" : "#e6e6e6")};
+  background: ${(props) => (props.$active ? "rgba(255,122,0,0.08)" : "#fff")};
+  color: ${(props) => (props.$active ? "#b45309" : "#222")};
+  height: 46px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: 700;
+`;
+
+const PinInput = styled.input`
+  margin-top: 12px;
+  width: 100%;
+  height: 46px;
+  border-radius: 12px;
+  border: 1px solid #e1e1e1;
+  padding: 0 14px;
+  font-size: 15px;
+  outline: none;
+  &:focus {
+    border-color: #ff7a00;
+    box-shadow: 0 0 0 3px rgba(255, 122, 0, 0.12);
+  }
+`;
+
+const Hint = styled.p`
+  margin: 12px 2px 0;
+  font-size: 13px;
+  color: #666;
+`;
+
+const ErrorText = styled.p`
+  margin: 10px 2px 0;
+  color: #dc3545;
+  font-size: 13px;
+  font-weight: 600;
+`;
+
+const ContinueButton = styled.button`
+  margin-top: 14px;
+  width: 100%;
+  height: 46px;
+  border: none;
+  border-radius: 12px;
+  background: #111;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+`;

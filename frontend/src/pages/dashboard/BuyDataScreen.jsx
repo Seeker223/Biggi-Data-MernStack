@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronDown, CheckCircle } from "lucide-react";
 import { AuthContext } from "../../context/AuthContext";
 import { buyData } from "../../services/api";
 import { runBiometricTransactionCheck } from "../../services/biometric";
+import TransactionAuthSheet from "../../components/TransactionAuthSheet";
 
 const BuyDataScreen = () => {
   const navigate = useNavigate();
@@ -17,9 +18,9 @@ const BuyDataScreen = () => {
   const [plan, setPlan] = useState(null);
   const [price, setPrice] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [showAuthSheet, setShowAuthSheet] = useState(false);
   const [successModal, setSuccessModal] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-  const [transactionPin, setTransactionPin] = useState("");
 
   useEffect(() => {
     if (location.state?.selectedNetwork) {
@@ -41,14 +42,16 @@ const BuyDataScreen = () => {
     if (!networkCode) return "Select a network";
     if (!plan) return "Select a data plan";
     if (!price || price <= 0) return "Invalid plan price";
-    if (transactionPin && !/^\d{4}$/.test(transactionPin.trim())) return "Transaction PIN must be exactly 4 digits";
     return null;
   };
 
   const handlePay = async () => {
     const err = validate();
     if (err) return setErrorMsg(err);
+    setShowAuthSheet(true);
+  };
 
+  const processPay = async ({ transactionPin = "" } = {}) => {
     setErrorMsg("");
     setLoading(true);
 
@@ -56,26 +59,20 @@ const BuyDataScreen = () => {
 
     try {
       let biometricProof = "";
-      const hasPin = /^\d{4}$/.test(transactionPin.trim());
+      const pinValue = transactionPin.trim();
+      const hasPin = /^\d{4}$/.test(pinValue);
       if (!hasPin) {
-        try {
-          biometricProof = await runBiometricTransactionCheck({
-            action: "data_purchase",
-            amount: price,
-          });
-        } catch (bioError) {
-          const message = bioError?.response?.data?.message || bioError?.message || "";
-          if (!/not enabled/i.test(message) && !/authentication not enabled/i.test(message)) {
-            throw bioError;
-          }
-        }
+        biometricProof = await runBiometricTransactionCheck({
+          action: "data_purchase",
+          amount: price,
+        });
       }
 
       const res = await buyData({
         mobile_no: phone,
         plan_id: backendPlanId,
         biometricProof,
-        transactionPin: transactionPin.trim(),
+        transactionPin: pinValue,
       });
 
       if (!res?.success) {
@@ -84,7 +81,6 @@ const BuyDataScreen = () => {
       }
 
       setSuccessModal(true);
-      setTransactionPin("");
       await refreshUser();
 
       setTimeout(() => {
@@ -105,6 +101,11 @@ const BuyDataScreen = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAuthSelection = async (authPayload) => {
+    setShowAuthSheet(false);
+    await processPay(authPayload);
   };
 
   const goToSelectNetwork = () => {
@@ -178,19 +179,6 @@ const BuyDataScreen = () => {
               </PriceDisplay>
             )}
 
-            <InputGroup>
-              <Label>Transaction PIN (Optional)</Label>
-              <Input
-                type="password"
-                inputMode="numeric"
-                maxLength={4}
-                placeholder="Enter 4-digit PIN"
-                value={transactionPin}
-                onChange={(e) => setTransactionPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                disabled={loading}
-              />
-            </InputGroup>
-
             {errorMsg && <ErrorMsg>{errorMsg}</ErrorMsg>}
 
             <PayButton onClick={handlePay} disabled={loading}>
@@ -224,6 +212,15 @@ const BuyDataScreen = () => {
           </SuccessBox>
         </ModalOverlay>
       )}
+
+      <TransactionAuthSheet
+        visible={showAuthSheet}
+        loading={loading}
+        title="Authorize Data Purchase"
+        subtitle="Choose Fingerprint or your 4-digit PIN."
+        onClose={() => setShowAuthSheet(false)}
+        onSubmit={handleAuthSelection}
+      />
     </PageContainer>
   );
 };
