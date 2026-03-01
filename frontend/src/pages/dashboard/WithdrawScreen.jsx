@@ -101,6 +101,7 @@ const WithdrawScreen = () => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [transactionPin, setTransactionPin] = useState("");
   
   // Toast state
   const [toastVisible, setToastVisible] = useState(false);
@@ -248,6 +249,7 @@ const WithdrawScreen = () => {
         narration: "Withdrawal from Biggi Data",
         currency: "NGN",
         biometricProof,
+        transactionPin: transactionPin.trim(),
       };
 
       const res = await api.post("/wallet/flutterwave-withdraw", payload);
@@ -262,6 +264,7 @@ const WithdrawScreen = () => {
       setAccountNumber("");
       setAccountName("");
       setSelectedBank(null);
+      setTransactionPin("");
 
       // Refresh user data
       await refreshUser();
@@ -414,6 +417,20 @@ const WithdrawScreen = () => {
                 $disabled={isProcessing}
                 min={MIN_WITHDRAWAL}
                 max={MAX_WITHDRAWAL}
+              />
+            </InputContainer>
+
+            <InputContainer>
+              <InputLabel>Transaction PIN (Optional)</InputLabel>
+              <Input
+                type="password"
+                inputMode="numeric"
+                maxLength={4}
+                placeholder="Enter 4-digit PIN"
+                value={transactionPin}
+                onChange={(e) => setTransactionPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                disabled={isProcessing}
+                $disabled={isProcessing}
               />
             </InputContainer>
 

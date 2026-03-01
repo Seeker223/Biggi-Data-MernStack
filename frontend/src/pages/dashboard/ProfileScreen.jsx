@@ -8,6 +8,9 @@ import {
   beginBiometricRegistration,
   disableBiometricAuth,
   getBiometricStatus,
+  getTransactionSecurityStatus,
+  setTransactionPin,
+  disableTransactionPin,
   verifyBiometricRegistration,
 } from "../../services/api";
 import { createWebAuthnCredential, isWebAuthnSupported } from "../../utils/webauthn";
@@ -27,6 +30,11 @@ const ProfileScreen = () => {
   const [biometric, setBiometric] = useState({ enabled: false, credentialsCount: 0 });
   const [biometricLoading, setBiometricLoading] = useState(false);
   const [bioNotice, setBioNotice] = useState("");
+  const [transactionPinEnabled, setTransactionPinEnabled] = useState(false);
+  const [pin, setPin] = useState("");
+  const [currentPin, setCurrentPin] = useState("");
+  const [pinLoading, setPinLoading] = useState(false);
+  const [pinNotice, setPinNotice] = useState("");
   const siteBaseUrl = normalizeSiteUrl(
     import.meta.env.VITE_PUBLIC_SITE_URL || "https://biggidata.com.ng"
   );
@@ -51,7 +59,18 @@ const ProfileScreen = () => {
         }
       }
     };
+    const loadPinStatus = async () => {
+      try {
+        const res = await getTransactionSecurityStatus();
+        if (mounted) {
+          setTransactionPinEnabled(Boolean(res?.data?.security?.transactionPinEnabled));
+        }
+      } catch {
+        if (mounted) setTransactionPinEnabled(false);
+      }
+    };
     loadBiometricStatus();
+    loadPinStatus();
     return () => {
       mounted = false;
     };
@@ -96,6 +115,44 @@ const ProfileScreen = () => {
       setBioNotice(error?.response?.data?.message || error?.message || "Failed to disable fingerprint.");
     } finally {
       setBiometricLoading(false);
+    }
+  };
+
+  const handleSavePin = async () => {
+    if (!/^\d{4}$/.test(pin)) {
+      setPinNotice("PIN must be exactly 4 digits.");
+      return;
+    }
+    setPinLoading(true);
+    try {
+      const res = await setTransactionPin(pin, currentPin);
+      setTransactionPinEnabled(Boolean(res?.data?.transactionPinEnabled));
+      setPinNotice(res?.data?.message || "Transaction PIN saved.");
+      setPin("");
+      setCurrentPin("");
+    } catch (error) {
+      setPinNotice(error?.response?.data?.message || "Failed to save transaction PIN.");
+    } finally {
+      setPinLoading(false);
+    }
+  };
+
+  const handleDisablePin = async () => {
+    if (!/^\d{4}$/.test(currentPin)) {
+      setPinNotice("Enter current 4-digit PIN to disable.");
+      return;
+    }
+    setPinLoading(true);
+    try {
+      const res = await disableTransactionPin(currentPin);
+      setTransactionPinEnabled(Boolean(res?.data?.transactionPinEnabled));
+      setPinNotice(res?.data?.message || "Transaction PIN disabled.");
+      setPin("");
+      setCurrentPin("");
+    } catch (error) {
+      setPinNotice(error?.response?.data?.message || "Failed to disable transaction PIN.");
+    } finally {
+      setPinLoading(false);
     }
   };
 
@@ -173,6 +230,40 @@ const ProfileScreen = () => {
                 {biometricLoading ? "Setting up..." : "Enable Fingerprint"}
               </BioButton>
             )}
+            <IdText style={{ marginTop: 10 }}>
+              Transaction PIN: {transactionPinEnabled ? "Enabled" : "Disabled"}
+            </IdText>
+            <PinRow>
+              <PinInput
+                type="password"
+                inputMode="numeric"
+                maxLength={4}
+                placeholder={transactionPinEnabled ? "New PIN (optional)" : "Set 4-digit PIN"}
+                value={pin}
+                onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                disabled={pinLoading}
+              />
+              <PinInput
+                type="password"
+                inputMode="numeric"
+                maxLength={4}
+                placeholder={transactionPinEnabled ? "Current PIN" : "Current PIN (if updating)"}
+                value={currentPin}
+                onChange={(e) => setCurrentPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                disabled={pinLoading}
+              />
+            </PinRow>
+            <PinActions>
+              <BioButton type="button" onClick={handleSavePin} disabled={pinLoading}>
+                {pinLoading ? "Please wait..." : transactionPinEnabled ? "Update PIN" : "Set PIN"}
+              </BioButton>
+              {transactionPinEnabled ? (
+                <BioButton type="button" onClick={handleDisablePin} disabled={pinLoading}>
+                  {pinLoading ? "Please wait..." : "Disable PIN"}
+                </BioButton>
+              ) : null}
+            </PinActions>
+            {pinNotice ? <BioNotice>{pinNotice}</BioNotice> : null}
           </BiometricBlock>
 
           <Options>
@@ -366,6 +457,28 @@ const BioNotice = styled.p`
   margin: 6px 0 0;
   color: #555;
   font-size: 13px;
+`;
+
+const PinRow = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+`;
+
+const PinInput = styled.input`
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 10px;
+  font-size: 14px;
+  background: #fff;
+`;
+
+const PinActions = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
 `;
 
 const ModalOverlay = styled.div`

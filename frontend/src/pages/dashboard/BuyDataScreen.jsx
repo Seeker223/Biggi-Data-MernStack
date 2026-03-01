@@ -4,6 +4,7 @@ import styled, { keyframes } from "styled-components";
 import { ChevronLeft, ChevronDown, CheckCircle } from "lucide-react";
 import { AuthContext } from "../../context/AuthContext";
 import { buyData } from "../../services/api";
+import { runBiometricTransactionCheck } from "../../services/biometric";
 
 const BuyDataScreen = () => {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ const BuyDataScreen = () => {
   const [loading, setLoading] = useState(false);
   const [successModal, setSuccessModal] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [transactionPin, setTransactionPin] = useState("");
 
   useEffect(() => {
     if (location.state?.selectedNetwork) {
@@ -52,9 +54,24 @@ const BuyDataScreen = () => {
     const backendPlanId = plan.plan_id || plan.code || plan.id || plan._id;
 
     try {
+      let biometricProof = "";
+      try {
+        biometricProof = await runBiometricTransactionCheck({
+          action: "data_purchase",
+          amount: price,
+        });
+      } catch (bioError) {
+        const message = bioError?.response?.data?.message || bioError?.message || "";
+        if (!/not enabled/i.test(message) && !/authentication not enabled/i.test(message)) {
+          throw bioError;
+        }
+      }
+
       const res = await buyData({
         mobile_no: phone,
         plan_id: backendPlanId,
+        biometricProof,
+        transactionPin: transactionPin.trim(),
       });
 
       if (!res?.success) {
@@ -63,6 +80,7 @@ const BuyDataScreen = () => {
       }
 
       setSuccessModal(true);
+      setTransactionPin("");
       await refreshUser();
 
       setTimeout(() => {
@@ -155,6 +173,19 @@ const BuyDataScreen = () => {
                 <PriceValue>N{price.toLocaleString()}</PriceValue>
               </PriceDisplay>
             )}
+
+            <InputGroup>
+              <Label>Transaction PIN (Optional)</Label>
+              <Input
+                type="password"
+                inputMode="numeric"
+                maxLength={4}
+                placeholder="Enter 4-digit PIN"
+                value={transactionPin}
+                onChange={(e) => setTransactionPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                disabled={loading}
+              />
+            </InputGroup>
 
             {errorMsg && <ErrorMsg>{errorMsg}</ErrorMsg>}
 

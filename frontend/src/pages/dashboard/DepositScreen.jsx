@@ -69,6 +69,7 @@ const DepositScreen = () => {
   const [txRef, setTxRef] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [biometricProof, setBiometricProof] = useState("");
+  const [transactionPin, setTransactionPin] = useState("");
 
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
@@ -108,6 +109,7 @@ const DepositScreen = () => {
     setIsProcessing(false);
     currentTxRef.current = "";
     setBiometricProof("");
+    setTransactionPin("");
     latestBiometricProof.current = "";
   };
 
@@ -156,7 +158,7 @@ const DepositScreen = () => {
       if (!proof) {
         proof = await ensureDepositBiometricProof();
       }
-      const res = await reconcilePayment(reference, proof);
+      const res = await reconcilePayment(reference, proof, transactionPin.trim());
       if (res?.data?.success) {
         showToast("Payment reconciled successfully!", "success");
         await refreshUser();
@@ -285,7 +287,7 @@ const DepositScreen = () => {
             proof = await ensureDepositBiometricProof();
           }
 
-          const res = await verifyFlutterwavePayment(txRef, proof);
+          const res = await verifyFlutterwavePayment(txRef, proof, transactionPin.trim());
           if (res?.data?.success) {
             setPaymentStatus("success");
             showToast("Payment verified and wallet credited!", "success");
@@ -371,6 +373,15 @@ const DepositScreen = () => {
             placeholder="N Amount (min N100, max N1,000,000)"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
+            disabled={isProcessing}
+          />
+          <Input
+            type="password"
+            inputMode="numeric"
+            maxLength={4}
+            placeholder="4-digit PIN (optional)"
+            value={transactionPin}
+            onChange={(e) => setTransactionPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
             disabled={isProcessing}
           />
 

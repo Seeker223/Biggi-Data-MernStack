@@ -172,14 +172,14 @@ export const disableBiometricAuth = () => api.delete("/auth/biometric");
 export const refreshUserBalance = () => api.get("/wallet/balance");
 export const getDepositHistory = () => api.get("/wallet/deposit-history");
 
-export const verifyFlutterwavePayment = (tx_ref, biometricProof = "") =>
-  api.post("/wallet/verify-flutterwave", { tx_ref, biometricProof });
+export const verifyFlutterwavePayment = (tx_ref, biometricProof = "", transactionPin = "") =>
+  api.post("/wallet/verify-flutterwave", { tx_ref, biometricProof, transactionPin });
 
 export const getDepositStatus = (tx_ref) =>
   api.get(`/wallet/deposit-status/${tx_ref}`);
 
-export const reconcilePayment = (tx_ref, biometricProof = "") =>
-  api.post("/wallet/reconcile-payment", { tx_ref, biometricProof });
+export const reconcilePayment = (tx_ref, biometricProof = "", transactionPin = "") =>
+  api.post("/wallet/reconcile-payment", { tx_ref, biometricProof, transactionPin });
 
 export const redeemRewards = (payload = {}) => api.post("/wallet/redeem", payload);
 
@@ -265,6 +265,11 @@ export const getLeaderboard = async () => {
 // -----------------------------------------------------------
 export const updateUserProfile = (payload) =>
   api.put("/user/update-profile", payload);
+export const getTransactionSecurityStatus = () => api.get("/user/transaction-security");
+export const setTransactionPin = (pin, currentPin = "") =>
+  api.post("/user/transaction-pin", { pin, currentPin });
+export const disableTransactionPin = (currentPin) =>
+  api.delete("/user/transaction-pin", { data: { currentPin } });
 
 export const updateAvatar = async (formData) => {
   try {

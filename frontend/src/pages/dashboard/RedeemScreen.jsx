@@ -16,6 +16,7 @@ const RedeemScreen = () => {
 
   const [amount, setAmount] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [transactionPin, setTransactionPin] = useState("");
   const [toast, setToast] = useState({ visible: false, type: "info", message: "" });
   const [success, setSuccess] = useState({ visible: false, amount: 0 });
 
@@ -61,7 +62,8 @@ const RedeemScreen = () => {
         }
       }
 
-      const res = await redeemRewards({ amount: redeemAmount, biometricProof });
+      const pinPayload = transactionPin.trim();
+      const res = await redeemRewards({ amount: redeemAmount, biometricProof, transactionPin: pinPayload });
       const data = res?.data || {};
       const redeemedAmount = Number(
         data.amountRedeemed ?? data.redeemedAmount ?? data.amount ?? redeemAmount
@@ -88,6 +90,7 @@ const RedeemScreen = () => {
       await refreshUser();
 
       setAmount("");
+      setTransactionPin("");
       setSuccess({ visible: true, amount: redeemedAmount });
       showToast(data?.message || "Reward redeemed successfully.", "success");
     } catch (error) {
@@ -141,6 +144,15 @@ const RedeemScreen = () => {
             placeholder="Enter amount"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
+            disabled={submitting || FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM}
+          />
+          <Input
+            type="password"
+            inputMode="numeric"
+            maxLength={4}
+            placeholder="4-digit PIN (optional)"
+            value={transactionPin}
+            onChange={(e) => setTransactionPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
             disabled={submitting || FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM}
           />
 
