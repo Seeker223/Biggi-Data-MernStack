@@ -43,6 +43,9 @@ const HomeScreen = () => {
   } = useContext(AuthContext);
 
   const [ticketModalVisible, setTicketModalVisible] = useState(false);
+  const [ticketModalMessage, setTicketModalMessage] = useState(
+    "You need at least 1 ticket to play this game."
+  );
   const [previewVisible, setPreviewVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -226,8 +229,32 @@ const HomeScreen = () => {
 
   const handleDailyGame = () => {
     if (FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM) return;
-    if (tickets <= 0) return setTicketModalVisible(true);
+    if (tickets <= 0) {
+      setTicketModalMessage("You need at least 1 ticket to play the Weekly Number Picker game.");
+      setTicketModalVisible(true);
+      return;
+    }
     navigate('/daily-draw');
+  };
+
+  const handleMonthlyGameClick = () => {
+    if (FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM) return;
+    if (tickets <= 0) {
+      setTicketModalMessage("You need at least 1 ticket to access the Monthly Draw.");
+      setTicketModalVisible(true);
+      return;
+    }
+    navigate('/game-winner');
+  };
+
+  const handleTopRandomGameClick = () => {
+    if (FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM) return;
+    if (tickets <= 0) {
+      setTicketModalMessage("You need at least 1 ticket to access Top Random Monthly Picks.");
+      setTicketModalVisible(true);
+      return;
+    }
+    goToTopRandom();
   };
 
   const handleMonthlyGame = () => {
@@ -475,7 +502,8 @@ const HomeScreen = () => {
               </GameSubtitle>
               <PlayBtn 
                 onClick={handleDailyGame} 
-                disabled={tickets <= 0 || FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM}
+                disabled={FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM}
+                $locked={tickets <= 0}
               >
                 <PlayText>Play Now</PlayText>
               </PlayBtn>
@@ -521,8 +549,9 @@ const HomeScreen = () => {
                 </ProgressContainer>
                 
                 <MonthlyBtn 
-                  onClick={() => navigate('/game-winner')}
+                  onClick={handleMonthlyGameClick}
                   $eligible={monthlyEligibility.isEligible}
+                  $locked={tickets <= 0}
                 >
                   {monthlyEligibility.isEligible ? (
                     <>
@@ -545,7 +574,7 @@ const HomeScreen = () => {
                 <TopRandomDesc>
                   10 random users who bought data this month win rewards.
                 </TopRandomDesc>
-                <TopRandomBtn onClick={goToTopRandom}>
+                <TopRandomBtn onClick={handleTopRandomGameClick} $locked={tickets <= 0}>
                   <Trophy size={18} />
                   <TopRandomBtnText>Open Top Random Picks</TopRandomBtnText>
                 </TopRandomBtn>
@@ -582,7 +611,7 @@ const HomeScreen = () => {
             <ModalBox>
               <AlertCircle size={42} color="#FF7A00" />
               <ModalTitle>No Tickets Available</ModalTitle>
-              <ModalMsg>You need at least 1 ticket to play weekly games.</ModalMsg>
+              <ModalMsg>{ticketModalMessage}</ModalMsg>
               <ModalBtn onClick={goToBundle}>
                 <ModalBtnText>Buy Data Bundle</ModalBtnText>
               </ModalBtn>
@@ -1409,15 +1438,17 @@ const GameSubtitle = styled.p`
 `;
 
 const PlayBtn = styled.button`
-  background-color: #FF7A00;
+  background-color: ${props => (props.$locked ? "#999" : "#FF7A00")};
   border-radius: 10px;
   padding: 12px 32px;
   border: none;
-  cursor: pointer;
+  cursor: ${props => (props.$locked ? "not-allowed" : "pointer")};
+  opacity: ${props => (props.$locked ? 0.65 : 1)};
   transition: all 0.2s;
   width: 100%;
   max-width: 240px;
-  box-shadow: 0 4px 16px rgba(255, 122, 0, 0.3);
+  box-shadow: ${props =>
+    props.$locked ? "none" : "0 4px 16px rgba(255, 122, 0, 0.3)"};
 
   &:hover:not(:disabled) {
     background-color: #E56A00;
@@ -1595,7 +1626,8 @@ const MonthlyBtn = styled.button`
   border-radius: 10px;
   padding: 14px;
   border: none;
-  cursor: pointer;
+  cursor: ${props => (props.$locked ? "not-allowed" : "pointer")};
+  opacity: ${props => (props.$locked ? 0.7 : 1)};
   transition: all 0.2s;
   width: 100%;
   gap: 8px;
@@ -1603,9 +1635,10 @@ const MonthlyBtn = styled.button`
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 
   &:hover {
-    opacity: 0.9;
-    transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    opacity: ${props => (props.$locked ? 0.7 : 0.9)};
+    transform: ${props => (props.$locked ? "none" : "translateY(-1px)")};
+    box-shadow: ${props =>
+      props.$locked ? "0 4px 16px rgba(0, 0, 0, 0.2)" : "0 6px 20px rgba(0, 0, 0, 0.3)"};
   }
 
   &:active {
@@ -1688,11 +1721,12 @@ const TopRandomBtn = styled.button`
   align-items: center;
   justify-content: center;
   gap: 8px;
-  cursor: pointer;
+  cursor: ${props => (props.$locked ? "not-allowed" : "pointer")};
+  opacity: ${props => (props.$locked ? 0.7 : 1)};
   transition: transform 0.2s ease;
 
   &:hover {
-    transform: translateY(-1px);
+    transform: ${props => (props.$locked ? "none" : "translateY(-1px)")};
   }
 `;
 
