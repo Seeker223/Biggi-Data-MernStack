@@ -13,6 +13,7 @@ import {
 import { AuthContext } from "../../context/AuthContext";
 import { FEATURE_FLAGS } from "../../constants/featureFlags";
 import {
+  getTransactionSecurityStatus,
   getDepositStatus,
   reconcilePayment,
   setTransactionPin,
@@ -208,17 +209,28 @@ const DepositScreen = () => {
       showToast("Please wait for current transaction to complete", "info");
       return;
     }
-    setShowAuthSheet(true);
+    (async () => {
+      try {
+        const res = await getTransactionSecurityStatus();
+        setPinConfigured(Boolean(res?.data?.security?.transactionPinEnabled));
+      } catch {
+        // keep current local status
+      }
+      setShowAuthSheet(true);
+    })();
   };
 
-  const handleAuthSelection = async ({ transactionPin: selectedPin = "" }) => {
+  const handleAuthSelection = async ({ transactionPin: selectedPin = "", setupPin = "" }) => {
     const pinValue = String(selectedPin || "").trim();
+    const setupPinValue = String(setupPin || pinValue).trim();
+    let pinJustCreated = false;
     if (!pinConfigured) {
       try {
-        await setTransactionPin(pinValue);
+        await setTransactionPin(setupPinValue);
         setPinConfigured(true);
         updateUser?.({ transactionPinEnabled: true });
         await refreshUser();
+        pinJustCreated = true;
         showToast("Transaction PIN created successfully.", "success");
       } catch (error) {
         showToast(error?.response?.data?.message || "Failed to create transaction PIN.", "error");
@@ -229,15 +241,23 @@ const DepositScreen = () => {
       showToast("Enter your 4-digit transaction PIN.", "error");
       return;
     }
-    try {
-      await verifyTransactionPin(pinValue);
-      showToast("PIN verified successfully.", "success");
-    } catch (error) {
-      showToast(error?.response?.data?.message || "Invalid transaction PIN.", "error");
-      return;
+    if (!pinJustCreated) {
+      try {
+        await verifyTransactionPin(pinValue);
+        showToast("PIN verified successfully.", "success");
+      } catch (error) {
+        const message = error?.response?.data?.message || "Invalid transaction PIN.";
+        if (/not enabled/i.test(message)) {
+          setPinConfigured(false);
+          showToast("PIN is not enabled yet. Please create a new PIN to continue.", "info");
+        } else {
+          showToast(message, "error");
+        }
+        return;
+      }
     }
 
-    setTransactionPin(selectedPin);
+    setTransactionPin(pinValue);
     const reference = `flw_${user?._id || "user"}_${Date.now()}`;
     setTxRef(reference);
     reconcileAttempts.current = 0;

@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
 import { ChevronLeft, ChevronDown, CheckCircle } from "lucide-react";
 import { AuthContext } from "../../context/AuthContext";
-import { buyData, setTransactionPin } from "../../services/api";
+import { buyData, getTransactionSecurityStatus, setTransactionPin, verifyTransactionPin } from "../../services/api";
 import TransactionAuthSheet from "../../components/TransactionAuthSheet";
 
 const BuyDataScreen = () => {
@@ -52,6 +52,12 @@ const BuyDataScreen = () => {
   const handlePay = async () => {
     const err = validate();
     if (err) return setErrorMsg(err);
+    try {
+      const res = await getTransactionSecurityStatus();
+      setPinConfigured(Boolean(res?.data?.security?.transactionPinEnabled));
+    } catch {
+      // keep current local status
+    }
     setShowAuthSheet(true);
   };
 
@@ -110,14 +116,31 @@ const BuyDataScreen = () => {
 
   const handleAuthSelection = async (authPayload) => {
     const pinValue = String(authPayload?.transactionPin || "").trim();
+    const setupPinValue = String(authPayload?.setupPin || pinValue).trim();
+    let pinJustCreated = false;
     if (!pinConfigured) {
       try {
-        await setTransactionPin(String(authPayload?.setupPin || pinValue).trim());
+        await setTransactionPin(setupPinValue);
         setPinConfigured(true);
         updateUser?.({ transactionPinEnabled: true });
         await refreshUser();
+        pinJustCreated = true;
       } catch (error) {
         setErrorMsg(error?.response?.data?.message || "Failed to create transaction PIN.");
+        return;
+      }
+    }
+    if (!pinJustCreated) {
+      try {
+        await verifyTransactionPin(pinValue);
+      } catch (error) {
+        const message = error?.response?.data?.message || "Invalid transaction PIN.";
+        if (/not enabled/i.test(message)) {
+          setPinConfigured(false);
+          setErrorMsg("PIN is not enabled yet. Please create a new PIN to continue.");
+        } else {
+          setErrorMsg(message);
+        }
         return;
       }
     }

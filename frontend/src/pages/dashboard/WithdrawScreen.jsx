@@ -20,7 +20,7 @@ import {
 import { AuthContext } from '../../context/AuthContext';
 import { FEATURE_FLAGS } from '../../constants/featureFlags';
 import api from '../../services/api';
-import { setTransactionPin, verifyTransactionPin } from "../../services/api";
+import { getTransactionSecurityStatus, setTransactionPin, verifyTransactionPin } from "../../services/api";
 import TransactionAuthSheet from '../../components/TransactionAuthSheet';
 
 // Biggi Data Brand Colors
@@ -223,6 +223,12 @@ const WithdrawScreen = () => {
 
     if (!validateForm()) return;
 
+    try {
+      const res = await getTransactionSecurityStatus();
+      setPinConfigured(Boolean(res?.data?.security?.transactionPinEnabled));
+    } catch {
+      // keep current local status
+    }
     setShowAuthSheet(true);
   };
 
@@ -279,23 +285,34 @@ const WithdrawScreen = () => {
 
   const handleAuthSelection = async (authPayload) => {
     const pinValue = String(authPayload?.transactionPin || "").trim();
+    const setupPinValue = String(authPayload?.setupPin || pinValue).trim();
+    let pinJustCreated = false;
     if (!pinConfigured) {
       try {
-        await setTransactionPin(String(authPayload?.setupPin || pinValue).trim());
+        await setTransactionPin(setupPinValue);
         setPinConfigured(true);
         updateUser?.({ transactionPinEnabled: true });
         await refreshUser();
+        pinJustCreated = true;
         showToast("Transaction PIN created successfully.", "success");
       } catch (error) {
         showToast(error?.response?.data?.message || "Failed to create transaction PIN.", "error");
         return;
       }
     }
-    try {
-      await verifyTransactionPin(pinValue);
-    } catch (error) {
-      showToast(error?.response?.data?.message || "Invalid transaction PIN.", "error");
-      return;
+    if (!pinJustCreated) {
+      try {
+        await verifyTransactionPin(pinValue);
+      } catch (error) {
+        const message = error?.response?.data?.message || "Invalid transaction PIN.";
+        if (/not enabled/i.test(message)) {
+          setPinConfigured(false);
+          showToast("PIN is not enabled yet. Please create a new PIN to continue.", "info");
+        } else {
+          showToast(message, "error");
+        }
+        return;
+      }
     }
     setPendingAuth({ transactionPin: pinValue });
     setShowAuthSheet(false);
