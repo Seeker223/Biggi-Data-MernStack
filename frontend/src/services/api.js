@@ -21,6 +21,7 @@ const api = axios.create({
 });
 
 const BIOMETRIC_TIMEOUT_MS = 45000;
+const AUTH_REMEMBER_KEY = "authRememberMe";
 
 const withBiometricRetry = async (requestFn) => {
   try {
@@ -34,7 +35,14 @@ const withBiometricRetry = async (requestFn) => {
   }
 };
 
+const shouldRememberAuth = () => localStorage.getItem(AUTH_REMEMBER_KEY) === "1";
+
+const getPrimaryStorage = () => (shouldRememberAuth() ? localStorage : sessionStorage);
+
 const getStoredRefreshToken = () =>
+  getPrimaryStorage().getItem("refreshToken") ||
+  getPrimaryStorage().getItem("userRefreshToken") ||
+  getPrimaryStorage().getItem("refresh_token") ||
   localStorage.getItem("refreshToken") ||
   sessionStorage.getItem("refreshToken") ||
   localStorage.getItem("userRefreshToken") ||
@@ -44,26 +52,36 @@ const getStoredRefreshToken = () =>
 
 const persistRefreshToken = (token) => {
   if (!token) return;
-  localStorage.setItem("refreshToken", token);
-  sessionStorage.setItem("refreshToken", token);
-  localStorage.setItem("userRefreshToken", token);
-  sessionStorage.setItem("userRefreshToken", token);
+  const primary = getPrimaryStorage();
+  const secondary = shouldRememberAuth() ? sessionStorage : localStorage;
+  secondary.removeItem("refreshToken");
+  secondary.removeItem("userRefreshToken");
+  secondary.removeItem("refresh_token");
+  primary.setItem("refreshToken", token);
+  primary.setItem("userRefreshToken", token);
+  primary.setItem("refresh_token", token);
 };
 
 const clearStoredTokens = () => {
   localStorage.removeItem("userToken");
   sessionStorage.removeItem("userToken");
+  localStorage.removeItem("token");
+  sessionStorage.removeItem("token");
   localStorage.removeItem("refreshToken");
   sessionStorage.removeItem("refreshToken");
   localStorage.removeItem("userRefreshToken");
   sessionStorage.removeItem("userRefreshToken");
   localStorage.removeItem("refresh_token");
   sessionStorage.removeItem("refresh_token");
+  localStorage.removeItem(AUTH_REMEMBER_KEY);
 };
 
 let refreshHydrationPromise = null;
 const hydrateRefreshTokenIfMissing = async () => {
-  const token = localStorage.getItem("userToken") || sessionStorage.getItem("userToken");
+  const token =
+    getPrimaryStorage().getItem("userToken") ||
+    localStorage.getItem("userToken") ||
+    sessionStorage.getItem("userToken");
   if (!token || getStoredRefreshToken()) return;
   if (!refreshHydrationPromise) {
     refreshHydrationPromise = axios
@@ -87,7 +105,10 @@ const hydrateRefreshTokenIfMissing = async () => {
 // -----------------------------------------------------------
 api.interceptors.request.use((config) => {
   return hydrateRefreshTokenIfMissing().then(() => {
-    const token = localStorage.getItem("userToken") || sessionStorage.getItem("userToken");
+    const token =
+      getPrimaryStorage().getItem("userToken") ||
+      localStorage.getItem("userToken") ||
+      sessionStorage.getItem("userToken");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -166,9 +187,14 @@ api.interceptors.response.use(
         const newAccessToken = res.data.accessToken;
         const newRefreshToken = res.data.refreshToken || refreshToken;
 
-        // Store in both localStorage and sessionStorage for safety
-        localStorage.setItem("userToken", newAccessToken);
-        sessionStorage.setItem("userToken", newAccessToken);
+        const rememberMe = Boolean(res?.data?.rememberMe ?? shouldRememberAuth());
+        localStorage.setItem(AUTH_REMEMBER_KEY, rememberMe ? "1" : "0");
+        const primary = rememberMe ? localStorage : sessionStorage;
+        const secondary = rememberMe ? sessionStorage : localStorage;
+        secondary.removeItem("userToken");
+        secondary.removeItem("token");
+        primary.setItem("userToken", newAccessToken);
+        primary.setItem("token", newAccessToken);
         persistRefreshToken(newRefreshToken);
 
         api.defaults.headers.common.Authorization = `Bearer ${newAccessToken}`;

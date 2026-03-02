@@ -3,14 +3,33 @@ import api from "../utils/api";
 
 export const AuthContext = createContext();
 
-const persistRefreshToken = (token) => {
-  if (!token) return;
-  localStorage.setItem("refreshToken", token);
-  sessionStorage.setItem("refreshToken", token);
-  localStorage.setItem("userRefreshToken", token);
-  sessionStorage.setItem("userRefreshToken", token);
-  localStorage.setItem("refresh_token", token);
-  sessionStorage.setItem("refresh_token", token);
+const AUTH_REMEMBER_KEY = "authRememberMe";
+
+const clearAuthStorage = (storage) => {
+  storage.removeItem("userToken");
+  storage.removeItem("token");
+  storage.removeItem("refreshToken");
+  storage.removeItem("userRefreshToken");
+  storage.removeItem("refresh_token");
+};
+
+const persistAuthTokens = ({ token, refreshToken, rememberMe }) => {
+  const shouldRemember = Boolean(rememberMe);
+  const primary = shouldRemember ? localStorage : sessionStorage;
+  const secondary = shouldRemember ? sessionStorage : localStorage;
+
+  clearAuthStorage(secondary);
+  if (token) {
+    primary.setItem("userToken", token);
+    primary.setItem("token", token);
+  }
+  if (refreshToken) {
+    primary.setItem("refreshToken", refreshToken);
+    primary.setItem("userRefreshToken", refreshToken);
+    primary.setItem("refresh_token", refreshToken);
+  }
+
+  localStorage.setItem(AUTH_REMEMBER_KEY, shouldRemember ? "1" : "0");
 };
 
 const getAuthErrorMessage = (error, fallbackMessage) => {
@@ -25,9 +44,11 @@ const getAuthErrorMessage = (error, fallbackMessage) => {
 };
 
 export const AuthProvider = ({ children }) => {
+  const rememberMeFlag = localStorage.getItem(AUTH_REMEMBER_KEY) === "1";
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(
-    localStorage.getItem("userToken") ||
+    (rememberMeFlag ? localStorage.getItem("userToken") : sessionStorage.getItem("userToken")) ||
+      localStorage.getItem("userToken") ||
       sessionStorage.getItem("userToken") ||
       localStorage.getItem("token") ||
       sessionStorage.getItem("token")
@@ -46,8 +67,13 @@ export const AuthProvider = ({ children }) => {
       const legacyToken =
         localStorage.getItem("token") || sessionStorage.getItem("token");
       if (!localStorage.getItem("userToken") && legacyToken) {
-        localStorage.setItem("userToken", legacyToken);
-        sessionStorage.setItem("userToken", legacyToken);
+        persistAuthTokens({
+          token: legacyToken,
+          refreshToken:
+            localStorage.getItem("refreshToken") ||
+            sessionStorage.getItem("refreshToken"),
+          rememberMe: rememberMeFlag,
+        });
       }
 
       if (token) {
@@ -56,7 +82,11 @@ export const AuthProvider = ({ children }) => {
           const res = await api.get("/auth/me");
           setUser(res.data.user);
           if (res?.data?.refreshToken) {
-            persistRefreshToken(res.data.refreshToken);
+            persistAuthTokens({
+              token,
+              refreshToken: res.data.refreshToken,
+              rememberMe: res.data?.rememberMe ?? rememberMeFlag,
+            });
           }
           setNotificationCountForUser(res.data.user);
         } catch (error) {
@@ -72,16 +102,22 @@ export const AuthProvider = ({ children }) => {
     initAuth();
   }, [token]);
 
-  const login = async (email, password) => {
+  const login = async (email, password, options = {}) => {
     try {
-      const res = await api.post("/auth/login", { email, password });
+      const requestedRememberMe = Boolean(options?.rememberMe);
+      const res = await api.post("/auth/login", {
+        email,
+        password,
+        rememberMe: requestedRememberMe,
+      });
       const { token: newToken, refreshToken: newRefreshToken, user: userData } = res.data;
+      const shouldRemember = Boolean(res?.data?.rememberMe ?? requestedRememberMe);
 
-      localStorage.setItem("userToken", newToken);
-      sessionStorage.setItem("userToken", newToken);
-      if (newRefreshToken) {
-        persistRefreshToken(newRefreshToken);
-      }
+      persistAuthTokens({
+        token: newToken,
+        refreshToken: newRefreshToken,
+        rememberMe: shouldRemember,
+      });
       setToken(newToken);
       setUser(userData);
       api.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
@@ -103,11 +139,11 @@ export const AuthProvider = ({ children }) => {
         return { success: false, error: "Biometric login failed" };
       }
 
-      localStorage.setItem("userToken", newToken);
-      sessionStorage.setItem("userToken", newToken);
-      if (newRefreshToken) {
-        persistRefreshToken(newRefreshToken);
-      }
+      persistAuthTokens({
+        token: newToken,
+        refreshToken: newRefreshToken,
+        rememberMe: true,
+      });
       setToken(newToken);
       setUser(userData);
       api.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
@@ -137,11 +173,11 @@ export const AuthProvider = ({ children }) => {
       const res = await api.post("/auth/register", userData);
       const { token: newToken, refreshToken: newRefreshToken, user: createdUser } = res.data;
 
-      localStorage.setItem("userToken", newToken);
-      sessionStorage.setItem("userToken", newToken);
-      if (newRefreshToken) {
-        persistRefreshToken(newRefreshToken);
-      }
+      persistAuthTokens({
+        token: newToken,
+        refreshToken: newRefreshToken,
+        rememberMe: false,
+      });
       setToken(newToken);
       setUser(createdUser);
       api.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
@@ -157,16 +193,9 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
-    localStorage.removeItem("token");
-    sessionStorage.removeItem("token");
-    localStorage.removeItem("userToken");
-    localStorage.removeItem("refreshToken");
-    sessionStorage.removeItem("userToken");
-    sessionStorage.removeItem("refreshToken");
-    localStorage.removeItem("userRefreshToken");
-    sessionStorage.removeItem("userRefreshToken");
-    localStorage.removeItem("refresh_token");
-    sessionStorage.removeItem("refresh_token");
+    clearAuthStorage(localStorage);
+    clearAuthStorage(sessionStorage);
+    localStorage.removeItem(AUTH_REMEMBER_KEY);
     setToken(null);
     setUser(null);
     delete api.defaults.headers.common["Authorization"];
