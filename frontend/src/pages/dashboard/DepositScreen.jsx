@@ -18,7 +18,6 @@ import {
   verifyTransactionPin,
   verifyFlutterwavePayment,
 } from "../../services/api";
-import { runBiometricTransactionCheck } from "../../services/biometric";
 import TransactionAuthSheet from "../../components/TransactionAuthSheet";
 
 const SERVICE_CHARGE = 0;
@@ -71,7 +70,6 @@ const DepositScreen = () => {
   const [paymentStatus, setPaymentStatus] = useState("idle");
   const [txRef, setTxRef] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [biometricProof, setBiometricProof] = useState("");
   const [transactionPin, setTransactionPin] = useState("");
 
   const [toastVisible, setToastVisible] = useState(false);
@@ -82,7 +80,6 @@ const DepositScreen = () => {
   const pollCount = useRef(0);
   const reconcileAttempts = useRef(0);
   const currentTxRef = useRef("");
-  const latestBiometricProof = useRef("");
 
   const showToast = (msg, type = "info") => {
     setToastMessage(msg);
@@ -95,7 +92,6 @@ const DepositScreen = () => {
     return () => {
       if (pollTimer.current) clearInterval(pollTimer.current);
       currentTxRef.current = "";
-      latestBiometricProof.current = "";
     };
   }, []);
 
@@ -111,37 +107,7 @@ const DepositScreen = () => {
     pollCount.current = 0;
     setIsProcessing(false);
     currentTxRef.current = "";
-    setBiometricProof("");
     setTransactionPin("");
-    latestBiometricProof.current = "";
-  };
-
-  const ensureDepositBiometricProof = async () => {
-    try {
-      const proof = await runBiometricTransactionCheck({
-        action: "deposit",
-        amount: totalAmount,
-      });
-      setBiometricProof(proof);
-      latestBiometricProof.current = proof;
-      return proof;
-    } catch (bioError) {
-      const message = bioError?.response?.data?.message || bioError?.message || "";
-      const notEnabled =
-        String(bioError?.code || bioError?.response?.data?.code || "").toUpperCase() === "BIOMETRIC_NOT_ENABLED" ||
-        /not enabled/i.test(message) ||
-        /authentication not enabled/i.test(message);
-      if (notEnabled) {
-        setBiometricProof("");
-        latestBiometricProof.current = "";
-        showToast("Fingerprint not enabled. Redirecting to Profile to enable it.", "info");
-        setTimeout(() => navigate("/profile"), 900);
-        const err = new Error("Biometric authentication not enabled");
-        err.code = "BIOMETRIC_NOT_ENABLED";
-        throw err;
-      }
-      throw bioError;
-    }
   };
 
   const loadFlutterwaveCheckout = async () => {
@@ -165,12 +131,7 @@ const DepositScreen = () => {
     try {
       reconcileAttempts.current += 1;
       showToast(`Attempting reconciliation (${reconcileAttempts.current}/${RECONCILE_ATTEMPTS})`, "info");
-      const hasPin = /^\d{4}$/.test(transactionPin.trim());
-      let proof = latestBiometricProof.current || biometricProof;
-      if (!proof && !hasPin) {
-        proof = await ensureDepositBiometricProof();
-      }
-      const res = await reconcilePayment(reference, proof, transactionPin.trim());
+      const res = await reconcilePayment(reference, "", transactionPin.trim());
       if (res?.data?.success) {
         showToast("Payment reconciled successfully!", "success");
         await refreshUser();
@@ -246,19 +207,19 @@ const DepositScreen = () => {
 
   const handleAuthSelection = async ({ transactionPin: selectedPin = "" }) => {
     const pinValue = String(selectedPin || "").trim();
-    if (pinValue) {
-      try {
-        await verifyTransactionPin(pinValue);
-        showToast("PIN verified successfully.", "success");
-      } catch (error) {
-        showToast(error?.response?.data?.message || "Invalid transaction PIN.", "error");
-        return;
-      }
+    if (!/^\d{4}$/.test(pinValue)) {
+      showToast("Enter your 4-digit transaction PIN.", "error");
+      return;
+    }
+    try {
+      await verifyTransactionPin(pinValue);
+      showToast("PIN verified successfully.", "success");
+    } catch (error) {
+      showToast(error?.response?.data?.message || "Invalid transaction PIN.", "error");
+      return;
     }
 
     setTransactionPin(selectedPin);
-    setBiometricProof("");
-    latestBiometricProof.current = "";
     const reference = `flw_${user?._id || "user"}_${Date.now()}`;
     setTxRef(reference);
     reconcileAttempts.current = 0;
@@ -283,22 +244,6 @@ const DepositScreen = () => {
       return;
     }
 
-    const hasPin = /^\d{4}$/.test(transactionPin.trim());
-    if (!hasPin) {
-      try {
-        await ensureDepositBiometricProof();
-      } catch (bioError) {
-        showToast(
-          bioError?.response?.data?.message ||
-            bioError?.message ||
-            "Fingerprint verification failed. Please try again.",
-          "error"
-        );
-        setIsProcessing(false);
-        return;
-      }
-    }
-
     window.FlutterwaveCheckout({
       public_key: FLUTTERWAVE_PUBLIC_KEY,
       tx_ref: txRef,
@@ -315,13 +260,7 @@ const DepositScreen = () => {
       },
       callback: async () => {
         try {
-          const hasPin = /^\d{4}$/.test(transactionPin.trim());
-          let proof = latestBiometricProof.current || biometricProof;
-          if (!proof && !hasPin) {
-            proof = await ensureDepositBiometricProof();
-          }
-
-          const res = await verifyFlutterwavePayment(txRef, proof, transactionPin.trim());
+          const res = await verifyFlutterwavePayment(txRef, "", transactionPin.trim());
           if (res?.data?.success) {
             setPaymentStatus("success");
             showToast("Payment verified and wallet credited!", "success");
@@ -503,7 +442,7 @@ const DepositScreen = () => {
           visible={showAuthSheet}
           loading={isProcessing}
           title="Authorize Deposit"
-          subtitle="Choose Fingerprint or your 4-digit PIN."
+          subtitle="Enter your 4-digit PIN."
           onClose={() => setShowAuthSheet(false)}
           onSubmit={handleAuthSelection}
         />

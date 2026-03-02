@@ -20,7 +20,6 @@ import {
 import { AuthContext } from '../../context/AuthContext';
 import { FEATURE_FLAGS } from '../../constants/featureFlags';
 import api from '../../services/api';
-import { runBiometricTransactionCheck } from '../../services/biometric';
 import TransactionAuthSheet from '../../components/TransactionAuthSheet';
 
 // Biggi Data Brand Colors
@@ -228,14 +227,10 @@ const WithdrawScreen = () => {
     setShowAuthSheet(false);
 
     try {
-      let biometricProof = "";
       const pinValue = transactionPin.trim();
-      const hasPin = /^\d{4}$/.test(pinValue);
-      if (!hasPin) {
-        biometricProof = await runBiometricTransactionCheck({
-          action: "withdraw",
-          amount: enteredAmount,
-        });
+      if (!/^\d{4}$/.test(pinValue)) {
+        showToast("Enter your 4-digit transaction PIN.", "error");
+        return;
       }
 
       const txRef = `flw_withdraw_${user?._id || "user"}_${Date.now()}`;
@@ -247,7 +242,7 @@ const WithdrawScreen = () => {
         beneficiary_name: accountName.trim(),
         narration: "Withdrawal from Biggi Data",
         currency: "NGN",
-        biometricProof,
+        biometricProof: "",
         transactionPin: pinValue,
       };
 
@@ -270,15 +265,7 @@ const WithdrawScreen = () => {
     } catch (error) {
       console.log("Withdrawal error:", error);
       const message = error?.response?.data?.message || error?.message || "Failed to process withdrawal. Please try again.";
-      const notEnabled =
-        String(error?.code || error?.response?.data?.code || "").toUpperCase() === "BIOMETRIC_NOT_ENABLED" ||
-        /not enabled/i.test(message);
-      if (notEnabled) {
-        showToast("Fingerprint not enabled. Redirecting to Profile to enable it.", "info");
-        setTimeout(() => navigate("/profile"), 900);
-      } else {
-        showToast(message, "error");
-      }
+      showToast(message, "error");
     } finally {
       setIsProcessing(false);
     }
@@ -579,14 +566,14 @@ const WithdrawScreen = () => {
           </ModalOverlay>
         )}
 
-        <TransactionAuthSheet
-          visible={showAuthSheet}
-          loading={isProcessing}
-          title="Authorize Withdrawal"
-          subtitle="Choose Fingerprint or your 4-digit PIN."
-          onClose={() => setShowAuthSheet(false)}
-          onSubmit={handleAuthSelection}
-        />
+      <TransactionAuthSheet
+        visible={showAuthSheet}
+        loading={isProcessing}
+        title="Authorize Withdrawal"
+        subtitle="Enter your 4-digit PIN."
+        onClose={() => setShowAuthSheet(false)}
+        onSubmit={handleAuthSelection}
+      />
 
         {/* CONFIRMATION MODAL */}
         {showConfirm && (

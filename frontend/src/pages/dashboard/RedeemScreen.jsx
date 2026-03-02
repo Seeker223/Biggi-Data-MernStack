@@ -5,7 +5,6 @@ import { ChevronLeft, Gift, Wallet, CheckCircle, AlertCircle } from "lucide-reac
 import { AuthContext } from "../../context/AuthContext";
 import { FEATURE_FLAGS } from "../../constants/featureFlags";
 import { redeemRewards } from "../../services/api";
-import { runBiometricTransactionCheck } from "../../services/biometric";
 import TransactionAuthSheet from "../../components/TransactionAuthSheet";
 
 const MIN_REDEEM = 100;
@@ -53,17 +52,13 @@ const RedeemScreen = () => {
   const processRedeem = async ({ transactionPin = "" } = {}) => {
     setSubmitting(true);
     try {
-      let biometricProof = "";
       const pinPayload = transactionPin.trim();
-      const hasPin = /^\d{4}$/.test(pinPayload);
-      if (!hasPin) {
-        biometricProof = await runBiometricTransactionCheck({
-          action: "redeem",
-          amount: redeemAmount,
-        });
+      if (!/^\d{4}$/.test(pinPayload)) {
+        showToast("Enter your 4-digit transaction PIN.", "error");
+        return;
       }
 
-      const res = await redeemRewards({ amount: redeemAmount, biometricProof, transactionPin: pinPayload });
+      const res = await redeemRewards({ amount: redeemAmount, biometricProof: "", transactionPin: pinPayload });
       const data = res?.data || {};
       const redeemedAmount = Number(
         data.amountRedeemed ?? data.redeemedAmount ?? data.amount ?? redeemAmount
@@ -94,15 +89,7 @@ const RedeemScreen = () => {
       showToast(data?.message || "Reward redeemed successfully.", "success");
     } catch (error) {
       const message = error?.response?.data?.message || error?.message || "Failed to redeem rewards. Please try again.";
-      const notEnabled =
-        String(error?.code || error?.response?.data?.code || "").toUpperCase() === "BIOMETRIC_NOT_ENABLED" ||
-        /not enabled/i.test(message);
-      if (notEnabled) {
-        showToast("Fingerprint not enabled. Redirecting to Profile to enable it.", "info");
-        setTimeout(() => navigate("/profile"), 900);
-      } else {
-        showToast(message, "error");
-      }
+      showToast(message, "error");
     } finally {
       setSubmitting(false);
     }
@@ -211,7 +198,7 @@ const RedeemScreen = () => {
         visible={showAuthSheet}
         loading={submitting}
         title="Authorize Redeem"
-        subtitle="Choose Fingerprint or your 4-digit PIN."
+        subtitle="Enter your 4-digit PIN."
         onClose={() => setShowAuthSheet(false)}
         onSubmit={handleAuthSelection}
       />

@@ -4,7 +4,6 @@ import styled, { keyframes } from "styled-components";
 import { ChevronLeft, ChevronDown, CheckCircle } from "lucide-react";
 import { AuthContext } from "../../context/AuthContext";
 import { buyData } from "../../services/api";
-import { runBiometricTransactionCheck } from "../../services/biometric";
 import TransactionAuthSheet from "../../components/TransactionAuthSheet";
 
 const BuyDataScreen = () => {
@@ -58,20 +57,16 @@ const BuyDataScreen = () => {
     const backendPlanId = plan.plan_id || plan.code || plan.id || plan._id;
 
     try {
-      let biometricProof = "";
       const pinValue = transactionPin.trim();
-      const hasPin = /^\d{4}$/.test(pinValue);
-      if (!hasPin) {
-        biometricProof = await runBiometricTransactionCheck({
-          action: "data_purchase",
-          amount: price,
-        });
+      if (!/^\d{4}$/.test(pinValue)) {
+        setErrorMsg("Enter your 4-digit transaction PIN.");
+        return;
       }
 
       const res = await buyData({
         mobile_no: phone,
         plan_id: backendPlanId,
-        biometricProof,
+        biometricProof: "",
         transactionPin: pinValue,
       });
 
@@ -102,15 +97,7 @@ const BuyDataScreen = () => {
         error?.response?.data?.message ||
         error?.message ||
         "Unable to process request";
-      const notEnabled =
-        String(error?.code || error?.response?.data?.code || "").toUpperCase() === "BIOMETRIC_NOT_ENABLED" ||
-        /not enabled/i.test(message);
-      if (notEnabled) {
-        setErrorMsg("Fingerprint not enabled. Redirecting to Profile to enable it.");
-        setTimeout(() => navigate("/profile"), 900);
-      } else {
-        setErrorMsg(message);
-      }
+      setErrorMsg(message);
     } finally {
       setLoading(false);
     }
@@ -230,7 +217,7 @@ const BuyDataScreen = () => {
         visible={showAuthSheet}
         loading={loading}
         title="Authorize Data Purchase"
-        subtitle="Choose Fingerprint or your 4-digit PIN."
+        subtitle="Enter your 4-digit PIN."
         onClose={() => setShowAuthSheet(false)}
         onSubmit={handleAuthSelection}
       />

@@ -1,22 +1,20 @@
 import React, { useEffect, useState } from "react";
 import styled from "styled-components";
-import { Fingerprint, KeyRound, X } from "lucide-react";
+import { KeyRound, X } from "lucide-react";
 
 const TransactionAuthSheet = ({
   visible,
   loading = false,
   title = "Authorize Transaction",
-  subtitle = "Choose how you want to authorize this action.",
+  subtitle = "Enter your 4-digit PIN to continue.",
   onClose,
   onSubmit,
 }) => {
-  const [method, setMethod] = useState("biometric");
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
     if (!visible) {
-      setMethod("biometric");
       setPin("");
       setError("");
     }
@@ -25,14 +23,14 @@ const TransactionAuthSheet = ({
   if (!visible) return null;
 
   const handleContinue = async () => {
-    if (method === "pin" && !/^\d{4}$/.test(pin.trim())) {
+    if (!/^\d{4}$/.test(pin.trim())) {
       setError("Enter a valid 4-digit PIN.");
       return;
     }
     setError("");
     await onSubmit?.({
-      method,
-      transactionPin: method === "pin" ? pin.trim() : "",
+      method: "pin",
+      transactionPin: pin.trim(),
     });
   };
 
@@ -53,37 +51,23 @@ const TransactionAuthSheet = ({
         <MethodRow>
           <MethodButton
             type="button"
-            $active={method === "biometric"}
-            onClick={() => setMethod("biometric")}
-            disabled={loading}
-          >
-            <Fingerprint size={18} />
-            Fingerprint
-          </MethodButton>
-          <MethodButton
-            type="button"
-            $active={method === "pin"}
-            onClick={() => setMethod("pin")}
-            disabled={loading}
+            $active
+            disabled
           >
             <KeyRound size={18} />
             4-digit PIN
           </MethodButton>
         </MethodRow>
 
-        {method === "pin" ? (
-          <PinInput
-            type="password"
-            inputMode="numeric"
-            maxLength={4}
-            placeholder="Enter 4-digit PIN"
-            value={pin}
-            onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-            disabled={loading}
-          />
-        ) : (
-          <Hint>Use your registered fingerprint to continue.</Hint>
-        )}
+        <PinInput
+          type="password"
+          inputMode="numeric"
+          maxLength={4}
+          placeholder="Enter 4-digit PIN"
+          value={pin}
+          onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+          disabled={loading}
+        />
 
         {error ? <ErrorText>{error}</ErrorText> : null}
 
@@ -166,7 +150,7 @@ const CloseButton = styled.button`
 
 const MethodRow = styled.div`
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 10px;
   margin-top: 14px;
 `;

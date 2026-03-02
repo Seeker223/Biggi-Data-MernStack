@@ -5,15 +5,10 @@ import { User, Settings, Headset, LogOut, ChevronRight, ReceiptText, Copy } from
 import FloatingBottomNav from "../../components/FloatingBottomNav";
 import { AuthContext } from "../../context/AuthContext";
 import {
-  beginBiometricRegistration,
-  disableBiometricAuth,
-  getBiometricStatus,
   getTransactionSecurityStatus,
   setTransactionPin,
   disableTransactionPin,
-  verifyBiometricRegistration,
 } from "../../services/api";
-import { createWebAuthnCredential, isWebAuthnSupported } from "../../utils/webauthn";
 
 const DEFAULT_AVATAR = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
 const normalizeSiteUrl = (raw) => {
@@ -27,9 +22,6 @@ const ProfileScreen = () => {
   const { user, logout } = useContext(AuthContext);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [biometric, setBiometric] = useState({ enabled: false, credentialsCount: 0 });
-  const [biometricLoading, setBiometricLoading] = useState(false);
-  const [bioNotice, setBioNotice] = useState("");
   const [transactionPinEnabled, setTransactionPinEnabled] = useState(false);
   const [pin, setPin] = useState("");
   const [currentPin, setCurrentPin] = useState("");
@@ -43,22 +35,6 @@ const ProfileScreen = () => {
   useEffect(() => {
     if (!user) return undefined;
     let mounted = true;
-    const loadBiometricStatus = async () => {
-      try {
-        const res = await getBiometricStatus();
-        const payload = res?.data?.biometric || {};
-        if (mounted) {
-          setBiometric({
-            enabled: Boolean(payload.enabled),
-            credentialsCount: Number(payload.credentialsCount || 0),
-          });
-        }
-      } catch {
-        if (mounted) {
-          setBiometric({ enabled: false, credentialsCount: 0 });
-        }
-      }
-    };
     const loadPinStatus = async () => {
       try {
         const res = await getTransactionSecurityStatus();
@@ -69,7 +45,6 @@ const ProfileScreen = () => {
         if (mounted) setTransactionPinEnabled(false);
       }
     };
-    loadBiometricStatus();
     loadPinStatus();
     return () => {
       mounted = false;
@@ -77,46 +52,6 @@ const ProfileScreen = () => {
   }, [user]);
 
   if (!user) return null;
-
-  const handleEnableFingerprint = async () => {
-    if (!isWebAuthnSupported()) {
-      setBioNotice("Fingerprint is not supported on this device/browser.");
-      return;
-    }
-    setBiometricLoading(true);
-    try {
-      const optionsRes = await beginBiometricRegistration();
-      const options = optionsRes?.data?.options || optionsRes?.options;
-      if (!options) {
-        throw new Error("Fingerprint setup options were not returned by server.");
-      }
-      const credential = await createWebAuthnCredential(options);
-      const verifyRes = await verifyBiometricRegistration(credential);
-      const state = verifyRes?.data?.biometric || {};
-      setBiometric({
-        enabled: Boolean(state.enabled),
-        credentialsCount: Number(state.credentialsCount || 1),
-      });
-      setBioNotice("Fingerprint enabled successfully.");
-    } catch (error) {
-      setBioNotice(error?.response?.data?.message || error?.message || "Failed to enable fingerprint.");
-    } finally {
-      setBiometricLoading(false);
-    }
-  };
-
-  const handleDisableFingerprint = async () => {
-    setBiometricLoading(true);
-    try {
-      await disableBiometricAuth();
-      setBiometric({ enabled: false, credentialsCount: 0 });
-      setBioNotice("Fingerprint disabled.");
-    } catch (error) {
-      setBioNotice(error?.response?.data?.message || error?.message || "Failed to disable fingerprint.");
-    } finally {
-      setBiometricLoading(false);
-    }
-  };
 
   const handleSavePin = async () => {
     if (!/^\d{4}$/.test(pin)) {
@@ -217,19 +152,6 @@ const ProfileScreen = () => {
             </ReferralRow>
           )}
           <BiometricBlock>
-            <IdText>
-              Fingerprint: {biometric.enabled ? "Enabled" : "Disabled"} {biometric.credentialsCount > 0 ? `(${biometric.credentialsCount})` : ""}
-            </IdText>
-            {bioNotice ? <BioNotice>{bioNotice}</BioNotice> : null}
-            {biometric.enabled ? (
-              <BioButton type="button" onClick={handleDisableFingerprint} disabled={biometricLoading}>
-                {biometricLoading ? "Please wait..." : "Disable Fingerprint"}
-              </BioButton>
-            ) : (
-              <BioButton type="button" onClick={handleEnableFingerprint} disabled={biometricLoading}>
-                {biometricLoading ? "Setting up..." : "Enable Fingerprint"}
-              </BioButton>
-            )}
             <IdText style={{ marginTop: 10 }}>
               Transaction PIN: {transactionPinEnabled ? "Enabled" : "Disabled"}
             </IdText>

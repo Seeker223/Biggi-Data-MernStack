@@ -2,9 +2,7 @@ import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import styled, { keyframes } from 'styled-components';
-import { Eye, EyeOff, CheckCircle, AlertCircle, Facebook, Mail, Fingerprint } from 'lucide-react';
-import { checkBiometricLoginAvailability, runBiometricLogin } from '../../services/biometric';
-import { isWebAuthnSupported } from '../../utils/webauthn';
+import { Eye, EyeOff, CheckCircle, AlertCircle, Facebook, Mail } from 'lucide-react';
 
 const Login = () => {
   const REMEMBER_LOGIN_KEY = 'remember_login_inputs';
@@ -19,12 +17,8 @@ const Login = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
   const [modalType, setModalType] = useState('error');
-  const [biometricLoading, setBiometricLoading] = useState(false);
-  const [biometricAvailable, setBiometricAvailable] = useState(false);
-  const [checkingBiometric, setCheckingBiometric] = useState(false);
-  const [showBiometricSheet, setShowBiometricSheet] = useState(false);
 
-  const { login, loginWithBiometricPayload } = useContext(AuthContext);
+  const { login } = useContext(AuthContext);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -34,34 +28,6 @@ const Login = () => {
     setEmail(localStorage.getItem(REMEMBER_LOGIN_EMAIL_KEY) || '');
     setPassword(localStorage.getItem(REMEMBER_LOGIN_PASSWORD_KEY) || '');
   }, []);
-
-  useEffect(() => {
-    if (!isWebAuthnSupported()) {
-      setBiometricAvailable(false);
-      return undefined;
-    }
-
-    const identifier = String(email || "").trim();
-    if (!identifier) {
-      setBiometricAvailable(false);
-      return undefined;
-    }
-
-    let isActive = true;
-    setCheckingBiometric(true);
-    const timer = setTimeout(async () => {
-      const status = await checkBiometricLoginAvailability(identifier);
-      if (!isActive) return;
-      setBiometricAvailable(Boolean(status?.enabled));
-      setCheckingBiometric(false);
-    }, 350);
-
-    return () => {
-      isActive = false;
-      clearTimeout(timer);
-      setCheckingBiometric(false);
-    };
-  }, [email]);
 
   const showModal = (message, type = 'error') => {
     setModalMessage(message);
@@ -96,45 +62,6 @@ const Login = () => {
       }, 1200);
     } else {
       showModal(res.error || 'Invalid email or password.', 'error');
-    }
-  };
-
-  const handleBiometricLogin = async () => {
-    if (!isWebAuthnSupported()) {
-      showModal('Fingerprint login is not supported on this device/browser.', 'error');
-      return;
-    }
-    if (!email.trim()) {
-      showModal('Enter your username or email first, then use fingerprint login.', 'error');
-      return;
-    }
-
-    setBiometricLoading(true);
-    try {
-      const payload = await runBiometricLogin(email.trim());
-      const result = await loginWithBiometricPayload(payload);
-      if (!result.success) {
-        showModal(result.error || 'Fingerprint login failed.', 'error');
-      } else {
-        showModal('Fingerprint login successful!', 'success');
-        setTimeout(() => {
-          setModalVisible(false);
-          navigate('/');
-        }, 1200);
-      }
-    } catch (error) {
-      const message = error?.response?.data?.message || error?.message || 'Fingerprint login failed.';
-      const isNotEnabled =
-        String(error?.code || '').toUpperCase() === 'BIOMETRIC_NOT_ENABLED' ||
-        /not enabled/i.test(message);
-      if (isNotEnabled) {
-        showModal('Fingerprint is not enabled for this account. Login with password and enable fingerprint in Profile.', 'error');
-      } else {
-        showModal(message, 'error');
-      }
-    } finally {
-      setBiometricLoading(false);
-      setShowBiometricSheet(false);
     }
   };
 
@@ -205,27 +132,6 @@ const Login = () => {
               Sign Up
             </SignupButton>
 
-            {biometricAvailable ? (
-              <>
-                <BiometricButton
-                  type="button"
-                  onClick={() => setShowBiometricSheet(true)}
-                  disabled={biometricLoading || checkingBiometric}
-                >
-                  <Fingerprint size={18} />
-                  {biometricLoading ? 'Verifying...' : 'Login with Fingerprint'}
-                </BiometricButton>
-
-                <FingerprintText>
-                  Use your device <FingerprintHighlight>Fingerprint sensor</FingerprintHighlight> to access
-                </FingerprintText>
-              </>
-            ) : email.trim() ? (
-              <FingerprintDisabledText>
-                Fingerprint login is not enabled for this account.
-              </FingerprintDisabledText>
-            ) : null}
-
             <SocialText>or sign up with</SocialText>
             
             <SocialRow>
@@ -267,34 +173,6 @@ const Login = () => {
         </ModalOverlay>
       )}
 
-      {showBiometricSheet && (
-        <BiometricSheetOverlay onClick={() => !biometricLoading && setShowBiometricSheet(false)}>
-          <BiometricSheet onClick={(e) => e.stopPropagation()}>
-            <SheetHandle />
-            <SheetTitle>Fingerprint Login</SheetTitle>
-            <SheetSubtitle>
-              Use your device fingerprint sensor to continue.
-            </SheetSubtitle>
-            <SheetActions>
-              <SheetButton
-                type="button"
-                $secondary
-                onClick={() => setShowBiometricSheet(false)}
-                disabled={biometricLoading}
-              >
-                Cancel
-              </SheetButton>
-              <SheetButton
-                type="button"
-                onClick={handleBiometricLogin}
-                disabled={biometricLoading}
-              >
-                {biometricLoading ? "Verifying..." : "Use Fingerprint"}
-              </SheetButton>
-            </SheetActions>
-          </BiometricSheet>
-        </BiometricSheetOverlay>
-      )}
     </PageContainer>
   );
 };
