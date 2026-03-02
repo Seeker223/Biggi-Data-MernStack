@@ -471,7 +471,7 @@ const HomeScreen = () => {
               <GamepadIcon size={28} />
               <GameTitle>Weekly Number Picker Game</GameTitle>
               <GameSubtitle>
-                {FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "Win (prize hidden)" : "Win ₦10,000 Weekly"}
+                {FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "Win (prize hidden)" : "Win Weekly"}
               </GameSubtitle>
               <PlayBtn 
                 onClick={handleDailyGame} 
@@ -495,7 +495,7 @@ const HomeScreen = () => {
                 </MonthlyHeader>
                 
                 <MonthlyPrize>
-                  {FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "Prize hidden" : "₦10,000"}
+                  {FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "Prize hidden" : ""}
                 </MonthlyPrize>
                 <MonthlySubtitle>Monthly Jackpot</MonthlySubtitle>
                 
@@ -543,7 +543,7 @@ const HomeScreen = () => {
               <TopRandomCard>
                 <TopRandomTitle>Top Random Monthly Picks</TopRandomTitle>
                 <TopRandomDesc>
-                  10 random users who bought data this month win ₦10,000 each.
+                  10 random users who bought data this month win rewards.
                 </TopRandomDesc>
                 <TopRandomBtn onClick={goToTopRandom}>
                   <Trophy size={18} />
