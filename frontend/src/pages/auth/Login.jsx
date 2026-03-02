@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import styled, { keyframes } from 'styled-components';
@@ -7,8 +7,13 @@ import { runBiometricLogin } from '../../services/biometric';
 import { isWebAuthnSupported } from '../../utils/webauthn';
 
 const Login = () => {
+  const REMEMBER_LOGIN_KEY = 'remember_login_inputs';
+  const REMEMBER_LOGIN_EMAIL_KEY = 'remember_login_email';
+  const REMEMBER_LOGIN_PASSWORD_KEY = 'remember_login_password';
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [secure, setSecure] = useState(true);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -19,14 +24,21 @@ const Login = () => {
   const { login, loginWithBiometricPayload } = useContext(AuthContext);
   const navigate = useNavigate();
 
+  useEffect(() => {
+    const remembered = localStorage.getItem(REMEMBER_LOGIN_KEY) === '1';
+    if (!remembered) return;
+    setRememberMe(true);
+    setEmail(localStorage.getItem(REMEMBER_LOGIN_EMAIL_KEY) || '');
+    setPassword(localStorage.getItem(REMEMBER_LOGIN_PASSWORD_KEY) || '');
+  }, []);
+
   const showModal = (message, type = 'error') => {
     setModalMessage(message);
     setModalType(type);
     setModalVisible(true);
   };
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  const handleLogin = async () => {
     if (!email || !password) {
       showModal('Please enter your credentials.', 'error');
       return;
@@ -37,6 +49,15 @@ const Login = () => {
     setLoading(false);
 
     if (res.success) {
+      if (rememberMe) {
+        localStorage.setItem(REMEMBER_LOGIN_KEY, '1');
+        localStorage.setItem(REMEMBER_LOGIN_EMAIL_KEY, email);
+        localStorage.setItem(REMEMBER_LOGIN_PASSWORD_KEY, password);
+      } else {
+        localStorage.removeItem(REMEMBER_LOGIN_KEY);
+        localStorage.removeItem(REMEMBER_LOGIN_EMAIL_KEY);
+        localStorage.removeItem(REMEMBER_LOGIN_PASSWORD_KEY);
+      }
       showModal('Login successful!', 'success');
       setTimeout(() => {
         setModalVisible(false);
@@ -88,7 +109,7 @@ const Login = () => {
         {/* Main Content Card */}
         <MainCard>
           {/* Form */}
-          <FormContainer onSubmit={handleLogin}>
+          <FormContainer onSubmit={(e) => e.preventDefault()}>
             <InputWrapper>
               <Label>Username or Email</Label>
               <TextInput
@@ -119,7 +140,18 @@ const Login = () => {
               </PasswordContainer>
             </InputWrapper>
 
-            <LoginButton type="submit" disabled={loading}>
+            <RememberRow>
+              <RememberLabel>
+                <RememberCheckbox
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                />
+                Remember me
+              </RememberLabel>
+            </RememberRow>
+
+            <LoginButton type="button" onClick={handleLogin} disabled={loading}>
               <LoginButtonText>
                 {loading ? 'Logging In...' : 'Log In'}
               </LoginButtonText>
@@ -730,4 +762,29 @@ const BiometricButton = styled.button`
     opacity: 0.6;
     cursor: not-allowed;
   }
+`;
+
+const RememberRow = styled.div`
+  width: 100%;
+  max-width: 360px;
+  margin-top: 4px;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+`;
+
+const RememberLabel = styled.label`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #374151;
+  cursor: pointer;
+`;
+
+const RememberCheckbox = styled.input`
+  width: 16px;
+  height: 16px;
+  accent-color: #FF8000;
+  cursor: pointer;
 `;
