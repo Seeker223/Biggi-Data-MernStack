@@ -1,10 +1,18 @@
-import React from "react";
+import React, { useContext, useEffect } from "react";
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
 import logo from "../assets/images/biggiData2.png";
+import { AuthContext } from "../context/AuthContext";
 
 const LaunchScreen = () => {
   const navigate = useNavigate();
+  const { user, loading } = useContext(AuthContext);
+
+  useEffect(() => {
+    if (!loading && user) {
+      navigate("/", { replace: true });
+    }
+  }, [loading, user, navigate]);
 
   return (
     <Page>

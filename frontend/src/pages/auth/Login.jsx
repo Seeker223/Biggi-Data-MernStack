@@ -18,8 +18,14 @@ const Login = () => {
   const [modalMessage, setModalMessage] = useState('');
   const [modalType, setModalType] = useState('error');
 
-  const { login } = useContext(AuthContext);
+  const { login, user, authLoading } = useContext(AuthContext);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      navigate("/", { replace: true });
+    }
+  }, [authLoading, user, navigate]);
 
   useEffect(() => {
     const remembered = localStorage.getItem(REMEMBER_LOGIN_KEY) === '1';
