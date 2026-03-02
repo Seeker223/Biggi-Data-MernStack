@@ -175,7 +175,7 @@ const ProfileScreen = () => {
     {
       icon: <Headset size={20} color="#fff" />,
       label: "Support",
-      onClick: () => navigate("/notifications"),
+      onClick: () => navigate("/support"),
     },
     {
       icon: <LogOut size={20} color="#fff" />,
