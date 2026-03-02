@@ -127,10 +127,18 @@ const DepositScreen = () => {
       return proof;
     } catch (bioError) {
       const message = bioError?.response?.data?.message || bioError?.message || "";
-      if (/not enabled/i.test(message) || /authentication not enabled/i.test(message)) {
+      const notEnabled =
+        String(bioError?.code || bioError?.response?.data?.code || "").toUpperCase() === "BIOMETRIC_NOT_ENABLED" ||
+        /not enabled/i.test(message) ||
+        /authentication not enabled/i.test(message);
+      if (notEnabled) {
         setBiometricProof("");
         latestBiometricProof.current = "";
-        return "";
+        showToast("Fingerprint not enabled. Redirecting to Profile to enable it.", "info");
+        setTimeout(() => navigate("/profile"), 900);
+        const err = new Error("Biometric authentication not enabled");
+        err.code = "BIOMETRIC_NOT_ENABLED";
+        throw err;
       }
       throw bioError;
     }

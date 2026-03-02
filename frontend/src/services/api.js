@@ -262,6 +262,8 @@ export const verifyBiometricLogin = (identifier, credential) =>
   withBiometricRetry(() =>
     api.post("/auth/biometric/login/verify", { identifier, ...credential }, { timeout: BIOMETRIC_TIMEOUT_MS })
   );
+export const getBiometricLoginAvailability = (identifier) =>
+  api.post("/auth/biometric/login/status", { identifier });
 export const beginBiometricTransaction = (action, amount) =>
   withBiometricRetry(() =>
     api.post("/auth/biometric/transaction/options", { action, amount }, { timeout: BIOMETRIC_TIMEOUT_MS })

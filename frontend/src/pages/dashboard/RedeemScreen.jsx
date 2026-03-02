@@ -93,10 +93,16 @@ const RedeemScreen = () => {
       setSuccess({ visible: true, amount: redeemedAmount });
       showToast(data?.message || "Reward redeemed successfully.", "success");
     } catch (error) {
-      showToast(
-        error?.response?.data?.message || "Failed to redeem rewards. Please try again.",
-        "error"
-      );
+      const message = error?.response?.data?.message || error?.message || "Failed to redeem rewards. Please try again.";
+      const notEnabled =
+        String(error?.code || error?.response?.data?.code || "").toUpperCase() === "BIOMETRIC_NOT_ENABLED" ||
+        /not enabled/i.test(message);
+      if (notEnabled) {
+        showToast("Fingerprint not enabled. Redirecting to Profile to enable it.", "info");
+        setTimeout(() => navigate("/profile"), 900);
+      } else {
+        showToast(message, "error");
+      }
     } finally {
       setSubmitting(false);
     }

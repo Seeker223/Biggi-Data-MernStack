@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import styled, { keyframes } from 'styled-components';
 import { Eye, EyeOff, CheckCircle, AlertCircle, Facebook, Mail, Fingerprint } from 'lucide-react';
-import { runBiometricLogin } from '../../services/biometric';
+import { checkBiometricLoginAvailability, runBiometricLogin } from '../../services/biometric';
 import { isWebAuthnSupported } from '../../utils/webauthn';
 
 const Login = () => {
@@ -20,6 +20,9 @@ const Login = () => {
   const [modalMessage, setModalMessage] = useState('');
   const [modalType, setModalType] = useState('error');
   const [biometricLoading, setBiometricLoading] = useState(false);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [checkingBiometric, setCheckingBiometric] = useState(false);
+  const [showBiometricSheet, setShowBiometricSheet] = useState(false);
 
   const { login, loginWithBiometricPayload } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -31,6 +34,34 @@ const Login = () => {
     setEmail(localStorage.getItem(REMEMBER_LOGIN_EMAIL_KEY) || '');
     setPassword(localStorage.getItem(REMEMBER_LOGIN_PASSWORD_KEY) || '');
   }, []);
+
+  useEffect(() => {
+    if (!isWebAuthnSupported()) {
+      setBiometricAvailable(false);
+      return undefined;
+    }
+
+    const identifier = String(email || "").trim();
+    if (!identifier) {
+      setBiometricAvailable(false);
+      return undefined;
+    }
+
+    let isActive = true;
+    setCheckingBiometric(true);
+    const timer = setTimeout(async () => {
+      const status = await checkBiometricLoginAvailability(identifier);
+      if (!isActive) return;
+      setBiometricAvailable(Boolean(status?.enabled));
+      setCheckingBiometric(false);
+    }, 350);
+
+    return () => {
+      isActive = false;
+      clearTimeout(timer);
+      setCheckingBiometric(false);
+    };
+  }, [email]);
 
   const showModal = (message, type = 'error') => {
     setModalMessage(message);
@@ -92,9 +123,18 @@ const Login = () => {
         }, 1200);
       }
     } catch (error) {
-      showModal(error?.response?.data?.message || error?.message || 'Fingerprint login failed.', 'error');
+      const message = error?.response?.data?.message || error?.message || 'Fingerprint login failed.';
+      const isNotEnabled =
+        String(error?.code || '').toUpperCase() === 'BIOMETRIC_NOT_ENABLED' ||
+        /not enabled/i.test(message);
+      if (isNotEnabled) {
+        showModal('Fingerprint is not enabled for this account. Login with password and enable fingerprint in Profile.', 'error');
+      } else {
+        showModal(message, 'error');
+      }
     } finally {
       setBiometricLoading(false);
+      setShowBiometricSheet(false);
     }
   };
 
@@ -165,14 +205,26 @@ const Login = () => {
               Sign Up
             </SignupButton>
 
-            <BiometricButton type="button" onClick={handleBiometricLogin} disabled={biometricLoading}>
-              <Fingerprint size={18} />
-              {biometricLoading ? 'Verifying...' : 'Login with Fingerprint'}
-            </BiometricButton>
+            {biometricAvailable ? (
+              <>
+                <BiometricButton
+                  type="button"
+                  onClick={() => setShowBiometricSheet(true)}
+                  disabled={biometricLoading || checkingBiometric}
+                >
+                  <Fingerprint size={18} />
+                  {biometricLoading ? 'Verifying...' : 'Login with Fingerprint'}
+                </BiometricButton>
 
-            <FingerprintText>
-              Use <FingerprintHighlight>Fingerprint</FingerprintHighlight> To Access
-            </FingerprintText>
+                <FingerprintText>
+                  Use your device <FingerprintHighlight>Fingerprint sensor</FingerprintHighlight> to access
+                </FingerprintText>
+              </>
+            ) : email.trim() ? (
+              <FingerprintDisabledText>
+                Fingerprint login is not enabled for this account.
+              </FingerprintDisabledText>
+            ) : null}
 
             <SocialText>or sign up with</SocialText>
             
@@ -213,6 +265,35 @@ const Login = () => {
             </ModalButton>
           </ModalContainer>
         </ModalOverlay>
+      )}
+
+      {showBiometricSheet && (
+        <BiometricSheetOverlay onClick={() => !biometricLoading && setShowBiometricSheet(false)}>
+          <BiometricSheet onClick={(e) => e.stopPropagation()}>
+            <SheetHandle />
+            <SheetTitle>Fingerprint Login</SheetTitle>
+            <SheetSubtitle>
+              Use your device fingerprint sensor to continue.
+            </SheetSubtitle>
+            <SheetActions>
+              <SheetButton
+                type="button"
+                $secondary
+                onClick={() => setShowBiometricSheet(false)}
+                disabled={biometricLoading}
+              >
+                Cancel
+              </SheetButton>
+              <SheetButton
+                type="button"
+                onClick={handleBiometricLogin}
+                disabled={biometricLoading}
+              >
+                {biometricLoading ? "Verifying..." : "Use Fingerprint"}
+              </SheetButton>
+            </SheetActions>
+          </BiometricSheet>
+        </BiometricSheetOverlay>
       )}
     </PageContainer>
   );
@@ -523,6 +604,14 @@ const FingerprintText = styled.p`
   }
 `;
 
+const FingerprintDisabledText = styled.p`
+  margin-top: 14px;
+  color: #6B7280;
+  font-size: 13px;
+  text-align: center;
+  max-width: 320px;
+`;
+
 const FingerprintHighlight = styled.span`
   color: #FF8000;
   font-weight: 600;
@@ -760,6 +849,68 @@ const BiometricButton = styled.button`
 
   &:disabled {
     opacity: 0.6;
+    cursor: not-allowed;
+  }
+`;
+
+const BiometricSheetOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1100;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  padding: 12px;
+`;
+
+const BiometricSheet = styled.div`
+  width: 100%;
+  max-width: 440px;
+  background: #fff;
+  border-radius: 20px 20px 10px 10px;
+  padding: 14px 16px 16px;
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.25);
+`;
+
+const SheetHandle = styled.div`
+  width: 50px;
+  height: 5px;
+  border-radius: 99px;
+  background: #d1d5db;
+  margin: 0 auto 12px;
+`;
+
+const SheetTitle = styled.h3`
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: #111827;
+`;
+
+const SheetSubtitle = styled.p`
+  margin: 8px 0 16px;
+  color: #4b5563;
+  font-size: 14px;
+`;
+
+const SheetActions = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+`;
+
+const SheetButton = styled.button`
+  border: ${(props) => (props.$secondary ? "1px solid #d1d5db" : "none")};
+  background: ${(props) => (props.$secondary ? "#fff" : "#111827")};
+  color: ${(props) => (props.$secondary ? "#111827" : "#fff")};
+  border-radius: 12px;
+  padding: 12px;
+  font-weight: 700;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.65;
     cursor: not-allowed;
   }
 `;

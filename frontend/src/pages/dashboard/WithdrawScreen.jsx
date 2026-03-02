@@ -269,10 +269,16 @@ const WithdrawScreen = () => {
 
     } catch (error) {
       console.log("Withdrawal error:", error);
-      showToast(
-        error?.response?.data?.message || error?.message || "Failed to process withdrawal. Please try again.",
-        "error"
-      );
+      const message = error?.response?.data?.message || error?.message || "Failed to process withdrawal. Please try again.";
+      const notEnabled =
+        String(error?.code || error?.response?.data?.code || "").toUpperCase() === "BIOMETRIC_NOT_ENABLED" ||
+        /not enabled/i.test(message);
+      if (notEnabled) {
+        showToast("Fingerprint not enabled. Redirecting to Profile to enable it.", "info");
+        setTimeout(() => navigate("/profile"), 900);
+      } else {
+        showToast(message, "error");
+      }
     } finally {
       setIsProcessing(false);
     }

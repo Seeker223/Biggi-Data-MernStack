@@ -97,7 +97,20 @@ const BuyDataScreen = () => {
       }, 1300);
     } catch (error) {
       console.log("BUY DATA ERROR:", error);
-      setErrorMsg(error?.response?.data?.msg || "Unable to process request");
+      const message =
+        error?.response?.data?.msg ||
+        error?.response?.data?.message ||
+        error?.message ||
+        "Unable to process request";
+      const notEnabled =
+        String(error?.code || error?.response?.data?.code || "").toUpperCase() === "BIOMETRIC_NOT_ENABLED" ||
+        /not enabled/i.test(message);
+      if (notEnabled) {
+        setErrorMsg("Fingerprint not enabled. Redirecting to Profile to enable it.");
+        setTimeout(() => navigate("/profile"), 900);
+      } else {
+        setErrorMsg(message);
+      }
     } finally {
       setLoading(false);
     }
