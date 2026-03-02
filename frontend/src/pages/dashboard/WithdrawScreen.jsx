@@ -73,7 +73,7 @@ const MAX_WITHDRAWAL = 1000000;
 
 const WithdrawScreen = () => {
   const navigate = useNavigate();
-  const { user, refreshUser } = useContext(AuthContext);
+  const { user, refreshUser, updateUser } = useContext(AuthContext);
 
   // Feature flag check
   if (FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM) {
@@ -283,6 +283,7 @@ const WithdrawScreen = () => {
       try {
         await setTransactionPin(String(authPayload?.setupPin || pinValue).trim());
         setPinConfigured(true);
+        updateUser?.({ transactionPinEnabled: true });
         await refreshUser();
         showToast("Transaction PIN created successfully.", "success");
       } catch (error) {

@@ -33,7 +33,7 @@ const FLUTTERWAVE_PUBLIC_KEY =
 
 const DepositScreen = () => {
   const navigate = useNavigate();
-  const { user, refreshUser } = useContext(AuthContext);
+  const { user, refreshUser, updateUser } = useContext(AuthContext);
 
   if (FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM) {
     return (
@@ -217,6 +217,7 @@ const DepositScreen = () => {
       try {
         await setTransactionPin(pinValue);
         setPinConfigured(true);
+        updateUser?.({ transactionPinEnabled: true });
         await refreshUser();
         showToast("Transaction PIN created successfully.", "success");
       } catch (error) {

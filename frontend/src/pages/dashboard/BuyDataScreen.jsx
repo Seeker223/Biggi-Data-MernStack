@@ -9,7 +9,7 @@ import TransactionAuthSheet from "../../components/TransactionAuthSheet";
 const BuyDataScreen = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, refreshUser } = useContext(AuthContext);
+  const { user, refreshUser, updateUser } = useContext(AuthContext);
 
   const [phone, setPhone] = useState("");
   const [network, setNetwork] = useState(null);
@@ -114,6 +114,7 @@ const BuyDataScreen = () => {
       try {
         await setTransactionPin(String(authPayload?.setupPin || pinValue).trim());
         setPinConfigured(true);
+        updateUser?.({ transactionPinEnabled: true });
         await refreshUser();
       } catch (error) {
         setErrorMsg(error?.response?.data?.message || "Failed to create transaction PIN.");
