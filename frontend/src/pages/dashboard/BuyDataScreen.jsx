@@ -3,13 +3,13 @@ import { useNavigate, useLocation } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
 import { ChevronLeft, ChevronDown, CheckCircle } from "lucide-react";
 import { AuthContext } from "../../context/AuthContext";
-import { buyData } from "../../services/api";
+import { buyData, setTransactionPin } from "../../services/api";
 import TransactionAuthSheet from "../../components/TransactionAuthSheet";
 
 const BuyDataScreen = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { refreshUser } = useContext(AuthContext);
+  const { user, refreshUser } = useContext(AuthContext);
 
   const [phone, setPhone] = useState("");
   const [network, setNetwork] = useState(null);
@@ -20,6 +20,11 @@ const BuyDataScreen = () => {
   const [showAuthSheet, setShowAuthSheet] = useState(false);
   const [successModal, setSuccessModal] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [pinConfigured, setPinConfigured] = useState(Boolean(user?.transactionPinEnabled));
+
+  useEffect(() => {
+    setPinConfigured(Boolean(user?.transactionPinEnabled));
+  }, [user?.transactionPinEnabled]);
 
   useEffect(() => {
     if (location.state?.selectedNetwork) {
@@ -104,8 +109,19 @@ const BuyDataScreen = () => {
   };
 
   const handleAuthSelection = async (authPayload) => {
+    const pinValue = String(authPayload?.transactionPin || "").trim();
+    if (!pinConfigured) {
+      try {
+        await setTransactionPin(String(authPayload?.setupPin || pinValue).trim());
+        setPinConfigured(true);
+        await refreshUser();
+      } catch (error) {
+        setErrorMsg(error?.response?.data?.message || "Failed to create transaction PIN.");
+        return;
+      }
+    }
     setShowAuthSheet(false);
-    await processPay(authPayload);
+    await processPay({ transactionPin: pinValue });
   };
 
   const goToSelectNetwork = () => {
@@ -217,7 +233,8 @@ const BuyDataScreen = () => {
         visible={showAuthSheet}
         loading={loading}
         title="Authorize Data Purchase"
-        subtitle="Enter your 4-digit PIN."
+        subtitle={pinConfigured ? "Enter your 4-digit PIN." : "Create a new 4-digit PIN to continue."}
+        pinConfigured={pinConfigured}
         onClose={() => setShowAuthSheet(false)}
         onSubmit={handleAuthSelection}
       />

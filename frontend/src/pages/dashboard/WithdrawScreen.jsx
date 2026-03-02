@@ -20,6 +20,7 @@ import {
 import { AuthContext } from '../../context/AuthContext';
 import { FEATURE_FLAGS } from '../../constants/featureFlags';
 import api from '../../services/api';
+import { setTransactionPin, verifyTransactionPin } from "../../services/api";
 import TransactionAuthSheet from '../../components/TransactionAuthSheet';
 
 // Biggi Data Brand Colors
@@ -103,6 +104,7 @@ const WithdrawScreen = () => {
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [pendingAuth, setPendingAuth] = useState({ transactionPin: "" });
+  const [pinConfigured, setPinConfigured] = useState(Boolean(user?.transactionPinEnabled));
   
   // Toast state
   const [toastVisible, setToastVisible] = useState(false);
@@ -113,6 +115,10 @@ const WithdrawScreen = () => {
   const filteredBanks = banks.filter(bank =>
     bank.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  useEffect(() => {
+    setPinConfigured(Boolean(user?.transactionPinEnabled));
+  }, [user?.transactionPinEnabled]);
 
   /* ---------------- TOAST ---------------- */
   const showToast = (msg, type = "info") => {
@@ -272,7 +278,25 @@ const WithdrawScreen = () => {
   };
 
   const handleAuthSelection = async (authPayload) => {
-    setPendingAuth({ transactionPin: authPayload?.transactionPin || "" });
+    const pinValue = String(authPayload?.transactionPin || "").trim();
+    if (!pinConfigured) {
+      try {
+        await setTransactionPin(String(authPayload?.setupPin || pinValue).trim());
+        setPinConfigured(true);
+        await refreshUser();
+        showToast("Transaction PIN created successfully.", "success");
+      } catch (error) {
+        showToast(error?.response?.data?.message || "Failed to create transaction PIN.", "error");
+        return;
+      }
+    }
+    try {
+      await verifyTransactionPin(pinValue);
+    } catch (error) {
+      showToast(error?.response?.data?.message || "Invalid transaction PIN.", "error");
+      return;
+    }
+    setPendingAuth({ transactionPin: pinValue });
     setShowAuthSheet(false);
     setShowConfirm(true);
   };
@@ -570,7 +594,8 @@ const WithdrawScreen = () => {
         visible={showAuthSheet}
         loading={isProcessing}
         title="Authorize Withdrawal"
-        subtitle="Enter your 4-digit PIN."
+        subtitle={pinConfigured ? "Enter your 4-digit PIN." : "Create a new 4-digit PIN to continue."}
+        pinConfigured={pinConfigured}
         onClose={() => setShowAuthSheet(false)}
         onSubmit={handleAuthSelection}
       />

@@ -15,6 +15,7 @@ import { FEATURE_FLAGS } from "../../constants/featureFlags";
 import {
   getDepositStatus,
   reconcilePayment,
+  setTransactionPin,
   verifyTransactionPin,
   verifyFlutterwavePayment,
 } from "../../services/api";
@@ -71,6 +72,7 @@ const DepositScreen = () => {
   const [txRef, setTxRef] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [transactionPin, setTransactionPin] = useState("");
+  const [pinConfigured, setPinConfigured] = useState(Boolean(user?.transactionPinEnabled));
 
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
@@ -94,6 +96,10 @@ const DepositScreen = () => {
       currentTxRef.current = "";
     };
   }, []);
+
+  useEffect(() => {
+    setPinConfigured(Boolean(user?.transactionPinEnabled));
+  }, [user?.transactionPinEnabled]);
 
   const enteredAmount = Number(amount) > 0 ? Number(amount) : 0;
   const totalAmount = enteredAmount + SERVICE_CHARGE;
@@ -207,6 +213,17 @@ const DepositScreen = () => {
 
   const handleAuthSelection = async ({ transactionPin: selectedPin = "" }) => {
     const pinValue = String(selectedPin || "").trim();
+    if (!pinConfigured) {
+      try {
+        await setTransactionPin(pinValue);
+        setPinConfigured(true);
+        await refreshUser();
+        showToast("Transaction PIN created successfully.", "success");
+      } catch (error) {
+        showToast(error?.response?.data?.message || "Failed to create transaction PIN.", "error");
+        return;
+      }
+    }
     if (!/^\d{4}$/.test(pinValue)) {
       showToast("Enter your 4-digit transaction PIN.", "error");
       return;
@@ -442,7 +459,8 @@ const DepositScreen = () => {
           visible={showAuthSheet}
           loading={isProcessing}
           title="Authorize Deposit"
-          subtitle="Enter your 4-digit PIN."
+          subtitle={pinConfigured ? "Enter your 4-digit PIN." : "Create a new 4-digit PIN to continue."}
+          pinConfigured={pinConfigured}
           onClose={() => setShowAuthSheet(false)}
           onSubmit={handleAuthSelection}
         />

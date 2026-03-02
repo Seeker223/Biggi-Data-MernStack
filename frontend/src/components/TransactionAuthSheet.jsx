@@ -7,15 +7,18 @@ const TransactionAuthSheet = ({
   loading = false,
   title = "Authorize Transaction",
   subtitle = "Enter your 4-digit PIN to continue.",
+  pinConfigured = true,
   onClose,
   onSubmit,
 }) => {
   const [pin, setPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
     if (!visible) {
       setPin("");
+      setConfirmPin("");
       setError("");
     }
   }, [visible]);
@@ -27,10 +30,21 @@ const TransactionAuthSheet = ({
       setError("Enter a valid 4-digit PIN.");
       return;
     }
+    if (!pinConfigured) {
+      if (!/^\d{4}$/.test(confirmPin.trim())) {
+        setError("Confirm your 4-digit PIN.");
+        return;
+      }
+      if (pin.trim() !== confirmPin.trim()) {
+        setError("PINs do not match.");
+        return;
+      }
+    }
     setError("");
     await onSubmit?.({
       method: "pin",
       transactionPin: pin.trim(),
+      setupPin: !pinConfigured ? pin.trim() : "",
     });
   };
 
@@ -55,7 +69,7 @@ const TransactionAuthSheet = ({
             disabled
           >
             <KeyRound size={18} />
-            4-digit PIN
+            {pinConfigured ? "4-digit PIN" : "Create 4-digit PIN"}
           </MethodButton>
         </MethodRow>
 
@@ -63,16 +77,27 @@ const TransactionAuthSheet = ({
           type="password"
           inputMode="numeric"
           maxLength={4}
-          placeholder="Enter 4-digit PIN"
+          placeholder={pinConfigured ? "Enter 4-digit PIN" : "Set new 4-digit PIN"}
           value={pin}
           onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
           disabled={loading}
         />
+        {!pinConfigured ? (
+          <PinInput
+            type="password"
+            inputMode="numeric"
+            maxLength={4}
+            placeholder="Confirm new 4-digit PIN"
+            value={confirmPin}
+            onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+            disabled={loading}
+          />
+        ) : null}
 
         {error ? <ErrorText>{error}</ErrorText> : null}
 
         <ContinueButton type="button" onClick={handleContinue} disabled={loading}>
-          {loading ? "Please wait..." : "Continue"}
+          {loading ? "Please wait..." : pinConfigured ? "Continue" : "Set PIN & Continue"}
         </ContinueButton>
       </Sheet>
     </Overlay>
@@ -182,12 +207,6 @@ const PinInput = styled.input`
     border-color: #ff7a00;
     box-shadow: 0 0 0 3px rgba(255, 122, 0, 0.12);
   }
-`;
-
-const Hint = styled.p`
-  margin: 12px 2px 0;
-  font-size: 13px;
-  color: #666;
 `;
 
 const ErrorText = styled.p`
