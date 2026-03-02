@@ -561,6 +561,9 @@ const SignupButton = styled.button`
   text-decoration: none;
   font-family: inherit;
   transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   
   &:hover {
     background-color: #D1D5DB;
