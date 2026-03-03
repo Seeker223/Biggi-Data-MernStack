@@ -260,6 +260,10 @@ const Signup = () => {
               </SignupButtonText>
             </SignupButton>
 
+            <LoginButton as={Link} to="/login">
+              <LoginButtonText>Log In</LoginButtonText>
+            </LoginButton>
+
             {/* Alternative Options */}
             <AlternativeContainer>
               <Divider />
@@ -874,6 +878,38 @@ const ModalButtonText = styled.span`
   @media (max-width: 480px) {
     font-size: 13px;
   }
+`;
+
+const LoginButton = styled.button`
+  background-color: #FF8000;
+  width: 100%;
+  max-width: 360px;
+  border-radius: 12px;
+  padding: 14px;
+  margin-top: 12px;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background-color: #E56A00;
+  }
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(209, 213, 219, 0.3);
+  }
+`;
+
+const LoginButtonText = styled.span`
+  color: #FFFFFF;
+  font-weight: 600;
+  font-size: 15px;
 `;
 
 const SelectInput = styled.select`
