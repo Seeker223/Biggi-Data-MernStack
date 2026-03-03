@@ -22,7 +22,7 @@ import {
 } from "../../services/api";
 import TransactionAuthSheet from "../../components/TransactionAuthSheet";
 
-const SERVICE_CHARGE = 100;
+const SERVICE_CHARGE = 5;
 const POLL_INTERVAL = 3000;
 const MAX_POLL_ATTEMPTS = 20;
 const RECONCILE_ATTEMPTS = 3;
