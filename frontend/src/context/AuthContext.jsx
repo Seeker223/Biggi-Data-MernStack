@@ -105,11 +105,19 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password, options = {}) => {
     try {
       const requestedRememberMe = Boolean(options?.rememberMe);
-      const res = await api.post("/auth/login", {
+      const payload = {
         email,
         password,
         rememberMe: requestedRememberMe,
-      });
+      };
+      let res;
+      try {
+        res = await api.post("/auth/login", payload, { timeout: 30000 });
+      } catch (error) {
+        // Handle backend cold starts/slow wake-up by retrying once on timeout.
+        if (error?.code !== "ECONNABORTED") throw error;
+        res = await api.post("/auth/login", payload, { timeout: 30000 });
+      }
       const { token: newToken, refreshToken: newRefreshToken, user: userData } = res.data;
       const shouldRemember = Boolean(res?.data?.rememberMe ?? requestedRememberMe);
 
