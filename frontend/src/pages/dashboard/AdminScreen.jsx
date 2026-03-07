@@ -43,6 +43,14 @@ const EMPTY_FORM = {
   tickets: 0,
 };
 
+const NIGERIA_STATES = [
+  "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue", "Borno",
+  "Cross River", "Delta", "Ebonyi", "Edo", "Ekiti", "Enugu", "Gombe", "Imo", "Jigawa",
+  "Kaduna", "Kano", "Katsina", "Kebbi", "Kogi", "Kwara", "Lagos", "Nasarawa", "Niger",
+  "Ogun", "Ondo", "Osun", "Oyo", "Plateau", "Rivers", "Sokoto", "Taraba", "Yobe", "Abuja",
+  "Zamfara",
+];
+
 const AdminScreen = () => {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
@@ -51,6 +59,7 @@ const AdminScreen = () => {
   const [userRole, setUserRole] = useState("");
   const [verified, setVerified] = useState("");
   const [userAge, setUserAge] = useState("new");
+  const [stateFilter, setStateFilter] = useState("");
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -77,6 +86,7 @@ const AdminScreen = () => {
         userRole: userRole || undefined,
         verified: verified || undefined,
         userAge: userAge || undefined,
+        state: stateFilter || undefined,
       });
       setData(res?.data || null);
     } catch (err) {
@@ -84,7 +94,7 @@ const AdminScreen = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, role, search, userRole, verified, userAge]);
+  }, [page, role, search, userRole, verified, userAge, stateFilter]);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -211,6 +221,7 @@ const AdminScreen = () => {
   const users = data?.users || [];
   const topBuyers = data?.rankings?.topBuyers || [];
   const topWinners = data?.rankings?.topGameWinners || [];
+  const stateBreakdown = data?.stateBreakdown || [];
   const pagination = data?.pagination || { page: 1, totalPages: 1 };
   const userTotal = Number(summary.usersCount || 0);
   const privatePct = userTotal ? Math.round((Number(summary.privateCount || 0) / userTotal) * 100) : 0;
@@ -265,6 +276,14 @@ const AdminScreen = () => {
             <Select value={userAge} onChange={(e) => setUserAge(e.target.value)}>
               <option value="new">New users first</option>
               <option value="old">Old users first</option>
+            </Select>
+            <Select value={stateFilter} onChange={(e) => setStateFilter(e.target.value)}>
+              <option value="">All states</option>
+              {NIGERIA_STATES.map((st) => (
+                <option key={st} value={st}>
+                  {st}
+                </option>
+              ))}
             </Select>
           </FilterRow>
           <ActionRow>
@@ -423,6 +442,31 @@ const AdminScreen = () => {
                   <BarValue>{item.totalWins}</BarValue>
                 </BarRow>
               ))}
+            </BarChartCard>
+
+            <BarChartCard>
+              <ChartTitle>State Distribution (Top 10)</ChartTitle>
+              {stateBreakdown.length ? (
+                stateBreakdown.slice(0, 10).map((item) => (
+                  <BarRow key={`state-graph-${item.state}`}>
+                    <BarLabel>{item.state}</BarLabel>
+                    <BarTrack>
+                      <BarFill
+                        $width={Math.max(
+                          5,
+                          Math.round(
+                            (Number(item.count || 0) / Math.max(1, Number(stateBreakdown?.[0]?.count || 0))) * 100
+                          )
+                        )}
+                        $color="#7c3aed"
+                      />
+                    </BarTrack>
+                    <BarValue>{item.count}</BarValue>
+                  </BarRow>
+                ))
+              ) : (
+                <UserMeta>No state data available for current filters.</UserMeta>
+              )}
             </BarChartCard>
 
             <SectionTitle>Users ({users.length})</SectionTitle>
@@ -865,8 +909,14 @@ const SearchInput = styled.input`
 const FilterRow = styled.div`
   margin-top: 8px;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 8px;
+  @media (max-width: 980px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  @media (max-width: 620px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
   @media (max-width: 390px) {
     grid-template-columns: 1fr;
   }
