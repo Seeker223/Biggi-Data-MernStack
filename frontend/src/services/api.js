@@ -544,6 +544,11 @@ export const generateReferralLink = () => api.post("/user/referrals/generate");
 // ADMIN
 // -----------------------------------------------------------
 export const getAdminDashboard = (params = {}) => api.get("/admin/dashboard", { params });
+export const getAdminUsers = (params = {}) => api.get("/admin/users", { params });
+export const getAdminUserById = (id) => api.get(`/admin/users/${id}`);
+export const createAdminUser = (payload) => api.post("/admin/users", payload);
+export const updateAdminUser = (id, payload) => api.put(`/admin/users/${id}`, payload);
+export const deleteAdminUser = (id) => api.delete(`/admin/users/${id}`);
 
 // -----------------------------------------------------------
 // GAME ANALYTICS

@@ -10,13 +10,38 @@ import {
   Wallet,
   Trophy,
   X,
+  Plus,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import FloatingBottomNav from "../../components/FloatingBottomNav";
 import { AuthContext } from "../../context/AuthContext";
-import { getAdminDashboard } from "../../services/api";
+import {
+  createAdminUser,
+  deleteAdminUser,
+  getAdminDashboard,
+  updateAdminUser,
+} from "../../services/api";
 
 const naira = (v) => `₦${Number(v || 0).toLocaleString()}`;
 const dateFmt = (v) => (v ? new Date(v).toLocaleString() : "—");
+
+const EMPTY_FORM = {
+  username: "",
+  email: "",
+  password: "",
+  phoneNumber: "",
+  birthDate: "",
+  state: "",
+  role: "user",
+  userRole: "private",
+  isVerified: true,
+  mainBalance: 0,
+  rewardBalance: 0,
+  totalDeposits: 0,
+  dataBundleCount: 0,
+  tickets: 0,
+};
 
 const AdminScreen = () => {
   const navigate = useNavigate();
@@ -30,6 +55,11 @@ const AdminScreen = () => {
   const [error, setError] = useState("");
   const [data, setData] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [formMode, setFormMode] = useState("create");
+  const [formOpen, setFormOpen] = useState(false);
+  const [formLoading, setFormLoading] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [form, setForm] = useState(EMPTY_FORM);
 
   const isAdmin = useMemo(() => String(user?.role || "").toLowerCase() === "admin", [user?.role]);
 
@@ -58,6 +88,101 @@ const AdminScreen = () => {
     if (!isAdmin) return;
     loadData();
   }, [isAdmin, loadData]);
+
+  const resetForm = () => {
+    setForm(EMPTY_FORM);
+    setFormError("");
+  };
+
+  const openCreate = () => {
+    setFormMode("create");
+    resetForm();
+    setFormOpen(true);
+  };
+
+  const openEdit = (entry) => {
+    setFormMode("edit");
+    setFormError("");
+    setForm({
+      id: entry.id,
+      username: entry.personal?.username || "",
+      email: entry.personal?.email || "",
+      password: "",
+      phoneNumber: entry.personal?.phoneNumber || "",
+      birthDate: entry.personal?.birthDate
+        ? new Date(entry.personal.birthDate).toISOString().slice(0, 10)
+        : "",
+      state: entry.personal?.state || "",
+      role: entry.personal?.role || "user",
+      userRole: entry.personal?.userRole || "private",
+      isVerified: Boolean(entry.personal?.isVerified),
+      mainBalance: Number(entry.balances?.mainBalance || 0),
+      rewardBalance: Number(entry.balances?.rewardBalance || 0),
+      totalDeposits: Number(entry.balances?.totalDeposits || 0),
+      dataBundleCount: Number(entry.balances?.dataBundleCount || 0),
+      tickets: Number(entry.balances?.tickets || 0),
+    });
+    setFormOpen(true);
+  };
+
+  const submitForm = async () => {
+    try {
+      setFormLoading(true);
+      setFormError("");
+      if (!form.username || !form.email || !form.phoneNumber || !form.birthDate || !form.state) {
+        setFormError("Username, email, phone, birth date and state are required.");
+        return;
+      }
+
+      const payload = {
+        username: form.username,
+        email: form.email,
+        phoneNumber: form.phoneNumber,
+        birthDate: form.birthDate,
+        state: form.state,
+        role: form.role,
+        userRole: form.userRole,
+        isVerified: Boolean(form.isVerified),
+        mainBalance: Number(form.mainBalance || 0),
+        rewardBalance: Number(form.rewardBalance || 0),
+        totalDeposits: Number(form.totalDeposits || 0),
+        dataBundleCount: Number(form.dataBundleCount || 0),
+        tickets: Number(form.tickets || 0),
+      };
+
+      if (formMode === "create") {
+        if (!form.password || String(form.password).length < 6) {
+          setFormError("Password must be at least 6 characters.");
+          return;
+        }
+        payload.password = form.password;
+        await createAdminUser(payload);
+      } else {
+        if (form.password) payload.password = form.password;
+        await updateAdminUser(form.id, payload);
+      }
+
+      setFormOpen(false);
+      resetForm();
+      await loadData();
+    } catch (err) {
+      setFormError(err?.response?.data?.message || "Failed to save user.");
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const handleDeleteUser = async (entry) => {
+    const ok = window.confirm(`Delete user "${entry.personal?.username}"? This cannot be undone.`);
+    if (!ok) return;
+    try {
+      await deleteAdminUser(entry.id);
+      if (selectedUser?.id === entry.id) setSelectedUser(null);
+      await loadData();
+    } catch (err) {
+      setError(err?.response?.data?.message || "Failed to delete user.");
+    }
+  };
 
   if (!isAdmin) {
     return (
@@ -125,15 +250,21 @@ const AdminScreen = () => {
               <option value="false">Unverified</option>
             </Select>
           </FilterRow>
-          <ApplyButton
-            onClick={() => {
-              setPage(1);
-              loadData();
-            }}
-            disabled={loading}
-          >
-            Apply Filters
-          </ApplyButton>
+          <ActionRow>
+            <ApplyButton
+              onClick={() => {
+                setPage(1);
+                loadData();
+              }}
+              disabled={loading}
+            >
+              Apply Filters
+            </ApplyButton>
+            <CreateButton onClick={openCreate}>
+              <Plus size={16} />
+              Create User
+            </CreateButton>
+          </ActionRow>
         </FilterCard>
 
         {error ? <ErrorBox>{error}</ErrorBox> : null}
@@ -212,6 +343,14 @@ const AdminScreen = () => {
                     Game W/L: {entry.games?.totalGameWins || 0}/{entry.games?.totalGameLosses || 0}
                   </UserMeta>
                   <DetailButton onClick={() => setSelectedUser(entry)}>View Full Details</DetailButton>
+                  <UserActions>
+                    <EditSmall onClick={() => openEdit(entry)}>
+                      <Pencil size={14} /> Edit
+                    </EditSmall>
+                    <DeleteSmall onClick={() => handleDeleteUser(entry)}>
+                      <Trash2 size={14} /> Delete
+                    </DeleteSmall>
+                  </UserActions>
                 </UserCard>
               ))}
             </UsersWrap>
@@ -246,6 +385,14 @@ const AdminScreen = () => {
                 <X size={16} />
               </button>
             </ModalHead>
+            <ModalActions>
+              <EditSmall onClick={() => openEdit(selectedUser)}>
+                <Pencil size={14} /> Edit
+              </EditSmall>
+              <DeleteSmall onClick={() => handleDeleteUser(selectedUser)}>
+                <Trash2 size={14} /> Delete
+              </DeleteSmall>
+            </ModalActions>
 
             <ModalSection>
               <h4>Personal Info</h4>
@@ -279,6 +426,95 @@ const AdminScreen = () => {
               <p>BuyData Purchases: {(selectedUser.history?.purchases || []).length}</p>
               <p>Redeems: {(selectedUser.history?.redeems || []).length}</p>
             </ModalSection>
+          </ModalCard>
+        </ModalOverlay>
+      ) : null}
+
+      {formOpen ? (
+        <ModalOverlay onClick={() => setFormOpen(false)}>
+          <ModalCard onClick={(e) => e.stopPropagation()}>
+            <ModalHead>
+              <h3>{formMode === "create" ? "Create User" : "Edit User"}</h3>
+              <button onClick={() => setFormOpen(false)}>
+                <X size={16} />
+              </button>
+            </ModalHead>
+            {formError ? <ErrorBox>{formError}</ErrorBox> : null}
+            <FormGrid>
+              <Field>
+                <label>Username</label>
+                <input value={form.username} onChange={(e) => setForm((p) => ({ ...p, username: e.target.value }))} />
+              </Field>
+              <Field>
+                <label>Email</label>
+                <input type="email" value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))} />
+              </Field>
+              <Field>
+                <label>Phone Number</label>
+                <input value={form.phoneNumber} onChange={(e) => setForm((p) => ({ ...p, phoneNumber: e.target.value }))} />
+              </Field>
+              <Field>
+                <label>Birth Date</label>
+                <input type="date" value={form.birthDate} onChange={(e) => setForm((p) => ({ ...p, birthDate: e.target.value }))} />
+              </Field>
+              <Field>
+                <label>State</label>
+                <input value={form.state} onChange={(e) => setForm((p) => ({ ...p, state: e.target.value }))} />
+              </Field>
+              <Field>
+                <label>Password {formMode === "edit" ? "(optional)" : ""}</label>
+                <input type="password" value={form.password} onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))} />
+              </Field>
+              <Field>
+                <label>Role</label>
+                <select value={form.role} onChange={(e) => setForm((p) => ({ ...p, role: e.target.value }))}>
+                  <option value="user">User</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </Field>
+              <Field>
+                <label>User Role</label>
+                <select value={form.userRole} onChange={(e) => setForm((p) => ({ ...p, userRole: e.target.value }))}>
+                  <option value="private">Private</option>
+                  <option value="merchant">Merchant</option>
+                </select>
+              </Field>
+              <Field>
+                <label>Verified</label>
+                <select
+                  value={form.isVerified ? "true" : "false"}
+                  onChange={(e) => setForm((p) => ({ ...p, isVerified: e.target.value === "true" }))}
+                >
+                  <option value="true">Verified</option>
+                  <option value="false">Unverified</option>
+                </select>
+              </Field>
+              <Field>
+                <label>Main Balance</label>
+                <input type="number" value={form.mainBalance} onChange={(e) => setForm((p) => ({ ...p, mainBalance: e.target.value }))} />
+              </Field>
+              <Field>
+                <label>Reward Balance</label>
+                <input type="number" value={form.rewardBalance} onChange={(e) => setForm((p) => ({ ...p, rewardBalance: e.target.value }))} />
+              </Field>
+              <Field>
+                <label>Total Deposits</label>
+                <input type="number" value={form.totalDeposits} onChange={(e) => setForm((p) => ({ ...p, totalDeposits: e.target.value }))} />
+              </Field>
+              <Field>
+                <label>Data Bundle Count</label>
+                <input type="number" value={form.dataBundleCount} onChange={(e) => setForm((p) => ({ ...p, dataBundleCount: e.target.value }))} />
+              </Field>
+              <Field>
+                <label>Tickets</label>
+                <input type="number" value={form.tickets} onChange={(e) => setForm((p) => ({ ...p, tickets: e.target.value }))} />
+              </Field>
+            </FormGrid>
+            <ActionRow>
+              <ApplyButton disabled={formLoading} onClick={submitForm}>
+                {formLoading ? "Saving..." : formMode === "create" ? "Create User" : "Update User"}
+              </ApplyButton>
+            </ActionRow>
           </ModalCard>
         </ModalOverlay>
       ) : null}
@@ -373,8 +609,17 @@ const Select = styled.select`
   min-width: 0;
 `;
 
-const ApplyButton = styled.button`
+const ActionRow = styled.div`
   margin-top: 8px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  @media (max-width: 390px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const ApplyButton = styled.button`
   width: 100%;
   height: 40px;
   border: none;
@@ -382,6 +627,24 @@ const ApplyButton = styled.button`
   background: #ff7a00;
   color: #fff;
   font-weight: 700;
+  cursor: pointer;
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+`;
+
+const CreateButton = styled.button`
+  border: 1px solid #111;
+  border-radius: 10px;
+  background: #fff;
+  color: #111;
+  font-weight: 700;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   cursor: pointer;
 `;
 
@@ -483,6 +746,38 @@ const DetailButton = styled.button`
   background: #111;
   color: #fff;
   font-weight: 700;
+`;
+
+const UserActions = styled.div`
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+`;
+
+const EditSmall = styled.button`
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+`;
+
+const DeleteSmall = styled.button`
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid #ffd1d1;
+  background: #fff5f5;
+  color: #c21f1f;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 `;
 
 const Pager = styled.div`
@@ -587,6 +882,13 @@ const ModalHead = styled.div`
   }
 `;
 
+const ModalActions = styled.div`
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+`;
+
 const ModalSection = styled.div`
   margin-top: 10px;
   background: #fafafa;
@@ -600,6 +902,34 @@ const ModalSection = styled.div`
   p {
     margin: 4px 0;
     font-size: 13px;
+  }
+`;
+
+const FormGrid = styled.div`
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr 1fr;
+  @media (max-width: 420px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const Field = styled.div`
+  display: grid;
+  gap: 4px;
+  label {
+    font-size: 12px;
+    color: #555;
+  }
+  input,
+  select {
+    height: 36px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 0 10px;
+    font-size: 13px;
+    min-width: 0;
   }
 `;
 
