@@ -538,6 +538,9 @@ const Page = styled.div`
   padding: 0 12px 170px;
   display: flex;
   justify-content: center;
+  font-family: "Plus Jakarta Sans", "Manrope", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 `;
 
 const Container = styled.div`
@@ -568,7 +571,10 @@ const RefreshButton = styled(BackButton)``;
 const Title = styled.h1`
   margin: 0;
   text-align: center;
-  font-size: 20px;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: #121212;
 `;
 
 const FilterCard = styled.div`
@@ -593,6 +599,8 @@ const SearchInput = styled.input`
   outline: none;
   height: 38px;
   font-size: 14px;
+  font-weight: 500;
+  color: #1d1d1d;
   min-width: 0;
 `;
 
@@ -656,7 +664,10 @@ const CreateButton = styled.button`
 
 const SectionTitle = styled.h2`
   margin: 14px 0 8px;
-  font-size: 16px;
+  font-size: 17px;
+  font-weight: 750;
+  letter-spacing: 0.01em;
+  color: #191919;
 `;
 
 const SummaryGrid = styled.div`
@@ -678,14 +689,19 @@ const SummaryCard = styled.div`
   h4 {
     margin: 0;
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 650;
+    letter-spacing: 0.01em;
+    color: #3a3a3a;
   }
   strong {
-    font-size: 15px;
+    font-size: 17px;
+    font-weight: 800;
+    color: #111;
   }
   small {
     color: #666;
     font-size: 12px;
+    font-weight: 500;
   }
 `;
 
@@ -704,6 +720,8 @@ const RankItem = styled.div`
   justify-content: space-between;
   gap: 10px;
   font-size: 13px;
+  font-weight: 560;
+  color: #202020;
   &:last-child {
     border-bottom: none;
   }
@@ -739,7 +757,8 @@ const Tag = styled.span`
 const UserMeta = styled.p`
   margin: 6px 0 0;
   font-size: 13px;
-  color: #333;
+  color: #2c2c2c;
+  font-weight: 520;
 `;
 
 const DetailButton = styled.button`
@@ -809,7 +828,8 @@ const PagerBtn = styled.button`
 
 const PageLabel = styled.span`
   font-size: 13px;
-  color: #555;
+  color: #444;
+  font-weight: 600;
 `;
 
 const UnauthorizedCard = styled.div`
@@ -821,10 +841,13 @@ const UnauthorizedCard = styled.div`
   text-align: center;
   h3 {
     margin: 10px 0 4px;
+    font-weight: 800;
+    letter-spacing: 0.01em;
   }
   p {
     margin: 0;
     color: #555;
+    font-weight: 520;
   }
 `;
 
@@ -876,6 +899,8 @@ const ModalHead = styled.div`
   h3 {
     margin: 0;
     font-size: 18px;
+    font-weight: 800;
+    letter-spacing: 0.01em;
   }
   button {
     width: 30px;
@@ -905,10 +930,14 @@ const ModalSection = styled.div`
   h4 {
     margin: 0 0 6px;
     font-size: 14px;
+    font-weight: 760;
+    color: #161616;
   }
   p {
     margin: 4px 0;
     font-size: 13px;
+    font-weight: 520;
+    color: #2a2a2a;
   }
 `;
 
@@ -927,7 +956,8 @@ const Field = styled.div`
   gap: 4px;
   label {
     font-size: 12px;
-    color: #555;
+    color: #4d4d4d;
+    font-weight: 650;
   }
   input,
   select {
@@ -936,6 +966,8 @@ const Field = styled.div`
     border-radius: 8px;
     padding: 0 10px;
     font-size: 13px;
+    font-weight: 550;
+    color: #191919;
     min-width: 0;
   }
 `;
