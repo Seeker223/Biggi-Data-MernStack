@@ -542,6 +542,67 @@ const AdminScreen = () => {
               </button>
             </ModalHead>
             {formError ? <ErrorBox>{formError}</ErrorBox> : null}
+            <EditVisualWrap>
+              <VisualPillRow>
+                <VisualPill $tone="dark">{form.role === "admin" ? "Admin Account" : "User Account"}</VisualPill>
+                <VisualPill $tone={form.userRole === "merchant" ? "blue" : "orange"}>
+                  {form.userRole === "merchant" ? "Merchant" : "Private"}
+                </VisualPill>
+                <VisualPill $tone={form.isVerified ? "green" : "red"}>
+                  {form.isVerified ? "Verified" : "Unverified"}
+                </VisualPill>
+              </VisualPillRow>
+              <MetricLine>
+                <span>Main Balance</span>
+                <strong>{naira(form.mainBalance)}</strong>
+              </MetricLine>
+              <ProgressTrack>
+                <ProgressFill
+                  $width={Math.max(
+                    8,
+                    Math.min(
+                      100,
+                      Number(form.mainBalance || 0) /
+                        Math.max(1, Number(form.mainBalance || 0) + Number(form.rewardBalance || 0)) *
+                        100
+                    )
+                  )}
+                  $color="#111"
+                />
+              </ProgressTrack>
+              <MetricLine>
+                <span>Reward Balance</span>
+                <strong>{naira(form.rewardBalance)}</strong>
+              </MetricLine>
+              <ProgressTrack>
+                <ProgressFill
+                  $width={Math.max(
+                    8,
+                    Math.min(
+                      100,
+                      Number(form.rewardBalance || 0) /
+                        Math.max(1, Number(form.mainBalance || 0) + Number(form.rewardBalance || 0)) *
+                        100
+                    )
+                  )}
+                  $color="#ff7a00"
+                />
+              </ProgressTrack>
+              <MiniStats>
+                <MiniStat>
+                  <strong>{Number(form.tickets || 0)}</strong>
+                  <span>Tickets</span>
+                </MiniStat>
+                <MiniStat>
+                  <strong>{Number(form.dataBundleCount || 0)}</strong>
+                  <span>Data Buys</span>
+                </MiniStat>
+                <MiniStat>
+                  <strong>{naira(form.totalDeposits || 0)}</strong>
+                  <span>Total Deposits</span>
+                </MiniStat>
+              </MiniStats>
+            </EditVisualWrap>
             <FormGrid>
               <Field>
                 <label>Username</label>
@@ -1205,6 +1266,64 @@ const FormGrid = styled.div`
   grid-template-columns: 1fr 1fr;
   @media (max-width: 420px) {
     grid-template-columns: 1fr;
+  }
+`;
+
+const EditVisualWrap = styled.div`
+  margin-top: 10px;
+  border: 1px solid #ececec;
+  background: #fafafa;
+  border-radius: 12px;
+  padding: 10px;
+`;
+
+const VisualPillRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+`;
+
+const VisualPill = styled.span`
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 4px 10px;
+  border: 1px solid;
+  ${({ $tone }) => {
+    if ($tone === "green") return "background:#eafaf2;color:#136a41;border-color:#b8ebd1;";
+    if ($tone === "red") return "background:#fff2f2;color:#a12a2a;border-color:#ffd0d0;";
+    if ($tone === "blue") return "background:#eef5ff;color:#1f5fbf;border-color:#cfe0ff;";
+    if ($tone === "dark") return "background:#111;color:#fff;border-color:#111;";
+    return "background:#fff5eb;color:#b85b00;border-color:#ffd4ad;";
+  }}
+`;
+
+const MiniStats = styled.div`
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  @media (max-width: 420px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const MiniStat = styled.div`
+  background: #fff;
+  border: 1px solid #ececec;
+  border-radius: 10px;
+  padding: 8px;
+  strong {
+    display: block;
+    font-size: 13px;
+    color: #111;
+    font-weight: 760;
+  }
+  span {
+    font-size: 11px;
+    color: #666;
+    font-weight: 600;
   }
 `;
 
