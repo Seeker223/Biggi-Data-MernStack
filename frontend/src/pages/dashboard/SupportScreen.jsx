@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { ArrowLeft, Mail, Phone, MessageCircle, Clock3 } from "lucide-react";
 
-const SUPPORT_EMAIL = "support@biggidata.com.ng";
-const SUPPORT_PHONE = "+2347000000000";
-const SUPPORT_WHATSAPP = "2347000000000";
+const SUPPORT_EMAIL = "biggidataservie@gmail.com";
+const SUPPORT_PHONE = "09131556692";
+const SUPPORT_WHATSAPP_CHANNEL =
+  "https://whatsapp.com/channel/0029VbC3wSl89initWdcNS2J";
 
 const SupportScreen = () => {
   const navigate = useNavigate();
@@ -47,7 +48,7 @@ const SupportScreen = () => {
           </Row>
 
           <Row
-            href={`https://wa.me/${SUPPORT_WHATSAPP}`}
+            href={SUPPORT_WHATSAPP_CHANNEL}
             target="_blank"
             rel="noreferrer"
           >
@@ -56,7 +57,7 @@ const SupportScreen = () => {
             </IconWrap>
             <RowBody>
               <Label>WhatsApp</Label>
-              <Value>Chat with support</Value>
+              <Value>Follow the Biggi Data Bundle Services channel on WhatsApp</Value>
             </RowBody>
           </Row>
 
