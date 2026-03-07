@@ -50,6 +50,7 @@ const AdminScreen = () => {
   const [role, setRole] = useState("");
   const [userRole, setUserRole] = useState("");
   const [verified, setVerified] = useState("");
+  const [userAge, setUserAge] = useState("new");
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -75,6 +76,7 @@ const AdminScreen = () => {
         role: role || undefined,
         userRole: userRole || undefined,
         verified: verified || undefined,
+        userAge: userAge || undefined,
       });
       setData(res?.data || null);
     } catch (err) {
@@ -82,7 +84,7 @@ const AdminScreen = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, role, search, userRole, verified]);
+  }, [page, role, search, userRole, verified, userAge]);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -248,6 +250,10 @@ const AdminScreen = () => {
               <option value="">All verification</option>
               <option value="true">Verified</option>
               <option value="false">Unverified</option>
+            </Select>
+            <Select value={userAge} onChange={(e) => setUserAge(e.target.value)}>
+              <option value="new">New users first</option>
+              <option value="old">Old users first</option>
             </Select>
           </FilterRow>
           <ActionRow>
@@ -593,7 +599,7 @@ const SearchInput = styled.input`
 const FilterRow = styled.div`
   margin-top: 8px;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 8px;
   @media (max-width: 390px) {
     grid-template-columns: 1fr;
