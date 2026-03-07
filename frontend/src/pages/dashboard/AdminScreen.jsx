@@ -529,7 +529,7 @@ export default AdminScreen;
 const Page = styled.div`
   min-height: 100vh;
   background: #f5f5f5;
-  padding: 0 12px 98px;
+  padding: 0 12px 170px;
   display: flex;
   justify-content: center;
 `;
@@ -782,6 +782,7 @@ const DeleteSmall = styled.button`
 
 const Pager = styled.div`
   margin-top: 10px;
+  margin-bottom: 12px;
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   gap: 8px;
@@ -932,4 +933,3 @@ const Field = styled.div`
     min-width: 0;
   }
 `;
-
