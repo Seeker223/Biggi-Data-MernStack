@@ -212,6 +212,17 @@ const AdminScreen = () => {
   const topBuyers = data?.rankings?.topBuyers || [];
   const topWinners = data?.rankings?.topGameWinners || [];
   const pagination = data?.pagination || { page: 1, totalPages: 1 };
+  const userTotal = Number(summary.usersCount || 0);
+  const privatePct = userTotal ? Math.round((Number(summary.privateCount || 0) / userTotal) * 100) : 0;
+  const merchantPct = userTotal ? Math.round((Number(summary.merchantCount || 0) / userTotal) * 100) : 0;
+  const verifiedPct = userTotal ? Math.round((Number(summary.verifiedCount || 0) / userTotal) * 100) : 0;
+  const mainBal = Number(summary.totalMainBalance || 0);
+  const rewardBal = Number(summary.totalRewardBalance || 0);
+  const balanceTotal = mainBal + rewardBal;
+  const mainPct = balanceTotal ? Math.round((mainBal / balanceTotal) * 100) : 0;
+  const rewardPct = balanceTotal ? Math.round((rewardBal / balanceTotal) * 100) : 0;
+  const buyerMax = Number(topBuyers?.[0]?.dataBundleCount || 1);
+  const winnerMax = Number(topWinners?.[0]?.totalWins || 1);
 
   return (
     <Page>
@@ -309,6 +320,67 @@ const AdminScreen = () => {
               </SummaryCard>
             </SummaryGrid>
 
+            <SectionTitle>Visual Insights</SectionTitle>
+            <VisualGrid>
+              <ChartCard>
+                <ChartTitle>User Role Mix</ChartTitle>
+                <Donut
+                  $private={privatePct}
+                  $merchant={merchantPct}
+                  title={`Private ${privatePct}% • Merchant ${merchantPct}%`}
+                >
+                  <span>{userTotal}</span>
+                  <small>Users</small>
+                </Donut>
+                <LegendRow>
+                  <LegendDot $color="#ff7a00" />
+                  <p>Private: {summary.privateCount || 0} ({privatePct}%)</p>
+                </LegendRow>
+                <LegendRow>
+                  <LegendDot $color="#1778f2" />
+                  <p>Merchant: {summary.merchantCount || 0} ({merchantPct}%)</p>
+                </LegendRow>
+              </ChartCard>
+
+              <ChartCard>
+                <ChartTitle>Wallet Distribution</ChartTitle>
+                <MetricLine>
+                  <span>Main Balance</span>
+                  <strong>{naira(mainBal)}</strong>
+                </MetricLine>
+                <ProgressTrack>
+                  <ProgressFill $width={mainPct} $color="#111" />
+                </ProgressTrack>
+                <MetricLine>
+                  <span>Reward Balance</span>
+                  <strong>{naira(rewardBal)}</strong>
+                </MetricLine>
+                <ProgressTrack>
+                  <ProgressFill $width={rewardPct} $color="#ff7a00" />
+                </ProgressTrack>
+                <MetricLine>
+                  <span>Total</span>
+                  <strong>{naira(balanceTotal)}</strong>
+                </MetricLine>
+              </ChartCard>
+
+              <ChartCard>
+                <ChartTitle>Verification Health</ChartTitle>
+                <BigPercent>{verifiedPct}%</BigPercent>
+                <ProgressTrack>
+                  <ProgressFill $width={verifiedPct} $color="#10b981" />
+                </ProgressTrack>
+                <MetricLine>
+                  <span>Verified</span>
+                  <strong>{summary.verifiedCount || 0}</strong>
+                </MetricLine>
+                <MetricLine>
+                  <span>Unverified</span>
+                  <strong>{summary.unverifiedCount || 0}</strong>
+                </MetricLine>
+              </ChartCard>
+            </VisualGrid>
+
             <SectionTitle>Top Buyer Ranks (Top 100)</SectionTitle>
             <RankList>
               {topBuyers.slice(0, 20).map((item) => (
@@ -318,6 +390,18 @@ const AdminScreen = () => {
                 </RankItem>
               ))}
             </RankList>
+            <BarChartCard>
+              <ChartTitle>Top Buyers Graph (Top 8)</ChartTitle>
+              {topBuyers.slice(0, 8).map((item) => (
+                <BarRow key={`buyers-graph-${item.userId}`}>
+                  <BarLabel>#{item.rank} {item.username}</BarLabel>
+                  <BarTrack>
+                    <BarFill $width={Math.max(5, Math.round((Number(item.dataBundleCount || 0) / buyerMax) * 100))} $color="#ff7a00" />
+                  </BarTrack>
+                  <BarValue>{item.dataBundleCount}</BarValue>
+                </BarRow>
+              ))}
+            </BarChartCard>
 
             <SectionTitle>Top Game Winner Ranks (Top 100)</SectionTitle>
             <RankList>
@@ -328,6 +412,18 @@ const AdminScreen = () => {
                 </RankItem>
               ))}
             </RankList>
+            <BarChartCard>
+              <ChartTitle>Top Winners Graph (Top 8)</ChartTitle>
+              {topWinners.slice(0, 8).map((item) => (
+                <BarRow key={`winners-graph-${item.userId}`}>
+                  <BarLabel>#{item.rank} {item.username}</BarLabel>
+                  <BarTrack>
+                    <BarFill $width={Math.max(5, Math.round((Number(item.totalWins || 0) / winnerMax) * 100))} $color="#1778f2" />
+                  </BarTrack>
+                  <BarValue>{item.totalWins}</BarValue>
+                </BarRow>
+              ))}
+            </BarChartCard>
 
             <SectionTitle>Users ({users.length})</SectionTitle>
             <UsersWrap>
@@ -703,6 +799,167 @@ const SummaryCard = styled.div`
     font-size: 12px;
     font-weight: 500;
   }
+`;
+
+const VisualGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  @media (max-width: 860px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const ChartCard = styled.div`
+  background: #fff;
+  border: 1px solid #ececec;
+  border-radius: 12px;
+  padding: 12px;
+`;
+
+const BarChartCard = styled(ChartCard)`
+  margin-top: 8px;
+`;
+
+const ChartTitle = styled.h3`
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 760;
+  color: #171717;
+`;
+
+const Donut = styled.div`
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 10px;
+  border-radius: 50%;
+  background: ${({ $private, $merchant }) =>
+    `conic-gradient(#ff7a00 0 ${$private}%, #1778f2 ${$private}% ${$private + $merchant}%, #ececec ${$private + $merchant}% 100%)`};
+  display: grid;
+  place-items: center;
+  position: relative;
+  &:before {
+    content: "";
+    position: absolute;
+    width: 74px;
+    height: 74px;
+    border-radius: 50%;
+    background: #fff;
+  }
+  span, small {
+    position: relative;
+    z-index: 1;
+  }
+  span {
+    font-size: 18px;
+    font-weight: 800;
+    line-height: 1;
+  }
+  small {
+    margin-top: -2px;
+    font-size: 11px;
+    color: #666;
+    font-weight: 600;
+  }
+`;
+
+const LegendRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  p {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 600;
+    color: #333;
+  }
+`;
+
+const LegendDot = styled.span`
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: ${({ $color }) => $color};
+`;
+
+const MetricLine = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 8px 0 5px;
+  gap: 8px;
+  span {
+    font-size: 12px;
+    color: #555;
+    font-weight: 600;
+  }
+  strong {
+    font-size: 13px;
+    color: #121212;
+    font-weight: 760;
+  }
+`;
+
+const BigPercent = styled.div`
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.1;
+  color: #111;
+`;
+
+const ProgressTrack = styled.div`
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: #eceff3;
+  overflow: hidden;
+`;
+
+const ProgressFill = styled.div`
+  width: ${({ $width }) => Math.max(0, Math.min(100, Number($width || 0)))}%;
+  height: 100%;
+  background: ${({ $color }) => $color || "#111"};
+  border-radius: inherit;
+  transition: width 260ms ease;
+`;
+
+const BarRow = styled.div`
+  display: grid;
+  grid-template-columns: minmax(80px, 130px) 1fr auto;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+`;
+
+const BarLabel = styled.span`
+  font-size: 12px;
+  color: #333;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const BarTrack = styled.div`
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: #eceff3;
+  overflow: hidden;
+`;
+
+const BarFill = styled.div`
+  width: ${({ $width }) => Math.max(0, Math.min(100, Number($width || 0)))}%;
+  height: 100%;
+  border-radius: inherit;
+  background: ${({ $color }) => $color || "#111"};
+`;
+
+const BarValue = styled.span`
+  font-size: 12px;
+  font-weight: 700;
+  color: #1d1d1d;
 `;
 
 const RankList = styled.div`
