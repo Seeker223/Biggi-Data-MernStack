@@ -496,6 +496,107 @@ const AdminScreen = () => {
               </DeleteSmall>
             </ModalActions>
 
+            <DetailVisualWrap>
+              <ChartTitle>User Snapshot</ChartTitle>
+              <MiniStats>
+                <MiniStat>
+                  <strong>{naira(selectedUser.balances?.totalBalance)}</strong>
+                  <span>Total Balance</span>
+                </MiniStat>
+                <MiniStat>
+                  <strong>{selectedUser.games?.totalGameWins || 0}</strong>
+                  <span>Total Wins</span>
+                </MiniStat>
+                <MiniStat>
+                  <strong>{selectedUser.games?.totalGameLosses || 0}</strong>
+                  <span>Total Losses</span>
+                </MiniStat>
+              </MiniStats>
+
+              <MetricLine>
+                <span>Main Balance</span>
+                <strong>{naira(selectedUser.balances?.mainBalance)}</strong>
+              </MetricLine>
+              <ProgressTrack>
+                <ProgressFill
+                  $width={Math.max(
+                    8,
+                    Math.min(
+                      100,
+                      (Number(selectedUser.balances?.mainBalance || 0) /
+                        Math.max(1, Number(selectedUser.balances?.totalBalance || 0))) *
+                        100
+                    )
+                  )}
+                  $color="#111"
+                />
+              </ProgressTrack>
+              <MetricLine>
+                <span>Reward Balance</span>
+                <strong>{naira(selectedUser.balances?.rewardBalance)}</strong>
+              </MetricLine>
+              <ProgressTrack>
+                <ProgressFill
+                  $width={Math.max(
+                    8,
+                    Math.min(
+                      100,
+                      (Number(selectedUser.balances?.rewardBalance || 0) /
+                        Math.max(1, Number(selectedUser.balances?.totalBalance || 0))) *
+                        100
+                    )
+                  )}
+                  $color="#ff7a00"
+                />
+              </ProgressTrack>
+
+              <ChartTitle style={{ marginTop: 10 }}>Game Performance</ChartTitle>
+              <BarRow>
+                <BarLabel>Wins</BarLabel>
+                <BarTrack>
+                  <BarFill
+                    $width={Math.max(
+                      8,
+                      Math.min(
+                        100,
+                        (Number(selectedUser.games?.totalGameWins || 0) /
+                          Math.max(
+                            1,
+                            Number(selectedUser.games?.totalGameWins || 0) +
+                              Number(selectedUser.games?.totalGameLosses || 0)
+                          )) *
+                          100
+                      )
+                    )}
+                    $color="#10b981"
+                  />
+                </BarTrack>
+                <BarValue>{selectedUser.games?.totalGameWins || 0}</BarValue>
+              </BarRow>
+              <BarRow>
+                <BarLabel>Losses</BarLabel>
+                <BarTrack>
+                  <BarFill
+                    $width={Math.max(
+                      8,
+                      Math.min(
+                        100,
+                        (Number(selectedUser.games?.totalGameLosses || 0) /
+                          Math.max(
+                            1,
+                            Number(selectedUser.games?.totalGameWins || 0) +
+                              Number(selectedUser.games?.totalGameLosses || 0)
+                          )) *
+                          100
+                      )
+                    )}
+                    $color="#ef4444"
+                  />
+                </BarTrack>
+                <BarValue>{selectedUser.games?.totalGameLosses || 0}</BarValue>
+              </BarRow>
+            </DetailVisualWrap>
+
             <ModalSection>
               <h4>Personal Info</h4>
               <p>Email: {selectedUser.personal?.email}</p>
@@ -1275,6 +1376,10 @@ const EditVisualWrap = styled.div`
   background: #fafafa;
   border-radius: 12px;
   padding: 10px;
+`;
+
+const DetailVisualWrap = styled(EditVisualWrap)`
+  margin-top: 10px;
 `;
 
 const VisualPillRow = styled.div`
