@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
-import { User, Settings, Headset, LogOut, ChevronRight, ReceiptText, Copy } from "lucide-react";
+import { User, Settings, Headset, LogOut, ChevronRight, ReceiptText, Copy, Shield } from "lucide-react";
 import FloatingBottomNav from "../../components/FloatingBottomNav";
 import { AuthContext } from "../../context/AuthContext";
 import {
@@ -112,6 +112,15 @@ const ProfileScreen = () => {
       label: "Support",
       onClick: () => navigate("/support"),
     },
+    ...(String(user?.role || "").toLowerCase() === "admin"
+      ? [
+          {
+            icon: <Shield size={20} color="#fff" />,
+            label: "Admin Dashboard",
+            onClick: () => navigate("/admin"),
+          },
+        ]
+      : []),
     {
       icon: <LogOut size={20} color="#fff" />,
       label: "Logout",

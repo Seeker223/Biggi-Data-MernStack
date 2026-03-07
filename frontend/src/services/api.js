@@ -541,6 +541,11 @@ export const getReferralStats = () => api.get("/user/referrals");
 export const generateReferralLink = () => api.post("/user/referrals/generate");
 
 // -----------------------------------------------------------
+// ADMIN
+// -----------------------------------------------------------
+export const getAdminDashboard = (params = {}) => api.get("/admin/dashboard", { params });
+
+// -----------------------------------------------------------
 // GAME ANALYTICS
 // -----------------------------------------------------------
 export const getGameAnalytics = (period = "monthly") =>
