@@ -7,6 +7,8 @@ import {
   Ticket, 
   Gamepad2, 
   Trophy, 
+  Shuffle,
+  Calendar,
   Bell, 
   RefreshCw, 
   Camera, 
@@ -495,7 +497,14 @@ const HomeScreen = () => {
               <GamepadIcon size={28} />
               <GameTitle>Weekly Number Picker Game</GameTitle>
               <GameSubtitle>
-                {FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "Win (prize hidden)" : "Win Weekly"}
+                <SubtitleRow>
+                  <SubtitleIcon as={Ticket} size={16} />
+                  <span>Uses 1 ticket per play</span>
+                </SubtitleRow>
+                <SubtitleRow>
+                  <SubtitleIcon as={Calendar} size={16} />
+                  <span>Results: month end</span>
+                </SubtitleRow>
               </GameSubtitle>
               <PlayBtn 
                 onClick={handleDailyGame} 
@@ -585,7 +594,12 @@ const HomeScreen = () => {
 
             {(isPrivateRole || isMerchantRole || !role) && (
               <TopRandomCard>
-                <TopRandomTitle>Top Random Monthly Picks</TopRandomTitle>
+                <TopRandomHeader>
+                  <TopRandomIconWrap>
+                    <Shuffle size={20} />
+                  </TopRandomIconWrap>
+                  <TopRandomTitle>Top Random Monthly Picks</TopRandomTitle>
+                </TopRandomHeader>
                 <TopRandomDesc>
                   10 random users who bought data this month win rewards.
                 </TopRandomDesc>
@@ -1481,14 +1495,30 @@ const GameTitle = styled.h3`
 
 const GameSubtitle = styled.p`
   color: rgba(255, 255, 255, 0.86);
-  font-size: 14px;
+  font-size: 13px;
   margin: 0 0 16px 0;
   text-align: center;
-  font-weight: 600;
+  font-weight: 650;
 
   @media (max-width: 480px) {
     font-size: 13px;
   }
+`;
+
+const SubtitleRow = styled.div`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 6px;
+`;
+
+const SubtitleIcon = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 178, 107, 0.95);
 `;
 
 const PlayBtn = styled.button`
@@ -1848,6 +1878,27 @@ const TopRandomTitle = styled.h3`
   font-size: 18px;
   font-weight: 800;
   text-align: center;
+`;
+
+const TopRandomHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 2px;
+`;
+
+const TopRandomIconWrap = styled.div`
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 122, 0, 0.14);
+  border: 1px solid rgba(255, 122, 0, 0.22);
+  color: #ff7a00;
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.22);
 `;
 
 const TopRandomDesc = styled.p`
