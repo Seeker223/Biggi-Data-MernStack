@@ -416,58 +416,74 @@ const HomeScreen = () => {
             </HeaderActions>
           </Header>
 
-          {/* WALLET CARD */}
-          <WalletCard>
-            <BalanceRow>
-              <div>
-                <BalanceLabel>Main Balance</BalanceLabel>
-                <Balance>N{mainBalance.toLocaleString()}</Balance>
-              </div>
-              <ActionButtons>
-                <ActionBtn onClick={goToDeposit}>
-                  <ActionText>Deposit</ActionText>
-                </ActionBtn>
-                <ActionBtn onClick={goToWithdraw}>
-                  <ActionText>Withdraw</ActionText>
-                </ActionBtn>
-              </ActionButtons>
-            </BalanceRow>
-            <Divider />
-            <BalanceRow>
-              <div>
-                <BalanceLabel>Redeem Balance</BalanceLabel>
-                <Balance>N{rewardBalance.toLocaleString()}</Balance>
-              </div>
-              <RedeemBtn 
-                onClick={goToRedeem} 
-                disabled={FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM}
-              >
-                <ActionText>Redeem</ActionText>
-              </RedeemBtn>
-            </BalanceRow>
-          </WalletCard>
+          <MosaicTop>
+            <MosaicLeft>
+              {/* WALLET CARD */}
+              <WalletCard>
+                <BalanceRow>
+                  <div>
+                    <BalanceLabel>Main Balance</BalanceLabel>
+                    <Balance>N{mainBalance.toLocaleString()}</Balance>
+                  </div>
+                  <ActionButtons>
+                    <ActionBtn
+                      onClick={goToDeposit}
+                      disabled={FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM}
+                    >
+                      <ActionText>Deposit</ActionText>
+                    </ActionBtn>
+                    <ActionBtn
+                      onClick={goToWithdraw}
+                      disabled={FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM}
+                    >
+                      <ActionText>Withdraw</ActionText>
+                    </ActionBtn>
+                  </ActionButtons>
+                </BalanceRow>
+                <Divider />
+                <BalanceRow>
+                  <div>
+                    <BalanceLabel>Redeem Balance</BalanceLabel>
+                    <Balance>N{rewardBalance.toLocaleString()}</Balance>
+                  </div>
+                  <RedeemBtn
+                    onClick={goToRedeem}
+                    disabled={FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM}
+                  >
+                    <ActionText>Redeem</ActionText>
+                  </RedeemBtn>
+                </BalanceRow>
+              </WalletCard>
+            </MosaicLeft>
 
-          <StatsContainer>
-            <StatCard>
-              <Wifi size={22} color="#ff7a00" />
-              <StatValue>{dataBundleCount}</StatValue>
-              <StatLabel>Bundles Purchased</StatLabel>
-            </StatCard>
-            <StatCard>
-              <Wallet size={22} color="#ff7a00" />
-              <StatValue>N{totalSavings.toLocaleString()}</StatValue>
-              <StatLabel>Total Savings</StatLabel>
-            </StatCard>
-          </StatsContainer>
+            <MosaicRight>
+              <StatsContainer $mosaic>
+                <StatCard>
+                  <Wifi size={22} color="#ff7a00" />
+                  <StatValue>{dataBundleCount}</StatValue>
+                  <StatLabel>Bundles Purchased</StatLabel>
+                </StatCard>
+                <StatCard>
+                  <Wallet size={22} color="#ff7a00" />
+                  <StatValue>N{totalSavings.toLocaleString()}</StatValue>
+                  <StatLabel>Total Savings</StatLabel>
+                </StatCard>
+              </StatsContainer>
 
-          {/* TICKETS */}
-          <TicketText>
-            Available Tickets:{" "}
-            <TicketCount>{tickets}</TicketCount>
-          </TicketText>
-          <InfoText>
-            Buy Any Bundle to Unlock Weekly Game{isMerchantRole ? " + Monthly Raffle Tickets" : " + Top Random Picks"}
-          </InfoText>
+              {/* TICKETS */}
+              <TicketInfoBlock>
+                <TicketText>
+                  Available Tickets: <TicketCount>{tickets}</TicketCount>
+                </TicketText>
+                <InfoText>
+                  Buy Any Bundle to Unlock Weekly Game
+                  {isMerchantRole
+                    ? " + Monthly Raffle Tickets"
+                    : " + Top Random Picks"}
+                </InfoText>
+              </TicketInfoBlock>
+            </MosaicRight>
+          </MosaicTop>
 
           {/* CONTENT SECTION */}
           <ContentSection>
@@ -915,6 +931,10 @@ const ContentContainer = styled.div`
   position: relative;
   background: #000;
   min-height: 100vh;
+
+  @media (min-width: 960px) {
+    max-width: 1120px;
+  }
 `;
 
 const LoadingContainer = styled.div`
@@ -944,6 +964,11 @@ const ScrollContainer = styled.div`
   min-height: 100vh;
   width: 100%;
   padding-top: 4px;
+
+  @media (min-width: 960px) {
+    padding-top: 14px;
+    padding-bottom: 40px;
+  }
 `;
 
 const Header = styled.div`
@@ -953,6 +978,10 @@ const Header = styled.div`
   margin: 18px 0 20px 0;
   padding: 0 16px;
   width: 100%;
+
+  @media (min-width: 960px) {
+    padding: 0 28px;
+  }
 `;
 
 const UserInfo = styled.div`
@@ -1129,6 +1158,11 @@ const WalletCard = styled.div`
   animation: ${fadeInUp} 0.8s ease-out;
   box-shadow: 0 8px 24px rgba(255, 165, 0, 0.3);
   width: 100%;
+
+  @media (min-width: 960px) {
+    margin: 0;
+    border-radius: 20px;
+  }
 `;
 
 const BalanceRow = styled.div`
@@ -1243,6 +1277,11 @@ const TicketText = styled.div`
   @media (max-width: 480px) {
     font-size: 15px;
   }
+
+  @media (min-width: 960px) {
+    text-align: left;
+    margin: 0 0 8px 0;
+  }
 `;
 
 const TicketCount = styled.span`
@@ -1259,6 +1298,50 @@ const InfoText = styled.div`
 
   @media (max-width: 480px) {
     font-size: 13px;
+  }
+
+  @media (min-width: 960px) {
+    text-align: left;
+    margin: 0 0 8px 0;
+  }
+`;
+
+const MosaicTop = styled.div`
+  width: 100%;
+  display: block;
+
+  @media (min-width: 960px) {
+    display: grid;
+    grid-template-columns: 1.25fr 0.75fr;
+    gap: 18px;
+    padding: 0 28px;
+    align-items: start;
+  }
+`;
+
+const MosaicLeft = styled.div`
+  width: 100%;
+`;
+
+const MosaicRight = styled.div`
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  @media (max-width: 959px) {
+    gap: 0;
+  }
+`;
+
+const TicketInfoBlock = styled.div`
+  width: 100%;
+
+  @media (min-width: 960px) {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 122, 0, 0.12);
+    border-radius: 16px;
+    padding: 14px 14px 6px;
   }
 `;
 
@@ -1280,6 +1363,18 @@ const ContentSection = styled.div`
     border-top-left-radius: 34px;
     border-top-right-radius: 34px;
   }
+
+  @media (min-width: 960px) {
+    margin-top: 26px;
+    border-radius: 28px;
+    padding: 28px;
+    max-width: 1064px;
+    margin-left: auto;
+    margin-right: auto;
+    display: grid;
+    grid-template-columns: 1.2fr 0.8fr;
+    gap: 18px;
+  }
 `;
 
 const BundleCard = styled.div`
@@ -1299,6 +1394,11 @@ const BundleCard = styled.div`
     flex-direction: column;
     gap: 16px;
     padding: 16px;
+  }
+
+  @media (min-width: 960px) {
+    margin: 0;
+    grid-column: 1 / -1;
   }
 `;
 
@@ -1571,6 +1671,10 @@ const GameCard = styled.div`
   @media (max-width: 480px) {
     padding: 16px;
   }
+
+  @media (min-width: 960px) {
+    margin: 0;
+  }
 `;
 
 const GamepadIcon = styled(Gamepad2)`
@@ -1689,6 +1793,10 @@ const MonthlyGameCard = styled.div`
 
   @media (max-width: 480px) {
     padding: 16px;
+  }
+
+  @media (min-width: 960px) {
+    margin: 0;
   }
 `;
 
@@ -1922,6 +2030,16 @@ const StatsContainer = styled.div`
   gap: 12px;
   padding: 0 16px;
   margin: 2px 0 10px;
+
+  @media (min-width: 960px) {
+    padding: ${(props) => (props.$mosaic ? "0" : "0 28px")};
+  }
+
+  ${(props) =>
+    props.$mosaic &&
+    css`
+      margin: 0;
+    `}
 `;
 
 const StatCard = styled.div`
@@ -1967,6 +2085,11 @@ const TopRandomCard = styled.div`
       transparent 62%
     );
     pointer-events: none;
+  }
+
+  @media (min-width: 960px) {
+    margin: 0;
+    grid-column: 1 / -1;
   }
 `;
 
