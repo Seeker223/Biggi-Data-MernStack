@@ -417,7 +417,7 @@ const HomeScreen = () => {
             <BalanceRow>
               <div>
                 <BalanceLabel>Main Balance</BalanceLabel>
-                <Balance>â‚¦{mainBalance.toLocaleString()}</Balance>
+                <Balance>N{mainBalance.toLocaleString()}</Balance>
               </div>
               <ActionButtons>
                 <ActionBtn onClick={goToDeposit}>
@@ -432,7 +432,7 @@ const HomeScreen = () => {
             <BalanceRow>
               <div>
                 <BalanceLabel>Redeem Balance</BalanceLabel>
-                <Balance>â‚¦{rewardBalance.toLocaleString()}</Balance>
+                <Balance>N{rewardBalance.toLocaleString()}</Balance>
               </div>
               <RedeemBtn 
                 onClick={goToRedeem} 
@@ -458,11 +458,11 @@ const HomeScreen = () => {
 
           {/* TICKETS */}
           <TicketText>
-            ðŸŽ« Available Tickets:{" "}
+            Available Tickets:{" "}
             <TicketCount>{tickets}</TicketCount>
           </TicketText>
           <InfoText>
-            âœ… Buy Any Bundle â†’ Unlock Weekly Game{isMerchantRole ? " + Monthly Raffle Tickets" : " + Top Random Picks"}
+            Buy Any Bundle to Unlock Weekly Game{isMerchantRole ? " + Monthly Raffle Tickets" : " + Top Random Picks"}
           </InfoText>
 
           {/* CONTENT SECTION */}
@@ -541,7 +541,7 @@ const HomeScreen = () => {
                 <ProgressContainer>
                   <ProgressLabels>
                     <ProgressText>
-                      {monthlyEligibility.purchases} purchases â€¢{" "}
+                      {monthlyEligibility.purchases} purchases -{" "}
                       {monthlyEligibility.raffleTicketsTotal} ticket
                       {monthlyEligibility.raffleTicketsTotal === 1 ? "" : "s"}
                     </ProgressText>
@@ -777,7 +777,7 @@ const HomeScreen = () => {
               <ModalTitle>Referral Reward</ModalTitle>
               <ModalMsg>{referralWinModalData.message}</ModalMsg>
               {referralWinModalData.amount !== null && (
-                <ModalMsg>â‚¦{Number(referralWinModalData.amount).toLocaleString()} added to reward balance.</ModalMsg>
+              <ModalMsg>N{Number(referralWinModalData.amount).toLocaleString()} added to reward balance.</ModalMsg>
               )}
               <ModalBtn
                 onClick={() => {
