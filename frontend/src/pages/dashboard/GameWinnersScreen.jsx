@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { AuthContext } from "../../context/AuthContext";
 import { FEATURE_FLAGS } from "../../constants/featureFlags";
-import { claimDailyReward, getMonthlyWinners } from "../../services/api";
+import { claimDailyReward, getMonthlyWinners, getWeeklyWinners } from "../../services/api";
 import { toLetters } from "../../utils/drawLetters";
 
 export default function GameWinnersScreen() {
@@ -22,7 +22,6 @@ export default function GameWinnersScreen() {
   const [successVisible, setSuccessVisible] = useState(false);
   const [claiming, setClaiming] = useState(false);
   const [lastClaimAmount, setLastClaimAmount] = useState(0);
-  const [claimFallbackInfo, setClaimFallbackInfo] = useState(false);
   const [monthlyLimitHit, setMonthlyLimitHit] = useState(false);
   const [infoModal, setInfoModal] = useState({
     visible: false,
@@ -45,6 +44,8 @@ export default function GameWinnersScreen() {
   });
   const [monthlyRanks, setMonthlyRanks] = useState([]);
   const [monthlyBoardMonth, setMonthlyBoardMonth] = useState("");
+  const [weeklyWinners, setWeeklyWinners] = useState([]);
+  const [weeklyBoardMonth, setWeeklyBoardMonth] = useState("");
 
   useEffect(() => {
     if (!user) return;
@@ -93,6 +94,47 @@ export default function GameWinnersScreen() {
     };
   }, []);
 
+  useEffect(() => {
+    let mounted = true;
+    const now = new Date();
+    const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    setWeeklyBoardMonth(month);
+
+    const loadWeeklyBoard = async () => {
+      try {
+        const res = await getWeeklyWinners(month);
+        if (!mounted) return;
+        const list = Array.isArray(res?.data?.winners) ? res.data.winners : [];
+        const normalized = list.map((item, idx) => ({
+          name: item.username || "Player",
+          id: String(item.userId || idx),
+          gameId: item.gameId || null,
+          type: "weekly",
+          amount: FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "-" : "N10,000",
+          date: item.createdAt
+            ? new Date(item.createdAt).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : "—",
+          numbers: toLetters(item.numbers),
+          result: toLetters(item.result),
+          claimed: Boolean(item.claimed),
+        }));
+        setWeeklyWinners(normalized);
+      } catch (error) {
+        if (mounted) setWeeklyWinners([]);
+      }
+    };
+
+    loadWeeklyBoard();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const userWins = useMemo(
     () =>
       (user?.dailyNumberDraw || [])
@@ -117,36 +159,7 @@ export default function GameWinnersScreen() {
   );
 
 
-  const dailyWinners = [
-    {
-      name: "Alex Johnson",
-      id: "123456",
-      type: "weekly",
-      amount: FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "-" : "N10,000",
-      date: "This Week",
-      numbers: ["A", "F", "M", "Q", "z"],
-    },
-    {
-      name: "Sarah Williams",
-      id: "234567",
-      type: "weekly",
-      amount: FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "-" : "N10,000",
-      date: "Last Week",
-      numbers: ["C", "R", "X", "g", "p"],
-    },
-    {
-      name: "Emma Davis",
-      id: "456789",
-      type: "weekly",
-      amount: FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "-" : "N10,000",
-      date: "2 Weeks Ago",
-      numbers: ["K", "O", "U", "d", "y"],
-    },
-    ...userWins,
-  ];
-
-  const winners =
-    activeTab === "daily" ? dailyWinners.slice(0, 10) : monthlyRanks;
+  const winners = activeTab === "daily" ? weeklyWinners : monthlyRanks;
   const claimableWins = userWins.filter((win) => !win.claimed && win.gameId);
 
   const handleClaim = async () => {
@@ -211,7 +224,6 @@ export default function GameWinnersScreen() {
 
         await refreshUser?.();
         setLastClaimAmount(totalClaimed);
-        setClaimFallbackInfo(false);
         setMonthlyLimitHit(limitHit);
         if (totalClaimed > 0) {
           setSuccessVisible(true);
@@ -224,33 +236,20 @@ export default function GameWinnersScreen() {
           });
         }
       } catch (error) {
-        const status = error?.response?.status;
         const errorMessage =
           error?.response?.data?.message ||
           error?.response?.data?.error ||
           error?.message ||
           "";
 
-        const isClaimRouteMissing =
-          status === 404 ||
-          /cannot post|not found|route/i.test(errorMessage);
-
-        if (isClaimRouteMissing) {
-          await refreshUser?.();
-          setLastClaimAmount(0);
-          setClaimFallbackInfo(true);
-          setSuccessVisible(true);
-        } else {
-          setInfoModal({
-            visible: true,
-            title: /only one weekly reward per month/i.test(errorMessage)
-              ? "Monthly Claim Limit"
-              : "Claim Failed",
-            message:
-              errorMessage || "Failed to claim reward(s). Please try again.",
-            buttonText: "Close",
-          });
-        }
+        setInfoModal({
+          visible: true,
+          title: /only one weekly reward per month/i.test(errorMessage)
+            ? "Monthly Claim Limit"
+            : "Claim Failed",
+          message: errorMessage || "Failed to claim reward(s). Please try again.",
+          buttonText: "Close",
+        });
       } finally {
         setClaiming(false);
       }
@@ -258,10 +257,12 @@ export default function GameWinnersScreen() {
     }
 
     if (userWins.length > 0) {
-      await refreshUser?.();
-      setLastClaimAmount(0);
-      setClaimFallbackInfo(true);
-      setSuccessVisible(true);
+      setInfoModal({
+        visible: true,
+        title: "No Unclaimed Rewards",
+        message: "You have no unclaimed weekly rewards at the moment.",
+        buttonText: "Close",
+      });
       return;
     }
 
@@ -431,8 +432,6 @@ export default function GameWinnersScreen() {
             <ModalMessage>
               {FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM
                 ? "Rewards have been added to your reward balance."
-                : claimFallbackInfo || lastClaimAmount <= 0
-                ? "Rewards are processed automatically after draw. Please check your redeem balance."
                 : `N${lastClaimAmount.toLocaleString()} has been added to your reward balance.`}
             </ModalMessage>
             <ModalSubText>

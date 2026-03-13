@@ -431,6 +431,9 @@ export const getUserGameStats = async () => {
 export const claimDailyReward = (gameId) =>
   api.post("/daily-game/claim", { gameId });
 
+export const getWeeklyWinners = (month) =>
+  api.get("/daily-game/winners", month ? { params: { month } } : {});
+
 export const claimMonthlyReward = (month) =>
   api.post("/monthly-game/claim", { month });
 
