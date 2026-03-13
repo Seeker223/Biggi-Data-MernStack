@@ -19,7 +19,6 @@ import {
   Wallet,
   LogOut,
   User,
-  Download
 } from 'lucide-react';
 
 import FloatingBottomNav from '../../components/FloatingBottomNav';
@@ -30,7 +29,6 @@ import { getMonthlyEligibility, updateAvatar } from '../../services/api';
 
 const HomeScreen = () => {
   const navigate = useNavigate();
-  const appDownloadUrl = import.meta.env.VITE_APP_DOWNLOAD_URL || "";
   const DEFAULT_AVATAR = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
   const { 
     user, 
@@ -230,17 +228,7 @@ const HomeScreen = () => {
     navigate('/notifications');
   };
 
-  const handleDownloadApp = () => {
-    if (!appDownloadUrl) {
-      showPermissionModal(
-        "Download Link Missing",
-        "Set VITE_APP_DOWNLOAD_URL in frontend env to enable app download.",
-        "info"
-      );
-      return;
-    }
-    window.open(appDownloadUrl, "_blank", "noopener,noreferrer");
-  };
+  // Download app button intentionally hidden on the website UI.
 
   const handleDailyGame = () => {
     if (FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM) return;
@@ -408,11 +396,6 @@ const HomeScreen = () => {
             </UserInfo>
             
             <HeaderActions>
-              <DownloadAppButton onClick={handleDownloadApp}>
-                <Download size={14} />
-                <DownloadAppText>Download App</DownloadAppText>
-              </DownloadAppButton>
-
               {/* NOTIFICATION BELL WITH BADGE */}
               <BellButton onClick={goToNotification}>
                 <BellContainer>
@@ -529,6 +512,16 @@ const HomeScreen = () => {
                 <MonthlyHeader>
                   <TrophyIcon size={24} />
                   <MonthlyTitle>Monthly Draw</MonthlyTitle>
+                  <RaffleTicketPill aria-label="Monthly raffle tickets">
+                    <RaffleTicketGlow />
+                    <RaffleTicketIcon size={16} />
+                    <RaffleTicketText>Tickets</RaffleTicketText>
+                    <RaffleTicketBadge>
+                      {monthlyEligibility.raffleTicketsUnplayed > 99
+                        ? "99+"
+                        : monthlyEligibility.raffleTicketsUnplayed}
+                    </RaffleTicketBadge>
+                  </RaffleTicketPill>
                   {monthlyEligibility.isEligible && (
                     <EligibleBadge>
                       <EligibleText>
@@ -743,7 +736,9 @@ const HomeScreen = () => {
             <ModalBox>
               <Info size={42} color="#FF7A00" />
               <ModalTitle>Complete Your Profile</ModalTitle>
-              <ModalMsg>Please choose your state to continue using Biggi Data.</ModalMsg>
+              <ModalMsg>
+                Please select the state you live in. This helps us serve you better.
+              </ModalMsg>
               <ModalBtn onClick={() => navigate("/edit-profile")}>
                 <ModalBtnText>Set State</ModalBtnText>
               </ModalBtn>
@@ -760,7 +755,10 @@ const HomeScreen = () => {
             <ModalBox>
               <Info size={42} color="#FF7A00" />
               <ModalTitle>Referral Code</ModalTitle>
-              <ModalMsg>Please provide your invitation referral code.</ModalMsg>
+              <ModalMsg>
+                If someone invited you, enter their referral code. If not, you can leave it
+                empty for now.
+              </ModalMsg>
               <ModalBtn onClick={() => navigate("/edit-profile")}>
                 <ModalBtnText>Enter Code</ModalBtnText>
               </ModalBtn>
@@ -1529,6 +1527,60 @@ const TrophyIcon = styled(Trophy)`
   color: #FFD700;
 `;
 
+const RaffleTicketPill = styled.div`
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 999px;
+  background: rgba(15, 25, 18, 0.7);
+  border: 1px solid rgba(76, 175, 80, 0.45);
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.22);
+  overflow: hidden;
+`;
+
+const RaffleTicketGlow = styled.div`
+  position: absolute;
+  inset: -20px;
+  background: radial-gradient(
+    circle at 30% 30%,
+    rgba(76, 175, 80, 0.35),
+    transparent 55%
+  );
+  pointer-events: none;
+`;
+
+const RaffleTicketIcon = styled(Ticket)`
+  position: relative;
+  color: #4caf50;
+  filter: drop-shadow(0 0 10px rgba(76, 175, 80, 0.4));
+`;
+
+const RaffleTicketText = styled.span`
+  position: relative;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+`;
+
+const RaffleTicketBadge = styled.span`
+  position: relative;
+  min-width: 28px;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(76, 175, 80, 0.18);
+  border: 1px solid rgba(76, 175, 80, 0.5);
+  color: #dff6e5;
+  font-size: 12px;
+  font-weight: 900;
+`;
+
 const MonthlyTitle = styled.h3`
   color: #fff;
   font-size: 18px;
@@ -1793,6 +1845,8 @@ const ModalBox = styled.div`
   align-items: center;
   animation: slideUp 0.3s ease-out;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  text-rendering: optimizeLegibility;
 
   @keyframes slideUp {
     from {
@@ -1813,32 +1867,36 @@ const ModalBox = styled.div`
 `;
 
 const ModalTitle = styled.h2`
-  font-weight: bold;
-  font-size: 20px;
-  margin: 16px 0 8px 0;
+  font-weight: 900;
+  font-size: 22px;
+  margin: 16px 0 10px 0;
   text-align: center;
-  color: #000;
+  color: #111;
+  letter-spacing: 0.2px;
 
   @media (max-width: 480px) {
-    font-size: 18px;
+    font-size: 20px;
   }
 `;
 
 const ModalMsg = styled.p`
   text-align: center;
   margin: 12px 0 20px 0;
-  color: #444;
-  line-height: 22px;
+  color: #2b2b2b;
+  line-height: 1.55;
   font-size: 15px;
+  max-width: 320px;
+  white-space: pre-line;
 
   @media (max-width: 480px) {
     font-size: 14px;
-    line-height: 20px;
+    line-height: 1.5;
   }
 `;
 
 const ModalBtn = styled.button`
-  background-color: ${props => props.$color || props.$secondary ? '#999' : '#FF7A00'};
+  background-color: ${(props) =>
+    props.$color ? props.$color : props.$secondary ? "#999" : "#FF7A00"};
   border-radius: 10px;
   padding: 14px 28px;
   margin-top: 8px;
