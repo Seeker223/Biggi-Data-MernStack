@@ -1412,16 +1412,49 @@ const BundleDesc = styled.p`
 `;
 
 const GameCard = styled.div`
-  background: linear-gradient(135deg, #222 0%, #333 100%);
-  border-radius: 16px;
+  position: relative;
+  background: linear-gradient(180deg, #1b1b1b 0%, #0f0f0f 100%);
+  border-radius: 18px;
   padding: 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
   margin: 0 0 20px 0;
   animation: ${fadeInUp} 0.7s ease-out 0.2s both;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-  border: 1px solid #444;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.38);
+  border: 1px solid rgba(255, 122, 0, 0.22);
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: -40px -40px auto auto;
+    width: 180px;
+    height: 180px;
+    background: radial-gradient(
+      circle at 30% 30%,
+      rgba(255, 122, 0, 0.35),
+      transparent 60%
+    );
+    pointer-events: none;
+  }
+
+  &::after {
+    content: "";
+    position: absolute;
+    left: 14px;
+    right: 14px;
+    top: 14px;
+    height: 2px;
+    background: linear-gradient(
+      90deg,
+      rgba(255, 122, 0, 0.0),
+      rgba(255, 122, 0, 0.75),
+      rgba(255, 122, 0, 0.0)
+    );
+    opacity: 0.7;
+    pointer-events: none;
+  }
 
   @media (max-width: 480px) {
     padding: 16px;
@@ -1429,8 +1462,9 @@ const GameCard = styled.div`
 `;
 
 const GamepadIcon = styled(Gamepad2)`
-  color: #fff;
+  color: #ff7a00;
   margin-bottom: 12px;
+  filter: drop-shadow(0 0 12px rgba(255, 122, 0, 0.35));
 `;
 
 const GameTitle = styled.h3`
@@ -1446,7 +1480,7 @@ const GameTitle = styled.h3`
 `;
 
 const GameSubtitle = styled.p`
-  color: #FFD700;
+  color: rgba(255, 255, 255, 0.86);
   font-size: 14px;
   margin: 0 0 16px 0;
   text-align: center;
@@ -1499,15 +1533,31 @@ const PlayText = styled.span`
 `;
 
 const MonthlyGameCard = styled.div`
-  background: linear-gradient(135deg, #2B006A 0%, #4A00A3 100%);
-  border-radius: 16px;
+  position: relative;
+  background: linear-gradient(180deg, #1b1b1b 0%, #0f0f0f 100%);
+  border-radius: 18px;
   padding: 20px;
   animation: ${fadeInUp} 0.7s ease-out 0.3s both;
   ${props => props.$pulse && css`
     animation: ${pulse} 1.5s ease-in-out infinite, ${fadeInUp} 0.7s ease-out 0.3s both;
   `}
-  box-shadow: 0 8px 24px rgba(43, 0, 106, 0.3);
-  border: 1px solid #5A00C3;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.38);
+  border: 1px solid rgba(255, 122, 0, 0.22);
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: -60px auto auto -60px;
+    width: 220px;
+    height: 220px;
+    background: radial-gradient(
+      circle at 40% 40%,
+      rgba(255, 122, 0, 0.30),
+      transparent 62%
+    );
+    pointer-events: none;
+  }
 
   @media (max-width: 480px) {
     padding: 16px;
@@ -1524,7 +1574,8 @@ const MonthlyHeader = styled.div`
 `;
 
 const TrophyIcon = styled(Trophy)`
-  color: #FFD700;
+  color: #ffb26b;
+  filter: drop-shadow(0 0 10px rgba(255, 122, 0, 0.25));
 `;
 
 const RaffleTicketPill = styled.div`
@@ -1608,7 +1659,7 @@ const EligibleText = styled.span`
 `;
 
 const MonthlyPrize = styled.h1`
-  color: #FFD700;
+  color: #ff7a00;
   font-size: 32px;
   font-weight: 900;
   text-align: center;
@@ -1657,7 +1708,7 @@ const ProgressText = styled.span`
 `;
 
 const ProgressPercent = styled.span`
-  color: #FFD700;
+  color: #ffb26b;
   font-size: 13px;
   font-weight: 700;
 
@@ -1705,14 +1756,21 @@ const MonthlyBtn = styled.button`
   transition: all 0.2s;
   width: 100%;
   gap: 8px;
-  background-color: ${props => props.$eligible ? '#4CAF50' : '#8E2DE2'};
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  background-color: ${props => (props.$eligible ? "#2ea44f" : "#ff7a00")};
+  box-shadow: ${props =>
+    props.$eligible
+      ? "0 10px 22px rgba(46, 164, 79, 0.25)"
+      : "0 10px 22px rgba(255, 122, 0, 0.25)"};
 
   &:hover {
     opacity: ${props => (props.$locked ? 0.7 : 0.9)};
     transform: ${props => (props.$locked ? "none" : "translateY(-1px)")};
     box-shadow: ${props =>
-      props.$locked ? "0 4px 16px rgba(0, 0, 0, 0.2)" : "0 6px 20px rgba(0, 0, 0, 0.3)"};
+      props.$locked
+        ? "0 10px 22px rgba(0, 0, 0, 0.2)"
+        : props.$eligible
+        ? "0 14px 28px rgba(46, 164, 79, 0.28)"
+        : "0 14px 28px rgba(255, 122, 0, 0.28)"};
   }
 
   &:active {
@@ -1761,10 +1819,27 @@ const StatLabel = styled.div`
 
 const TopRandomCard = styled.div`
   margin-top: 16px;
-  background: linear-gradient(135deg, #0f766e 0%, #0ea5a4 100%);
-  border-radius: 16px;
+  position: relative;
+  background: linear-gradient(180deg, #1b1b1b 0%, #0f0f0f 100%);
+  border-radius: 18px;
   padding: 18px;
-  box-shadow: 0 8px 24px rgba(15, 118, 110, 0.28);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.38);
+  border: 1px solid rgba(255, 122, 0, 0.22);
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: auto -50px -50px auto;
+    width: 220px;
+    height: 220px;
+    background: radial-gradient(
+      circle at 30% 30%,
+      rgba(255, 122, 0, 0.28),
+      transparent 62%
+    );
+    pointer-events: none;
+  }
 `;
 
 const TopRandomTitle = styled.h3`
@@ -1777,7 +1852,7 @@ const TopRandomTitle = styled.h3`
 
 const TopRandomDesc = styled.p`
   margin: 10px 0 14px;
-  color: rgba(255, 255, 255, 0.92);
+  color: rgba(255, 255, 255, 0.86);
   text-align: center;
   font-size: 14px;
   line-height: 1.45;
@@ -1788,8 +1863,8 @@ const TopRandomBtn = styled.button`
   border: none;
   border-radius: 10px;
   padding: 13px;
-  background: #ffffff;
-  color: #0f766e;
+  background: ${props => (props.$locked ? "#999" : "#ff7a00")};
+  color: #fff;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
@@ -1797,10 +1872,14 @@ const TopRandomBtn = styled.button`
   gap: 8px;
   cursor: ${props => (props.$locked ? "not-allowed" : "pointer")};
   opacity: ${props => (props.$locked ? 0.7 : 1)};
-  transition: transform 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: ${props =>
+    props.$locked ? "none" : "0 10px 22px rgba(255, 122, 0, 0.22)"};
 
   &:hover {
     transform: ${props => (props.$locked ? "none" : "translateY(-1px)")};
+    box-shadow: ${props =>
+      props.$locked ? "none" : "0 14px 28px rgba(255, 122, 0, 0.28)"};
   }
 `;
 
