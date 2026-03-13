@@ -21,6 +21,7 @@
     "file-saver": "^2.0.5",
     "framer-motion": "^12.33.0",
     "localforage": "^1.10.0",
+    "lottie-react": "^2.4.1",
     "lucide-react": "^0.563.0",
     "react": "^19.2.0",
     "react-confetti": "^6.4.0",

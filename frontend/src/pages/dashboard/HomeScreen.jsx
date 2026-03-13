@@ -22,6 +22,8 @@ import {
   LogOut,
   User,
 } from 'lucide-react';
+import Lottie from "lottie-react";
+import specialTicketAnim from "../../assets/lottie/special-ticket.json";
 
 import FloatingBottomNav from '../../components/FloatingBottomNav';
 import BrandLoader from '../../components/BrandLoader';
@@ -481,13 +483,35 @@ const HomeScreen = () => {
               </BundleLeft>
               <DividerVertical />
               <BundleRight>
-                <TicketIconContainer>
-                  <TicketGlow />
-                  <TicketIcon size={26} />
-                  <TicketBadge>
-                    <TicketBadgeText>{tickets}</TicketBadgeText>
-                  </TicketBadge>
-                </TicketIconContainer>
+                <TicketIconsRow>
+                  <TicketIconContainer aria-label="Weekly game tickets">
+                    <TicketGlow />
+                    <TicketIcon size={26} />
+                    <TicketBadge>
+                      <TicketBadgeText>{tickets}</TicketBadgeText>
+                    </TicketBadge>
+                  </TicketIconContainer>
+
+                  <SpecialTicketIconContainer aria-label="Monthly raffle tickets">
+                    <SpecialTicketGlow />
+                    <LottieWrap aria-hidden="true">
+                      <Lottie
+                        animationData={specialTicketAnim}
+                        loop
+                        autoplay
+                        style={{ width: 40, height: 40 }}
+                      />
+                    </LottieWrap>
+                    <SpecialTicketIcon size={22} />
+                    <SpecialTicketBadge>
+                      <SpecialTicketBadgeText>
+                        {monthlyEligibility.raffleTicketsUnplayed > 99
+                          ? "99+"
+                          : monthlyEligibility.raffleTicketsUnplayed}
+                      </SpecialTicketBadgeText>
+                    </SpecialTicketBadge>
+                  </SpecialTicketIconContainer>
+                </TicketIconsRow>
                 <BundleDesc>Use tickets for Weekly Draw. Earn raffle tickets for Monthly Draw.</BundleDesc>
               </BundleRight>
             </BundleCard>
@@ -1368,6 +1392,14 @@ const BundleRight = styled.div`
   }
 `;
 
+const TicketIconsRow = styled.div`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 12px;
+`;
+
 const TicketIconContainer = styled.div`
   position: relative;
   width: 40px;
@@ -1411,6 +1443,72 @@ const TicketBadge = styled.div`
 const TicketBadgeText = styled.span`
   color: #fff;
   font-weight: bold;
+  font-size: 13px;
+`;
+
+const SpecialTicketIconContainer = styled.div`
+  position: relative;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(255, 122, 0, 0.32);
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.18);
+`;
+
+const SpecialTicketGlow = styled.div`
+  position: absolute;
+  width: 46px;
+  height: 46px;
+  border-radius: 23px;
+  background: radial-gradient(
+    circle at 30% 30%,
+    rgba(255, 122, 0, 0.35),
+    rgba(255, 178, 107, 0.10) 55%,
+    transparent 72%
+  );
+  animation: ${ticketGlowAnim} 1.8s ease-in-out infinite;
+`;
+
+const LottieWrap = styled.div`
+  position: absolute;
+  inset: -2px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.9;
+  pointer-events: none;
+`;
+
+const SpecialTicketIcon = styled(Ticket)`
+  position: relative;
+  z-index: 2;
+  color: #ff7a00;
+  filter: drop-shadow(0 0 10px rgba(255, 122, 0, 0.35));
+`;
+
+const SpecialTicketBadge = styled.div`
+  position: absolute;
+  top: -10px;
+  right: -12px;
+  background-color: #111;
+  border-radius: 12px;
+  padding: 4px 8px;
+  min-width: 28px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 122, 0, 0.55);
+`;
+
+const SpecialTicketBadgeText = styled.span`
+  color: #ffb26b;
+  font-weight: 900;
   font-size: 13px;
 `;
 
