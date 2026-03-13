@@ -1,4 +1,4 @@
-// frontend/src/pages/dashboard/HomeScreen.jsx
+﻿// frontend/src/pages/dashboard/HomeScreen.jsx
 import React, { useContext, useCallback, useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled, { keyframes, css } from 'styled-components';
@@ -26,7 +26,7 @@ import FloatingBottomNav from '../../components/FloatingBottomNav';
 import BrandLoader from '../../components/BrandLoader';
 import { AuthContext } from '../../context/AuthContext';
 import { FEATURE_FLAGS } from '../../constants/featureFlags';
-import { updateAvatar } from '../../services/api';
+import { getMonthlyEligibility, updateAvatar } from '../../services/api';
 
 const HomeScreen = () => {
   const navigate = useNavigate();
@@ -55,7 +55,10 @@ const HomeScreen = () => {
     required: 5,
     progress: 0,
     daysLeft: 0,
-    isEligible: false
+    isEligible: false,
+    raffleTicketsTotal: 0,
+    raffleTicketsUnplayed: 0,
+    raffleTicketsPlayed: 0,
   });
 
   // Modal states
@@ -90,9 +93,35 @@ const HomeScreen = () => {
     refreshUser();
   }, []);
 
+  const loadMonthlyEligibility = useCallback(async () => {
+    try {
+      const res = await getMonthlyEligibility();
+      const e = res?.data?.eligibility || {};
+      const purchases = Number(e.purchases || 0);
+      const required = Number(e.required || 5);
+      const towardNext = purchases % required;
+      const progress = Number(
+        e.progress ?? Math.min(100, (towardNext / required) * 100)
+      );
+      setMonthlyEligibility({
+        purchases,
+        required,
+        progress,
+        daysLeft: Number(e.daysLeft || 0),
+        isEligible: Boolean(e.isEligible),
+        raffleTicketsTotal: Number(e.raffleTicketsTotal || 0),
+        raffleTicketsUnplayed: Number(e.raffleTicketsUnplayed || 0),
+        raffleTicketsPlayed: Number(e.raffleTicketsPlayed || 0),
+      });
+    } catch {
+      // Keep last known eligibility values if the request fails.
+    }
+  }, []);
+
   useEffect(() => {
-    calculateMonthlyEligibility();
-  }, [user?.dataBundleCount]);
+    if (!user) return;
+    loadMonthlyEligibility();
+  }, [user?._id, user?.dataBundleCount, loadMonthlyEligibility]);
 
   useEffect(() => {
     if (user && !user.state) {
@@ -145,21 +174,7 @@ const HomeScreen = () => {
     }
   }, [user?.notificationItems]);
 
-  const calculateMonthlyEligibility = () => {
-    const purchases = user?.dataBundleCount || 0;
-    const required = 5;
-    const now = new Date();
-    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-    const daysLeft = daysInMonth - now.getDate();
-    
-    setMonthlyEligibility({
-      purchases,
-      required,
-      progress: Math.min(100, (purchases / required) * 100),
-      daysLeft: Math.max(0, daysLeft),
-      isEligible: purchases >= required
-    });
-  };
+  // Monthly eligibility is fetched live from the backend (no mock calculations).
 
   // Permission modal function
   const showPermissionModal = (title, message, type = "info") => {
@@ -239,12 +254,7 @@ const HomeScreen = () => {
 
   const handleMonthlyGameClick = () => {
     if (FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM) return;
-    if (tickets <= 0) {
-      setTicketModalMessage("You need at least 1 ticket to access the Monthly Draw.");
-      setTicketModalVisible(true);
-      return;
-    }
-    navigate('/game-winner');
+    handleMonthlyGame();
   };
 
   const handleTopRandomGameClick = () => {
@@ -260,21 +270,25 @@ const HomeScreen = () => {
   const handleMonthlyGame = () => {
     if (monthlyEligibility.isEligible) {
       showMonthlyGameModal(
-        "Monthly Draw Eligible! 🎉",
-        FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM
-          ? `You've made ${monthlyEligibility.purchases} purchases this month.\n\nYou're automatically entered into the monthly draw (prize hidden).\n\nDraw happens at the end of the month (${monthlyEligibility.daysLeft} days left).`
-          : `You've made ${monthlyEligibility.purchases} purchases this month.\n\nYou're automatically entered into the ₦10,000 monthly draw!\n\nDraw happens at the end of the month (${monthlyEligibility.daysLeft} days left).`,
+        "Monthly Draw Tickets",
+        `Purchases this month: ${monthlyEligibility.purchases}\n` +
+          `Raffle tickets earned: ${monthlyEligibility.raffleTicketsTotal}\n` +
+          `Unplayed tickets: ${monthlyEligibility.raffleTicketsUnplayed}\n\n` +
+          `Play a ticket to enter the monthly draw list. Each played ticket is one entry.\n\n` +
+          `Result: Pending until month end (${monthlyEligibility.daysLeft} days left).`,
         true
       );
-    } else {
-      showMonthlyGameModal(
-        "Monthly Draw Eligibility",
-        FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM
-          ? `You need ${monthlyEligibility.required} data purchases this month to qualify for the monthly draw (prize hidden).\n\nYour purchases this month: ${monthlyEligibility.purchases}/${monthlyEligibility.required}\nProgress: ${Math.round(monthlyEligibility.progress)}%\nDays left this month: ${monthlyEligibility.daysLeft}\n\nKeep buying data bundles to qualify!`
-          : `You need ${monthlyEligibility.required} data purchases this month to qualify for the ₦10,000 monthly draw.\n\nYour purchases this month: ${monthlyEligibility.purchases}/${monthlyEligibility.required}\nProgress: ${Math.round(monthlyEligibility.progress)}%\nDays left this month: ${monthlyEligibility.daysLeft}\n\nKeep buying data bundles to qualify!`,
-        false
-      );
+      return;
     }
+
+    showMonthlyGameModal(
+      "No Monthly Raffle Tickets Yet",
+      `Every 5 successful data purchases in a month earns you 1 raffle ticket.\n\n` +
+        `Purchases this month: ${monthlyEligibility.purchases}\n` +
+        `Progress to next ticket: ${Math.round(monthlyEligibility.progress)}%\n\n` +
+        `Buy more bundles to earn a raffle ticket, then play it in Monthly Draw.`,
+      false
+    );
   };
 
   const handleImageUpload = (e) => {
@@ -420,7 +434,7 @@ const HomeScreen = () => {
             <BalanceRow>
               <div>
                 <BalanceLabel>Main Balance</BalanceLabel>
-                <Balance>₦{mainBalance.toLocaleString()}</Balance>
+                <Balance>â‚¦{mainBalance.toLocaleString()}</Balance>
               </div>
               <ActionButtons>
                 <ActionBtn onClick={goToDeposit}>
@@ -435,7 +449,7 @@ const HomeScreen = () => {
             <BalanceRow>
               <div>
                 <BalanceLabel>Redeem Balance</BalanceLabel>
-                <Balance>₦{rewardBalance.toLocaleString()}</Balance>
+                <Balance>â‚¦{rewardBalance.toLocaleString()}</Balance>
               </div>
               <RedeemBtn 
                 onClick={goToRedeem} 
@@ -461,11 +475,11 @@ const HomeScreen = () => {
 
           {/* TICKETS */}
           <TicketText>
-            🎫 Available Tickets:{" "}
+            ðŸŽ« Available Tickets:{" "}
             <TicketCount>{tickets}</TicketCount>
           </TicketText>
           <InfoText>
-            ✅ Buy Any Bundle → Unlock Weekly Game{isMerchantRole ? " + Monthly Draw" : " + Top Random Picks"}
+            âœ… Buy Any Bundle â†’ Unlock Weekly Game{isMerchantRole ? " + Monthly Raffle Tickets" : " + Top Random Picks"}
           </InfoText>
 
           {/* CONTENT SECTION */}
@@ -489,7 +503,7 @@ const HomeScreen = () => {
                     <TicketBadgeText>{tickets}</TicketBadgeText>
                   </TicketBadge>
                 </TicketIconContainer>
-                <BundleDesc>Use Tickets for Weekly Draw + Monthly Draw Entry!</BundleDesc>
+                <BundleDesc>Use tickets for Weekly Draw. Earn raffle tickets for Monthly Draw.</BundleDesc>
               </BundleRight>
             </BundleCard>
 
@@ -517,7 +531,10 @@ const HomeScreen = () => {
                   <MonthlyTitle>Monthly Draw</MonthlyTitle>
                   {monthlyEligibility.isEligible && (
                     <EligibleBadge>
-                      <EligibleText>ELIGIBLE</EligibleText>
+                      <EligibleText>
+                        {monthlyEligibility.raffleTicketsUnplayed} TICKET
+                        {monthlyEligibility.raffleTicketsUnplayed === 1 ? "" : "S"}
+                      </EligibleText>
                     </EligibleBadge>
                   )}
                 </MonthlyHeader>
@@ -531,7 +548,9 @@ const HomeScreen = () => {
                 <ProgressContainer>
                   <ProgressLabels>
                     <ProgressText>
-                      {monthlyEligibility.purchases}/{monthlyEligibility.required} purchases
+                      {monthlyEligibility.purchases} purchases â€¢{" "}
+                      {monthlyEligibility.raffleTicketsTotal} ticket
+                      {monthlyEligibility.raffleTicketsTotal === 1 ? "" : "s"}
                     </ProgressText>
                     <ProgressPercent>
                       {Math.round(monthlyEligibility.progress)}%
@@ -551,17 +570,20 @@ const HomeScreen = () => {
                 <MonthlyBtn 
                   onClick={handleMonthlyGameClick}
                   $eligible={monthlyEligibility.isEligible}
-                  $locked={tickets <= 0}
                 >
                   {monthlyEligibility.isEligible ? (
                     <>
                       <CheckCircle size={18} />
-                      <MonthlyBtnText>You're Eligible!</MonthlyBtnText>
+                      <MonthlyBtnText>
+                        {monthlyEligibility.raffleTicketsUnplayed > 0
+                          ? "Play Ticket"
+                          : "View Monthly Draw"}
+                      </MonthlyBtnText>
                     </>
                   ) : (
                     <>
                       <Info size={18} />
-                      <MonthlyBtnText>Check Eligibility</MonthlyBtnText>
+                      <MonthlyBtnText>How to Earn Ticket</MonthlyBtnText>
                     </>
                   )}
                 </MonthlyBtn>
@@ -676,14 +698,14 @@ const HomeScreen = () => {
                   onClick={() => {
                     setMonthlyGameModalVisible(false);
                     if (monthlyGameModalData.isEligible) {
-                      goToDraws();
+                      navigate('/game-winner');
                     } else {
                       goToBundle();
                     }
                   }}
                 >
                   <ModalBtnText>
-                    {monthlyGameModalData.isEligible ? "View Draws" : "Buy Data"}
+                    {monthlyGameModalData.isEligible ? "View Monthly Draw" : "Buy Data"}
                   </ModalBtnText>
                 </ModalBtn>
                 <ModalBtn $secondary onClick={() => setMonthlyGameModalVisible(false)}>
@@ -757,7 +779,7 @@ const HomeScreen = () => {
               <ModalTitle>Referral Reward</ModalTitle>
               <ModalMsg>{referralWinModalData.message}</ModalMsg>
               {referralWinModalData.amount !== null && (
-                <ModalMsg>₦{Number(referralWinModalData.amount).toLocaleString()} added to reward balance.</ModalMsg>
+                <ModalMsg>â‚¦{Number(referralWinModalData.amount).toLocaleString()} added to reward balance.</ModalMsg>
               )}
               <ModalBtn
                 onClick={() => {
@@ -1913,3 +1935,4 @@ const PreviewBtns = styled.div`
     gap: 12px;
   }
 `;
+

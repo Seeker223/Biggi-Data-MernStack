@@ -309,17 +309,7 @@ export const getWithdrawalHistory = async () => {
 export const buyData = async (payload) => {
   try {
     const res = await api.post("/data/buy", payload);
-    
-    if (res.data.success) {
-      // Update monthly purchase count
-      try {
-        await updateMonthlyPurchase();
-      } catch (monthlyError) {
-        console.log("Monthly purchase update failed (non-critical):", monthlyError);
-        // Continue anyway - main data purchase succeeded
-      }
-    }
-    
+
     return res.data;
   } catch (err) {
     return {
@@ -348,6 +338,12 @@ export const getMonthlyEligibility = () =>
 
 export const getMonthlyWinners = (month) => 
   api.get("/monthly-game/winners", month ? { params: { month } } : {});
+
+export const getMonthlyRaffleTickets = (month) =>
+  api.get("/monthly-game/tickets", month ? { params: { month } } : {});
+
+export const playMonthlyRaffleTicket = ({ month, code, ticketId } = {}) =>
+  api.post("/monthly-game/play", { month, code, ticketId });
 
 export const updateMonthlyPurchase = () => 
   api.post("/monthly-game/purchase");
@@ -476,15 +472,7 @@ export const getBundleCategories = () => api.get("/data/categories");
 export const bulkPurchaseData = async (bundles) => {
   try {
     const res = await api.post("/data/bulk-purchase", { bundles });
-    
-    if (res.data.success) {
-      try {
-        await updateMonthlyPurchase();
-      } catch (monthlyError) {
-        console.log("Monthly purchase update failed:", monthlyError);
-      }
-    }
-    
+
     return res.data;
   } catch (err) {
     return {

@@ -11,7 +11,14 @@ import {
 } from "lucide-react";
 import { AuthContext } from "../../context/AuthContext";
 import { FEATURE_FLAGS } from "../../constants/featureFlags";
-import { claimDailyReward, getMonthlyWinners, getWeeklyWinners } from "../../services/api";
+import {
+  claimDailyReward,
+  claimMonthlyReward,
+  getMonthlyRaffleTickets,
+  getMonthlyWinners,
+  getWeeklyWinners,
+  playMonthlyRaffleTicket,
+} from "../../services/api";
 import { toLetters } from "../../utils/drawLetters";
 
 export default function GameWinnersScreen() {
@@ -21,6 +28,7 @@ export default function GameWinnersScreen() {
   const [activeTab, setActiveTab] = useState("daily");
   const [successVisible, setSuccessVisible] = useState(false);
   const [claiming, setClaiming] = useState(false);
+  const [monthlyClaiming, setMonthlyClaiming] = useState(false);
   const [lastClaimAmount, setLastClaimAmount] = useState(0);
   const [monthlyLimitHit, setMonthlyLimitHit] = useState(false);
   const [infoModal, setInfoModal] = useState({
@@ -44,18 +52,35 @@ export default function GameWinnersScreen() {
   });
   const [monthlyRanks, setMonthlyRanks] = useState([]);
   const [monthlyBoardMonth, setMonthlyBoardMonth] = useState("");
+  const [monthlyTickets, setMonthlyTickets] = useState([]);
+  const [monthlyWinner, setMonthlyWinner] = useState(null);
+  const [monthlyLoading, setMonthlyLoading] = useState(false);
+  const [raffleModal, setRaffleModal] = useState({
+    visible: false,
+    selectedTicketId: "",
+    selectedTicketCode: "",
+  });
+  const [playingTicket, setPlayingTicket] = useState(false);
   const [weeklyWinners, setWeeklyWinners] = useState([]);
   const [weeklyBoardMonth, setWeeklyBoardMonth] = useState("");
 
   useEffect(() => {
     if (!user) return;
-    const purchases = user.dataBundleCount || 0;
+    const month =
+      monthlyBoardMonth ||
+      (() => {
+        const now = new Date();
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+      })();
+
+    const monthlyDraw = (user.monthlyDraws || []).find((d) => d.month === month);
+    const purchases = Number(monthlyDraw?.purchasesCount || 0);
     setMonthlyProgress({
       purchases,
       required: 5,
       isEligible: purchases >= 5,
     });
-  }, [user]);
+  }, [user, monthlyBoardMonth]);
 
   useEffect(() => {
     let mounted = true;
@@ -65,26 +90,58 @@ export default function GameWinnersScreen() {
 
     const loadMonthlyBoard = async () => {
       try {
-        const res = await getMonthlyWinners(month);
+        setMonthlyLoading(true);
+        const [winnersRes, ticketsRes] = await Promise.all([
+          getMonthlyWinners(month),
+          getMonthlyRaffleTickets(month),
+        ]);
         if (!mounted) return;
-        const rankings = Array.isArray(res?.data?.rankings) ? res.data.rankings : [];
-        const normalized = rankings.map((item) => ({
-          name: item.username || "Player",
-          id: String(item.userId || item.rank || ""),
-          type: "monthly",
-          amount:
-            FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM
-              ? "-"
-              : item.isWinner
-              ? "N10,000"
-              : "-",
-          date: `Rank #${item.rank}`,
-          note: `${item.purchasesCount} purchase${item.purchasesCount === 1 ? "" : "s"}${item.isWinner ? " • Top 3 Winner" : ""}`,
-          isWinner: Boolean(item.isWinner),
-        }));
-        setMonthlyRanks(normalized.slice(0, 100));
+        const entries = Array.isArray(winnersRes?.data?.entries)
+          ? winnersRes.data.entries
+          : [];
+        const normalized = entries.map((item, idx) => {
+          const status = String(item.status || "pending");
+          const isWinner = status === "winner";
+          const playedAt = item.playedAt ? new Date(item.playedAt) : null;
+
+          return {
+            name: item.username || "Player",
+            id: String(item.entryId || item.userId || idx),
+            type: "monthly",
+            amount:
+              FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM
+                ? "-"
+                : isWinner
+                ? "N10,000"
+                : "-",
+            date: playedAt
+              ? playedAt.toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : "—",
+            note: `Ticket: ${item.code || item.codeMasked || ""} • ${
+              isWinner ? "Winner" : "Pending until month end"
+            }`,
+            isWinner,
+          };
+        });
+
+        setMonthlyWinner(winnersRes?.data?.winner || null);
+        setMonthlyRanks(normalized);
+
+        const tickets = Array.isArray(ticketsRes?.data?.tickets)
+          ? ticketsRes.data.tickets
+          : [];
+        setMonthlyTickets(tickets);
       } catch (error) {
         if (mounted) setMonthlyRanks([]);
+        if (mounted) setMonthlyTickets([]);
+        if (mounted) setMonthlyWinner(null);
+      } finally {
+        if (mounted) setMonthlyLoading(false);
       }
     };
 
@@ -161,6 +218,187 @@ export default function GameWinnersScreen() {
 
   const winners = activeTab === "daily" ? weeklyWinners : monthlyRanks;
   const claimableWins = userWins.filter((win) => !win.claimed && win.gameId);
+
+  const unplayedMonthlyTickets = useMemo(
+    () => (monthlyTickets || []).filter((t) => !t.played),
+    [monthlyTickets]
+  );
+
+  const canClaimMonthlyReward = useMemo(() => {
+    if (FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM) return false;
+    if (!monthlyWinner?.winnerUser) return false;
+    if (!user?._id) return false;
+    if (monthlyWinner?.claimed) return false;
+    return String(monthlyWinner.winnerUser) === String(user._id);
+  }, [monthlyWinner, user]);
+
+  const reloadMonthly = async () => {
+    const month =
+      monthlyBoardMonth ||
+      (() => {
+        const now = new Date();
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+      })();
+
+    setMonthlyLoading(true);
+    try {
+      const [winnersRes, ticketsRes] = await Promise.all([
+        getMonthlyWinners(month),
+        getMonthlyRaffleTickets(month),
+      ]);
+
+      const entries = Array.isArray(winnersRes?.data?.entries)
+        ? winnersRes.data.entries
+        : [];
+
+      const normalized = entries.map((item, idx) => {
+        const status = String(item.status || "pending");
+        const isWinner = status === "winner";
+        const playedAt = item.playedAt ? new Date(item.playedAt) : null;
+
+        return {
+          name: item.username || "Player",
+          id: String(item.entryId || item.userId || idx),
+          type: "monthly",
+          amount:
+            FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM
+              ? "-"
+              : isWinner
+              ? "N10,000"
+              : "-",
+          date: playedAt
+            ? playedAt.toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : "—",
+          note: `Ticket: ${item.code || item.codeMasked || ""} • ${
+            isWinner ? "Winner" : "Pending until month end"
+          }`,
+          isWinner,
+        };
+      });
+
+      setMonthlyWinner(winnersRes?.data?.winner || null);
+      setMonthlyRanks(normalized);
+
+      const tickets = Array.isArray(ticketsRes?.data?.tickets)
+        ? ticketsRes.data.tickets
+        : [];
+      setMonthlyTickets(tickets);
+    } catch {
+      setMonthlyWinner(null);
+      setMonthlyRanks([]);
+      setMonthlyTickets([]);
+    } finally {
+      setMonthlyLoading(false);
+    }
+  };
+
+  const handleOpenRaffleModal = () => {
+    if (unplayedMonthlyTickets.length === 0) {
+      setInfoModal({
+        visible: true,
+        title: "No Raffle Tickets",
+        message:
+          "You have no unplayed raffle tickets for this month yet. Every 5 successful data purchases earns 1 ticket.",
+        buttonText: "Close",
+      });
+      return;
+    }
+
+    const first = unplayedMonthlyTickets[0];
+    setRaffleModal({
+      visible: true,
+      selectedTicketId: String(first.id || ""),
+      selectedTicketCode: String(first.code || ""),
+    });
+  };
+
+  const handlePlaySelectedTicket = async () => {
+    if (!raffleModal.selectedTicketId) return;
+    setPlayingTicket(true);
+    try {
+      await playMonthlyRaffleTicket({
+        month: monthlyBoardMonth,
+        ticketId: raffleModal.selectedTicketId,
+      });
+
+      setInfoModal({
+        visible: true,
+        title: "Ticket Entered",
+        message: `Ticket ${raffleModal.selectedTicketCode} has been entered. Status: Pending until month end.`,
+        buttonText: "OK",
+      });
+
+      setRaffleModal({
+        visible: false,
+        selectedTicketId: "",
+        selectedTicketCode: "",
+      });
+      await refreshUser?.();
+      await reloadMonthly();
+    } catch (error) {
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error?.message ||
+        "";
+
+      setInfoModal({
+        visible: true,
+        title: "Failed to Play Ticket",
+        message: errorMessage || "Could not play raffle ticket. Please try again.",
+        buttonText: "Close",
+      });
+    } finally {
+      setPlayingTicket(false);
+    }
+  };
+
+  const handleClaimMonthly = async () => {
+    if (!canClaimMonthlyReward) {
+      setInfoModal({
+        visible: true,
+        title: "Not Eligible",
+        message:
+          "Only the selected winning raffle ticket owner can claim the monthly reward.",
+        buttonText: "Close",
+      });
+      return;
+    }
+
+    setMonthlyClaiming(true);
+    try {
+      const res = await claimMonthlyReward(monthlyBoardMonth);
+      const payload = res?.data || {};
+      const claimedAmount = Number(
+        payload?.reward?.amount ?? payload?.amount ?? payload?.claimedAmount ?? 10000
+      );
+      setLastClaimAmount(claimedAmount);
+      setMonthlyLimitHit(false);
+      setSuccessVisible(true);
+      await refreshUser?.();
+      await reloadMonthly();
+    } catch (error) {
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error?.message ||
+        "";
+
+      setInfoModal({
+        visible: true,
+        title: "Claim Failed",
+        message: errorMessage || "Failed to claim monthly reward. Please try again.",
+        buttonText: "Close",
+      });
+    } finally {
+      setMonthlyClaiming(false);
+    }
+  };
 
   const handleClaim = async () => {
     if (FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM) {
@@ -277,15 +515,15 @@ export default function GameWinnersScreen() {
     });
   };
 
-  const handleCheckMonthlyEligibility = () => {
-    const message = FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM
-      ? `Top 3 buyers in ${monthlyBoardMonth || "this month"} are selected as monthly winners (prize hidden).\n\nLive board shows up to top 100 ranks by purchase count.\n\nBuy more bundles to climb the ranking.\n\nClick OK to Buy Data, or Cancel to close.`
-      : `Top 3 buyers in ${monthlyBoardMonth || "this month"} are selected as monthly winners.\n\nPrize per winner: N10,000\nLive board shows up to top 100 ranks by purchase count.\n\nBuy more bundles to climb the ranking.\n\nClick OK to Buy Data, or Cancel to close.`;
-
+  const handleMonthlyInfo = () => {
     setActionModal({
       visible: true,
-      title: "Monthly Eligibility",
-      message: message.replaceAll("\n\n", "\n"),
+      title: "Monthly Draw (Raffle Tickets)",
+      message:
+        `Every 5 successful data purchases in ${monthlyBoardMonth || "this month"} earns 1 raffle ticket (6-character code).\n\n` +
+        `Play a ticket to enter the monthly draw list. Each played ticket is one entry, so you can appear multiple times.\n\n` +
+        `Results are out at month end. The system randomly selects 1 played ticket as the winner.\n\n` +
+        `Unplayed tickets this month: ${unplayedMonthlyTickets.length}`,
       confirmText: "Buy Data",
       cancelText: "Close",
       onConfirm: () => navigate("/buy-data"),
@@ -316,7 +554,10 @@ export default function GameWinnersScreen() {
             </TabButton>
             <TabButton
               $active={activeTab === "monthly"}
-              onClick={() => setActiveTab("monthly")}
+              onClick={() => {
+                setActiveTab("monthly");
+                reloadMonthly();
+              }}
             >
               <Trophy size={16} />
               Monthly Winners
@@ -372,32 +613,67 @@ export default function GameWinnersScreen() {
               </WinnerRow>
             ))}
 
-            {winners.length === 0 && (
-              <EmptyState>No {activeTab} winners to display yet</EmptyState>
+            {activeTab === "monthly" && monthlyLoading && (
+              <EmptyState>Loading monthly entries...</EmptyState>
+            )}
+
+            {winners.length === 0 && !(activeTab === "monthly" && monthlyLoading) && (
+              <EmptyState>No {activeTab} results to display yet</EmptyState>
             )}
           </ListArea>
 
           <ActionRow>
-            <ActionButton
-              onClick={handleClaim}
-              disabled={claiming || userWins.length === 0 || FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM}
-            >
-              <DollarSign size={18} />
-              {FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM
-                ? "Claiming Disabled"
-                : claiming
-                ? "Claiming..."
-                : claimableWins.length > 0
-                ? `Claim N${(claimableWins.length * 10000).toLocaleString()}`
-                : userWins.length > 0
-                ? "Check Rewards"
-                : "No Rewards"}
-            </ActionButton>
+            {activeTab === "daily" ? (
+              <>
+                <ActionButton
+                  onClick={handleClaim}
+                  disabled={
+                    claiming ||
+                    userWins.length === 0 ||
+                    FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM
+                  }
+                >
+                  <DollarSign size={18} />
+                  {FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM
+                    ? "Claiming Disabled"
+                    : claiming
+                    ? "Claiming..."
+                    : claimableWins.length > 0
+                    ? `Claim N${(claimableWins.length * 10000).toLocaleString()}`
+                    : userWins.length > 0
+                    ? "Check Rewards"
+                    : "No Rewards"}
+                </ActionButton>
 
-            <ActionButton $secondary onClick={handleCheckMonthlyEligibility}>
-              <Info size={18} />
-              Monthly Eligibility
-            </ActionButton>
+                <ActionButton $secondary onClick={handleMonthlyInfo}>
+                  <Info size={18} />
+                  Monthly Draw Info
+                </ActionButton>
+              </>
+            ) : (
+              <>
+                <ActionButton
+                  onClick={handleOpenRaffleModal}
+                  disabled={unplayedMonthlyTickets.length === 0 || playingTicket}
+                >
+                  <Trophy size={18} />
+                  {playingTicket ? "Entering..." : "Play Raffle Ticket"}
+                </ActionButton>
+
+                <ActionButton
+                  $secondary
+                  onClick={canClaimMonthlyReward ? handleClaimMonthly : handleMonthlyInfo}
+                  disabled={monthlyClaiming}
+                >
+                  <Info size={18} />
+                  {canClaimMonthlyReward
+                    ? monthlyClaiming
+                      ? "Claiming..."
+                      : "Claim Reward"
+                    : "How It Works"}
+                </ActionButton>
+              </>
+            )}
           </ActionRow>
 
           <StatsCard>
@@ -414,13 +690,67 @@ export default function GameWinnersScreen() {
               </StatItem>
               <StatsDivider />
               <StatItem>
-                <StatNumber>{monthlyProgress.purchases}</StatNumber>
-                <StatLabel>Monthly Purchases</StatLabel>
+                <StatNumber>{unplayedMonthlyTickets.length}</StatNumber>
+                <StatLabel>Raffle Tickets</StatLabel>
               </StatItem>
             </StatsGrid>
           </StatsCard>
         </Card>
       </Wrapper>
+
+      {raffleModal.visible && (
+        <ModalOverlay>
+          <ModalCard style={{ maxWidth: 360, textAlign: "left" }}>
+            <ModalTitle style={{ textAlign: "left" }}>
+              Play Monthly Raffle Ticket
+            </ModalTitle>
+            <ModalMessage style={{ textAlign: "left" }}>
+              Select one unplayed ticket to enter the monthly draw list.
+            </ModalMessage>
+
+            <TicketList>
+              {unplayedMonthlyTickets.map((t) => {
+                const selected = String(t.id) === String(raffleModal.selectedTicketId);
+                return (
+                  <TicketChip
+                    key={t.id}
+                    type="button"
+                    $active={selected}
+                    onClick={() =>
+                      setRaffleModal((prev) => ({
+                        ...prev,
+                        selectedTicketId: String(t.id),
+                        selectedTicketCode: String(t.code || ""),
+                      }))
+                    }
+                  >
+                    {t.code}
+                  </TicketChip>
+                );
+              })}
+            </TicketList>
+
+            <ModalButton
+              onClick={handlePlaySelectedTicket}
+              disabled={playingTicket || !raffleModal.selectedTicketId}
+            >
+              {playingTicket ? "Entering..." : "Enter Monthly Draw"}
+            </ModalButton>
+            <ModalButton
+              $secondary
+              onClick={() =>
+                setRaffleModal({
+                  visible: false,
+                  selectedTicketId: "",
+                  selectedTicketCode: "",
+                })
+              }
+            >
+              Close
+            </ModalButton>
+          </ModalCard>
+        </ModalOverlay>
+      )}
 
       {successVisible && (
         <ModalOverlay>
@@ -853,4 +1183,22 @@ const ModalButton = styled.button`
   cursor: pointer;
   background: ${(props) => (props.$secondary ? "#666" : "#ff7a00")};
   margin-top: ${(props) => (props.$secondary ? "8px" : "0")};
+`;
+
+const TicketList = styled.div`
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+`;
+
+const TicketChip = styled.button`
+  border: 1px solid ${(props) => (props.$active ? "#ff7a00" : "#ddd")};
+  background: ${(props) => (props.$active ? "#ff7a0010" : "#f6f6f6")};
+  color: #111;
+  border-radius: 999px;
+  padding: 8px 10px;
+  font-weight: 800;
+  font-size: 12px;
+  cursor: pointer;
 `;
