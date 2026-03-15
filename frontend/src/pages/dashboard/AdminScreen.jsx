@@ -21,10 +21,15 @@ import {
   deleteAdminUser,
   getAdminDashboard,
   updateAdminUser,
+  adminSyncProviderCatalog,
+  createAdminPlan,
+  deleteAdminPlan,
+  getAdminPlans,
+  updateAdminPlan,
 } from "../../services/api";
 
-const naira = (v) => `₦${Number(v || 0).toLocaleString()}`;
-const dateFmt = (v) => (v ? new Date(v).toLocaleString() : "—");
+const naira = (v) => `N${Number(v || 0).toLocaleString()}`;
+const dateFmt = (v) => (v ? new Date(v).toLocaleString() : "-");
 
 const EMPTY_FORM = {
   username: "",
@@ -54,6 +59,7 @@ const NIGERIA_STATES = [
 const AdminScreen = () => {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
+  const [section, setSection] = useState("users"); // users | plans
   const [search, setSearch] = useState("");
   const [role, setRole] = useState("");
   const [userRole, setUserRole] = useState("");
@@ -70,6 +76,30 @@ const AdminScreen = () => {
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState("");
   const [form, setForm] = useState(EMPTY_FORM);
+
+  // Plans admin state
+  const [planLoading, setPlanLoading] = useState(false);
+  const [planError, setPlanError] = useState("");
+  const [plans, setPlans] = useState([]);
+  const [planQ, setPlanQ] = useState("");
+  const [planNetwork, setPlanNetwork] = useState("");
+  const [planCategory, setPlanCategory] = useState("");
+  const [planActive, setPlanActive] = useState("true");
+  const [planFormOpen, setPlanFormOpen] = useState(false);
+  const [planFormMode, setPlanFormMode] = useState("create"); // create | edit
+  const [planFormLoading, setPlanFormLoading] = useState(false);
+  const [planFormError, setPlanFormError] = useState("");
+  const [planForm, setPlanForm] = useState({
+    plan_id: "",
+    zenipoint_code: "",
+    name: "",
+    network: "",
+    category: "",
+    validity: "30 days",
+    provider_amount: "",
+    markup: 100,
+    active: true,
+  });
 
   const isAdmin = useMemo(() => String(user?.role || "").toLowerCase() === "admin", [user?.role]);
 
@@ -98,8 +128,32 @@ const AdminScreen = () => {
 
   useEffect(() => {
     if (!isAdmin) return;
-    loadData();
-  }, [isAdmin, loadData]);
+    if (section === "users") loadData();
+  }, [isAdmin, loadData, section]);
+
+  const loadPlans = useCallback(async () => {
+    try {
+      setPlanLoading(true);
+      setPlanError("");
+      const params = {
+        q: planQ.trim() || undefined,
+        network: planNetwork || undefined,
+        category: planCategory || undefined,
+        active: planActive === "" ? undefined : planActive,
+      };
+      const res = await getAdminPlans(params);
+      setPlans(Array.isArray(res?.data?.plans) ? res.data.plans : []);
+    } catch (err) {
+      setPlanError(err?.response?.data?.msg || err?.response?.data?.message || "Failed to load plans.");
+    } finally {
+      setPlanLoading(false);
+    }
+  }, [planActive, planCategory, planNetwork, planQ]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    if (section === "plans") loadPlans();
+  }, [isAdmin, loadPlans, section]);
 
   const resetForm = () => {
     setForm(EMPTY_FORM);
@@ -196,6 +250,115 @@ const AdminScreen = () => {
     }
   };
 
+  const resetPlanForm = () => {
+    setPlanFormError("");
+    setPlanForm({
+      plan_id: "",
+      zenipoint_code: "",
+      name: "",
+      network: "",
+      category: "",
+      validity: "30 days",
+      provider_amount: "",
+      markup: 100,
+      active: true,
+    });
+  };
+
+  const openPlanCreate = () => {
+    setPlanFormMode("create");
+    resetPlanForm();
+    setPlanFormOpen(true);
+  };
+
+  const openPlanEdit = (p) => {
+    setPlanFormMode("edit");
+    setPlanFormError("");
+    setPlanForm({
+      plan_id: p.plan_id || "",
+      zenipoint_code: p.zenipoint_code || "",
+      name: p.name || "",
+      network: p.network || "",
+      category: p.category || "",
+      validity: p.validity || "30 days",
+      provider_amount: p.provider_amount ?? "",
+      markup: p.markup ?? 100,
+      active: Boolean(p.active),
+    });
+    setPlanFormOpen(true);
+  };
+
+  const submitPlanForm = async () => {
+    try {
+      setPlanFormLoading(true);
+      setPlanFormError("");
+      const payload = {
+        plan_id: String(planForm.plan_id || "").trim(),
+        zenipoint_code: String(planForm.zenipoint_code || "").trim(),
+        name: String(planForm.name || "").trim(),
+        network: String(planForm.network || "").trim(),
+        category: String(planForm.category || "").trim(),
+        validity: String(planForm.validity || "").trim(),
+        provider_amount: Number(planForm.provider_amount),
+        markup: Number(planForm.markup),
+        active: Boolean(planForm.active),
+      };
+
+      if (!payload.plan_id || !payload.zenipoint_code || !payload.name || !payload.network || !payload.category) {
+        setPlanFormError("Plan ID, plan code, name, network and category are required.");
+        return;
+      }
+      if (!Number.isFinite(payload.provider_amount)) {
+        setPlanFormError("Zenipoint price must be a valid number.");
+        return;
+      }
+      if (!Number.isFinite(payload.markup)) {
+        setPlanFormError("Profit (markup) must be a valid number.");
+        return;
+      }
+
+      if (planFormMode === "create") {
+        await createAdminPlan(payload);
+      } else {
+        await updateAdminPlan(payload.plan_id, payload);
+      }
+      setPlanFormOpen(false);
+      await loadPlans();
+    } catch (err) {
+      setPlanFormError(err?.response?.data?.msg || err?.response?.data?.message || "Failed to save plan.");
+    } finally {
+      setPlanFormLoading(false);
+    }
+  };
+
+  const handleDeletePlan = async (p) => {
+    const ok = window.confirm(`Deactivate plan "${p?.plan_id}"?`);
+    if (!ok) return;
+    try {
+      const id = String(p?.plan_id || "").trim();
+      if (!id) return;
+      await deleteAdminPlan(id);
+      await loadPlans();
+    } catch (err) {
+      setPlanError(err?.response?.data?.msg || err?.response?.data?.message || "Failed to deactivate plan.");
+    }
+  };
+
+  const handleSyncCatalog = async () => {
+    const ok = window.confirm("Sync plans from provider catalog? This will disable any plans not in the catalog.");
+    if (!ok) return;
+    try {
+      setPlanLoading(true);
+      setPlanError("");
+      await adminSyncProviderCatalog();
+      await loadPlans();
+    } catch (err) {
+      setPlanError(err?.response?.data?.msg || err?.response?.data?.message || "Sync failed.");
+    } finally {
+      setPlanLoading(false);
+    }
+  };
+
   if (!isAdmin) {
     return (
       <Page>
@@ -243,76 +406,138 @@ const AdminScreen = () => {
             <ArrowLeft size={18} />
           </BackButton>
           <Title>Admin Dashboard</Title>
-          <RefreshButton onClick={loadData} disabled={loading} title="Refresh">
+          <RefreshButton
+            onClick={() => (section === "users" ? loadData() : loadPlans())}
+            disabled={section === "users" ? loading : planLoading}
+            title="Refresh"
+          >
             <RefreshCw size={18} />
           </RefreshButton>
         </Header>
 
-        <FilterCard>
-          <SearchRow>
-            <Search size={16} />
-            <SearchInput
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by username, email, phone, referral..."
-            />
-          </SearchRow>
-          <FilterRow>
-            <Select value={role} onChange={(e) => setRole(e.target.value)}>
-              <option value="">All roles</option>
-              <option value="user">User</option>
-              <option value="admin">Admin</option>
-            </Select>
-            <Select value={userRole} onChange={(e) => setUserRole(e.target.value)}>
-              <option value="">All user roles</option>
-              <option value="private">Private</option>
-              <option value="merchant">Merchant</option>
-            </Select>
-            <Select value={verified} onChange={(e) => setVerified(e.target.value)}>
-              <option value="">All verification</option>
-              <option value="true">Verified</option>
-              <option value="false">Unverified</option>
-            </Select>
-            <Select value={userAge} onChange={(e) => setUserAge(e.target.value)}>
-              <option value="new">New users first</option>
-              <option value="old">Old users first</option>
-            </Select>
-            <Select value={stateFilter} onChange={(e) => setStateFilter(e.target.value)}>
-              <option value="">All states</option>
-              {NIGERIA_STATES.map((st) => (
-                <option key={st} value={st}>
-                  {st}
-                </option>
-              ))}
-            </Select>
-          </FilterRow>
-          <ActionRow>
-            <ApplyButton
-              onClick={() => {
-                setPage(1);
-                loadData();
-              }}
-              disabled={loading}
-            >
-              Apply Filters
-            </ApplyButton>
-            <CreateButton onClick={openCreate}>
-              <Plus size={16} />
-              Create User
-            </CreateButton>
-          </ActionRow>
-        </FilterCard>
+        <SectionSwitch>
+          <SwitchBtn $active={section === "users"} onClick={() => setSection("users")}>
+            <Users size={16} /> Users
+          </SwitchBtn>
+          <SwitchBtn $active={section === "plans"} onClick={() => setSection("plans")}>
+            <Wallet size={16} /> Plans
+          </SwitchBtn>
+        </SectionSwitch>
 
-        {error ? <ErrorBox>{error}</ErrorBox> : null}
-
-        {loading ? (
-          <LoadingBox>Loading dashboard data...</LoadingBox>
+        {section === "users" ? (
+          <FilterCard>
+            <SearchRow>
+              <Search size={16} />
+              <SearchInput
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by username, email, phone, referral..."
+              />
+            </SearchRow>
+            <FilterRow>
+              <Select value={role} onChange={(e) => setRole(e.target.value)}>
+                <option value="">All roles</option>
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+              </Select>
+              <Select value={userRole} onChange={(e) => setUserRole(e.target.value)}>
+                <option value="">All user roles</option>
+                <option value="private">Private</option>
+                <option value="merchant">Merchant</option>
+              </Select>
+              <Select value={verified} onChange={(e) => setVerified(e.target.value)}>
+                <option value="">All verification</option>
+                <option value="true">Verified</option>
+                <option value="false">Unverified</option>
+              </Select>
+              <Select value={userAge} onChange={(e) => setUserAge(e.target.value)}>
+                <option value="new">New users first</option>
+                <option value="old">Old users first</option>
+              </Select>
+              <Select value={stateFilter} onChange={(e) => setStateFilter(e.target.value)}>
+                <option value="">All states</option>
+                {NIGERIA_STATES.map((st) => (
+                  <option key={st} value={st}>
+                    {st}
+                  </option>
+                ))}
+              </Select>
+            </FilterRow>
+            <ActionRow>
+              <ApplyButton
+                onClick={() => {
+                  setPage(1);
+                  loadData();
+                }}
+                disabled={loading}
+              >
+                Apply Filters
+              </ApplyButton>
+              <CreateButton onClick={openCreate}>
+                <Plus size={16} />
+                Create User
+              </CreateButton>
+            </ActionRow>
+          </FilterCard>
         ) : (
-          <>
-            <SectionTitle>Overview</SectionTitle>
-            <SummaryGrid>
-              <SummaryCard>
-                <Users size={18} />
+          <FilterCard>
+            <SearchRow>
+              <Search size={16} />
+              <SearchInput
+                value={planQ}
+                onChange={(e) => setPlanQ(e.target.value)}
+                placeholder="Search by plan id, plan code, name..."
+              />
+            </SearchRow>
+            <FilterRow>
+              <Select value={planNetwork} onChange={(e) => setPlanNetwork(e.target.value)}>
+                <option value="">All networks</option>
+                <option value="mtn">MTN</option>
+                <option value="glo">GLO</option>
+                <option value="airtel">Airtel</option>
+                <option value="etisalat">9Mobile</option>
+              </Select>
+              <Select value={planCategory} onChange={(e) => setPlanCategory(e.target.value)}>
+                <option value="">All categories</option>
+                <option value="SME">SME</option>
+                <option value="SME2">SME2</option>
+                <option value="CG">CG</option>
+                <option value="DATA">DATA</option>
+              </Select>
+              <Select value={planActive} onChange={(e) => setPlanActive(e.target.value)}>
+                <option value="true">Active only</option>
+                <option value="false">Inactive only</option>
+                <option value="">All</option>
+              </Select>
+            </FilterRow>
+            <ActionRow>
+              <ApplyButton onClick={loadPlans} disabled={planLoading}>
+                Apply Filters
+              </ApplyButton>
+              <CreateButton onClick={openPlanCreate}>
+                <Plus size={16} />
+                Create Plan
+              </CreateButton>
+              <SoftButton onClick={handleSyncCatalog} disabled={planLoading}>
+                <RefreshCw size={16} />
+                Sync Catalog
+              </SoftButton>
+            </ActionRow>
+          </FilterCard>
+        )}
+
+        {section === "users" && error ? <ErrorBox>{error}</ErrorBox> : null}
+        {section === "plans" && planError ? <ErrorBox>{planError}</ErrorBox> : null}
+
+        {section === "users" ? (
+          loading ? (
+            <LoadingBox>Loading dashboard data...</LoadingBox>
+          ) : (
+            <>
+              <SectionTitle>Overview</SectionTitle>
+              <SummaryGrid>
+                <SummaryCard>
+                  <Users size={18} />
                 <h4>Total Users</h4>
                 <strong>{summary.usersCount || 0}</strong>
                 <small>Admins: {summary.adminCount || 0}</small>
@@ -501,7 +726,7 @@ const AdminScreen = () => {
               ))}
             </UsersWrap>
 
-            <Pager>
+              <Pager>
               <PagerBtn
                 disabled={pagination.page <= 1 || loading}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -517,9 +742,60 @@ const AdminScreen = () => {
               >
                 Next
               </PagerBtn>
-            </Pager>
-          </>
-        )}
+              </Pager>
+            </>
+          )
+        ) : null}
+
+        {section === "plans" ? (
+          planLoading ? (
+            <LoadingBox>Loading plans...</LoadingBox>
+          ) : (
+            <>
+              <SectionTitle>Plans ({plans.length})</SectionTitle>
+              <PlansTable>
+                <PlansHead>
+                  <span>Network</span>
+                  <span>Category</span>
+                  <span>Plan</span>
+                  <span>Plan Code</span>
+                  <span>Zeniprice + Profit</span>
+                  <span>BiggiData Price</span>
+                  <span>Actions</span>
+                </PlansHead>
+                {plans.map((p) => {
+                  const provider = Number(p.provider_amount ?? 0);
+                  const markup = Number(p.markup ?? 100);
+                  const total = Number(p.amount ?? provider + markup);
+                  return (
+                    <PlansRow key={p.plan_id}>
+                      <span>{String(p.network || "").toUpperCase()}</span>
+                      <span>{p.category}</span>
+                      <PlanCell>
+                        <strong>{p.name}</strong>
+                        <small>{p.validity || "30 days"}</small>
+                        <small>ID: {p.plan_id}</small>
+                      </PlanCell>
+                      <span>{p.zenipoint_code || p.plan_id}</span>
+                      <span>{naira(provider)} + {naira(markup)}</span>
+                      <span>
+                        <strong>{naira(total)}</strong>
+                      </span>
+                      <RowActions>
+                        <EditSmall onClick={() => openPlanEdit(p)}>
+                          <Pencil size={14} /> Edit
+                        </EditSmall>
+                        <DeleteSmall onClick={() => handleDeletePlan(p)}>
+                          <Trash2 size={14} /> Deactivate
+                        </DeleteSmall>
+                      </RowActions>
+                    </PlansRow>
+                  );
+                })}
+              </PlansTable>
+            </>
+          )
+        ) : null}
       </Container>
 
       {selectedUser ? (
@@ -827,6 +1103,103 @@ const AdminScreen = () => {
         </ModalOverlay>
       ) : null}
 
+      {planFormOpen ? (
+        <ModalOverlay onClick={() => setPlanFormOpen(false)}>
+          <ModalCard onClick={(e) => e.stopPropagation()}>
+            <ModalHead>
+              <h3>{planFormMode === "create" ? "Create Plan" : "Edit Plan"}</h3>
+              <button onClick={() => setPlanFormOpen(false)}>
+                <X size={16} />
+              </button>
+            </ModalHead>
+
+            {planFormError ? <ErrorBox>{planFormError}</ErrorBox> : null}
+
+            <EditVisualWrap>
+              <VisualPillRow>
+                <VisualPill $tone="dark">{String(planForm.network || "").toUpperCase() || "NETWORK"}</VisualPill>
+                <VisualPill $tone="blue">{planForm.category || "CATEGORY"}</VisualPill>
+                <VisualPill $tone={planForm.active ? "green" : "red"}>{planForm.active ? "Active" : "Inactive"}</VisualPill>
+              </VisualPillRow>
+              <MetricLine>
+                <span>Zenipoint Price + Profit</span>
+                <strong>
+                  {naira(Number(planForm.provider_amount || 0))} + {naira(Number(planForm.markup || 0))}
+                </strong>
+              </MetricLine>
+              <MetricLine>
+                <span>BiggiData Price</span>
+                <strong>
+                  {naira(Number(planForm.provider_amount || 0) + Number(planForm.markup || 0))}
+                </strong>
+              </MetricLine>
+            </EditVisualWrap>
+
+            <FormGrid>
+              <Field>
+                <label>Network</label>
+                <select value={planForm.network} onChange={(e) => setPlanForm((s) => ({ ...s, network: e.target.value }))}>
+                  <option value="">Select</option>
+                  <option value="mtn">mtn</option>
+                  <option value="glo">glo</option>
+                  <option value="airtel">airtel</option>
+                  <option value="etisalat">etisalat</option>
+                </select>
+              </Field>
+              <Field>
+                <label>Category</label>
+                <input value={planForm.category} onChange={(e) => setPlanForm((s) => ({ ...s, category: e.target.value }))} placeholder="SME / SME2 / CG" />
+              </Field>
+              <Field>
+                <label>Plan ID</label>
+                <input
+                  value={planForm.plan_id}
+                  onChange={(e) => setPlanForm((s) => ({ ...s, plan_id: e.target.value }))}
+                  placeholder="mtnsme_1"
+                  disabled={planFormMode === "edit"}
+                />
+              </Field>
+              <Field>
+                <label>Plan Code (Zenipoint)</label>
+                <input value={planForm.zenipoint_code} onChange={(e) => setPlanForm((s) => ({ ...s, zenipoint_code: e.target.value }))} placeholder="mtnsme_1" />
+              </Field>
+              <Field>
+                <label>Name</label>
+                <input value={planForm.name} onChange={(e) => setPlanForm((s) => ({ ...s, name: e.target.value }))} placeholder="MTN SME 1GB" />
+              </Field>
+              <Field>
+                <label>Validity</label>
+                <input value={planForm.validity} onChange={(e) => setPlanForm((s) => ({ ...s, validity: e.target.value }))} placeholder="30 days" />
+              </Field>
+              <Field>
+                <label>Zenipoint Price</label>
+                <input value={planForm.provider_amount} onChange={(e) => setPlanForm((s) => ({ ...s, provider_amount: e.target.value }))} placeholder="530" />
+              </Field>
+              <Field>
+                <label>Profit (Markup)</label>
+                <input value={planForm.markup} onChange={(e) => setPlanForm((s) => ({ ...s, markup: e.target.value }))} placeholder="100" />
+              </Field>
+              <Field>
+                <label>Active</label>
+                <select value={planForm.active ? "true" : "false"} onChange={(e) => setPlanForm((s) => ({ ...s, active: e.target.value === "true" }))}>
+                  <option value="true">true</option>
+                  <option value="false">false</option>
+                </select>
+              </Field>
+            </FormGrid>
+
+            <ActionRow>
+              <CancelBtn onClick={() => setPlanFormOpen(false)} disabled={planFormLoading}>
+                Cancel
+              </CancelBtn>
+              <ApplyButton onClick={submitPlanForm} disabled={planFormLoading}>
+                {planFormLoading ? "Saving..." : "Save Plan"}
+              </ApplyButton>
+            </ActionRow>
+          </ModalCard>
+        </ModalOverlay>
+      ) : null}
+
       <FloatingBottomNav />
     </Page>
   );
@@ -879,6 +1252,27 @@ const Title = styled.h1`
   color: #121212;
 `;
 
+const SectionSwitch = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 6px 0 10px;
+`;
+
+const SwitchBtn = styled.button`
+  height: 42px;
+  border-radius: 999px;
+  border: 1px solid ${(p) => (p.$active ? "#ff7a00" : "#ececec")};
+  background: ${(p) => (p.$active ? "#fff5ec" : "#fff")};
+  color: #111;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+`;
+
 const FilterCard = styled.div`
   background: #fff;
   border: 1px solid #ececec;
@@ -909,14 +1303,8 @@ const SearchInput = styled.input`
 const FilterRow = styled.div`
   margin-top: 8px;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 8px;
-  @media (max-width: 980px) {
-    grid-template-columns: repeat(3, 1fr);
-  }
-  @media (max-width: 620px) {
-    grid-template-columns: repeat(2, 1fr);
-  }
   @media (max-width: 390px) {
     grid-template-columns: 1fr;
   }
@@ -934,7 +1322,7 @@ const Select = styled.select`
 const ActionRow = styled.div`
   margin-top: 8px;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 8px;
   @media (max-width: 390px) {
     grid-template-columns: 1fr;
@@ -968,6 +1356,39 @@ const CreateButton = styled.button`
   justify-content: center;
   gap: 6px;
   cursor: pointer;
+`;
+
+const SoftButton = styled.button`
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #111;
+  color: #fff;
+  font-weight: 750;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+`;
+
+const CancelBtn = styled.button`
+  width: 100%;
+  height: 40px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  color: #111;
+  font-weight: 700;
+  cursor: pointer;
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
 `;
 
 const SectionTitle = styled.h2`
@@ -1272,6 +1693,85 @@ const DeleteSmall = styled.button`
   align-items: center;
   justify-content: center;
   gap: 6px;
+`;
+
+const PlansTable = styled.div`
+  background: #fff;
+  border: 1px solid #ececec;
+  border-radius: 14px;
+  overflow: hidden;
+`;
+
+const PlansHead = styled.div`
+  display: grid;
+  grid-template-columns: 0.7fr 0.7fr 1.4fr 1fr 1.1fr 1fr 1.2fr;
+  gap: 8px;
+  padding: 12px 12px;
+  background: #fafafa;
+  border-bottom: 1px solid #efefef;
+  span {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #444;
+  }
+  @media (max-width: 520px) {
+    display: none;
+  }
+`;
+
+const PlansRow = styled.div`
+  display: grid;
+  grid-template-columns: 0.7fr 0.7fr 1.4fr 1fr 1.1fr 1fr 1.2fr;
+  gap: 8px;
+  padding: 12px 12px;
+  border-bottom: 1px solid #f1f1f1;
+  align-items: center;
+  font-size: 12px;
+  color: #111;
+  &:last-child {
+    border-bottom: none;
+  }
+  @media (max-width: 520px) {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+`;
+
+const PlanCell = styled.div`
+  min-width: 0;
+  strong {
+    display: block;
+    font-size: 13px;
+    font-weight: 820;
+    color: #111;
+    line-height: 1.15;
+  }
+  small {
+    display: block;
+    color: #666;
+    font-weight: 650;
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+`;
+
+const RowActions = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  @media (max-width: 520px) {
+    grid-template-columns: 1fr 1fr;
+  }
 `;
 
 const Pager = styled.div`

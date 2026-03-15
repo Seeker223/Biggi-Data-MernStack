@@ -542,6 +542,17 @@ export const updateAdminUser = (id, payload) => api.put(`/admin/users/${id}`, pa
 export const deleteAdminUser = (id) => api.delete(`/admin/users/${id}`);
 
 // -----------------------------------------------------------
+// ADMIN PLANS
+// -----------------------------------------------------------
+export const adminSyncProviderCatalog = () => api.post("/plans/admin/sync-provider-catalog");
+export const getAdminPlans = (params = {}) => api.get("/plans/admin/plans", { params });
+export const createAdminPlan = (payload) => api.post("/plans/admin/plans", payload);
+export const updateAdminPlan = (planId, payload) =>
+  api.put(`/plans/admin/plans/${encodeURIComponent(planId)}`, payload);
+export const deleteAdminPlan = (planId) =>
+  api.delete(`/plans/admin/plans/${encodeURIComponent(planId)}`);
+
+// -----------------------------------------------------------
 // GAME ANALYTICS
 // -----------------------------------------------------------
 export const getGameAnalytics = (period = "monthly") =>
