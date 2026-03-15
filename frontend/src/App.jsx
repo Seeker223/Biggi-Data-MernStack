@@ -6,6 +6,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import GlobalStyle from './globalStyles';
 import SplashScreen from './components/SplashScreen';
 import AlertModalHost from './components/AlertModalHost';
+import ConfirmModalHost from './components/ConfirmModalHost';
 
 // Import pages
 import Login from './pages/auth/Login';
@@ -64,6 +65,7 @@ function App() {
       <GlobalStyle />
       <AuthProvider>
         <AlertModalHost />
+        <ConfirmModalHost />
         <Router>
           <Routes>
             {/* Public Routes */}

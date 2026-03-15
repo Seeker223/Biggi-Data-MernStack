@@ -33,6 +33,7 @@ import {
   updateAdminPlan,
   updateAdminProfitSweepSettings,
 } from "../../services/api";
+import { Alert } from "../../utils/alert";
 
 const naira = (v) => `N${Number(v || 0).toLocaleString()}`;
 const dateFmt = (v) => (v ? new Date(v).toLocaleString() : "-");
@@ -292,7 +293,13 @@ const AdminScreen = () => {
   };
 
   const handleDeleteUser = async (entry) => {
-    const ok = window.confirm(`Delete user "${entry.personal?.username}"? This cannot be undone.`);
+    const ok = await Alert.confirm({
+      tone: "error",
+      title: "Delete User",
+      message: `Delete user "${entry.personal?.username}"?\n\nThis cannot be undone.`,
+      confirmText: "Delete",
+      cancelText: "Cancel",
+    });
     if (!ok) return;
     try {
       await deleteAdminUser(entry.id);
@@ -385,7 +392,13 @@ const AdminScreen = () => {
   };
 
   const handleDeletePlan = async (p) => {
-    const ok = window.confirm(`Deactivate plan "${p?.plan_id}"?`);
+    const ok = await Alert.confirm({
+      tone: "warning",
+      title: "Deactivate Plan",
+      message: `Deactivate plan "${p?.plan_id}"?`,
+      confirmText: "Deactivate",
+      cancelText: "Cancel",
+    });
     if (!ok) return;
     try {
       const id = String(p?.plan_id || "").trim();
@@ -398,7 +411,13 @@ const AdminScreen = () => {
   };
 
   const handleSyncCatalog = async () => {
-    const ok = window.confirm("Sync plans from provider catalog? This will disable any plans not in the catalog.");
+    const ok = await Alert.confirm({
+      tone: "warning",
+      title: "Sync Provider Catalog",
+      message: "Sync plans from provider catalog?\n\nThis will disable any plans not in the catalog.",
+      confirmText: "Sync",
+      cancelText: "Cancel",
+    });
     if (!ok) return;
     try {
       setPlanLoading(true);
@@ -413,9 +432,14 @@ const AdminScreen = () => {
   };
 
   const handleResetCatalog = async () => {
-    const ok = window.confirm(
-      "HARD RESET plans to provider catalog?\n\nThis will DELETE legacy plans from the database and replace with the latest list only."
-    );
+    const ok = await Alert.confirm({
+      tone: "error",
+      title: "Hard Reset Plans",
+      message:
+        "HARD RESET plans to provider catalog?\n\nThis will DELETE legacy plans from the database and replace with the latest list only.",
+      confirmText: "Hard Reset",
+      cancelText: "Cancel",
+    });
     if (!ok) return;
     try {
       setPlanLoading(true);
@@ -448,7 +472,13 @@ const AdminScreen = () => {
   };
 
   const runSweepNow = async () => {
-    const ok = window.confirm("Run profit sweep now?");
+    const ok = await Alert.confirm({
+      tone: "warning",
+      title: "Run Profit Sweep",
+      message: "Run profit sweep now?",
+      confirmText: "Run Now",
+      cancelText: "Cancel",
+    });
     if (!ok) return;
     try {
       setProfitLoading(true);
