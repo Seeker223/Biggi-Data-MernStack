@@ -22,6 +22,7 @@ import {
   getAdminDashboard,
   updateAdminUser,
   adminSyncProviderCatalog,
+  adminResetProviderCatalog,
   createAdminPlan,
   deleteAdminPlan,
   getAdminPlans,
@@ -359,6 +360,23 @@ const AdminScreen = () => {
     }
   };
 
+  const handleResetCatalog = async () => {
+    const ok = window.confirm(
+      "HARD RESET plans to provider catalog?\n\nThis will DELETE legacy plans from the database and replace with the latest list only."
+    );
+    if (!ok) return;
+    try {
+      setPlanLoading(true);
+      setPlanError("");
+      await adminResetProviderCatalog();
+      await loadPlans();
+    } catch (err) {
+      setPlanError(err?.response?.data?.msg || err?.response?.data?.message || "Reset failed.");
+    } finally {
+      setPlanLoading(false);
+    }
+  };
+
   if (!isAdmin) {
     return (
       <Page>
@@ -522,6 +540,10 @@ const AdminScreen = () => {
                 <RefreshCw size={16} />
                 Sync Catalog
               </SoftButton>
+              <DangerButton onClick={handleResetCatalog} disabled={planLoading} title="Delete legacy plans and replace with provider catalog only">
+                <Trash2 size={16} />
+                Reset Plans
+              </DangerButton>
             </ActionRow>
           </FilterCard>
         )}
@@ -1220,7 +1242,7 @@ const Page = styled.div`
 
 const Container = styled.div`
   width: 100%;
-  max-width: 480px;
+  max-width: 1120px;
 `;
 
 const Header = styled.div`
@@ -1376,6 +1398,24 @@ const SoftButton = styled.button`
   }
 `;
 
+const DangerButton = styled.button`
+  border: 1px solid #ffd1d1;
+  border-radius: 10px;
+  background: #fff5f5;
+  color: #c21f1f;
+  font-weight: 800;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+`;
+
 const CancelBtn = styled.button`
   width: 100%;
   height: 40px;
@@ -1401,8 +1441,11 @@ const SectionTitle = styled.h2`
 
 const SummaryGrid = styled.div`
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(4, 1fr);
   gap: 8px;
+  @media (max-width: 980px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
   @media (max-width: 390px) {
     grid-template-columns: 1fr;
   }
@@ -1619,7 +1662,14 @@ const RankItem = styled.div`
 
 const UsersWrap = styled.div`
   display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
+  @media (max-width: 980px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  @media (max-width: 620px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 const UserCard = styled.div`

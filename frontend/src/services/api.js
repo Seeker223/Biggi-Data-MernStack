@@ -545,6 +545,7 @@ export const deleteAdminUser = (id) => api.delete(`/admin/users/${id}`);
 // ADMIN PLANS
 // -----------------------------------------------------------
 export const adminSyncProviderCatalog = () => api.post("/plans/admin/sync-provider-catalog");
+export const adminResetProviderCatalog = () => api.post("/plans/admin/reset-provider-catalog");
 export const getAdminPlans = (params = {}) => api.get("/plans/admin/plans", { params });
 export const createAdminPlan = (payload) => api.post("/plans/admin/plans", payload);
 export const updateAdminPlan = (planId, payload) =>
