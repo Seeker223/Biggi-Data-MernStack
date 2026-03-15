@@ -554,6 +554,17 @@ export const deleteAdminPlan = (planId) =>
   api.delete(`/plans/admin/plans/${encodeURIComponent(planId)}`);
 
 // -----------------------------------------------------------
+// ADMIN PROFIT SWEEP
+// -----------------------------------------------------------
+export const getAdminProfitSummary = () => api.get("/admin/profit-sweep/summary");
+export const getAdminProfitSweepSettings = () => api.get("/admin/profit-sweep/settings");
+export const updateAdminProfitSweepSettings = (payload) =>
+  api.put("/admin/profit-sweep/settings", payload);
+export const getAdminProfitSweeps = () => api.get("/admin/profit-sweep/sweeps");
+export const runAdminProfitSweepNow = (force = false) =>
+  api.post("/admin/profit-sweep/sweep-now", { force });
+
+// -----------------------------------------------------------
 // GAME ANALYTICS
 // -----------------------------------------------------------
 export const getGameAnalytics = (period = "monthly") =>

@@ -26,7 +26,12 @@ import {
   createAdminPlan,
   deleteAdminPlan,
   getAdminPlans,
+  getAdminProfitSummary,
+  getAdminProfitSweepSettings,
+  getAdminProfitSweeps,
+  runAdminProfitSweepNow,
   updateAdminPlan,
+  updateAdminProfitSweepSettings,
 } from "../../services/api";
 
 const naira = (v) => `N${Number(v || 0).toLocaleString()}`;
@@ -102,6 +107,14 @@ const AdminScreen = () => {
     active: true,
   });
 
+  // Profit sweep (admin)
+  const [profitSummary, setProfitSummary] = useState(null);
+  const [profitSettings, setProfitSettings] = useState(null);
+  const [profitSweeps, setProfitSweeps] = useState([]);
+  const [profitOpen, setProfitOpen] = useState(false);
+  const [profitLoading, setProfitLoading] = useState(false);
+  const [profitError, setProfitError] = useState("");
+
   const isAdmin = useMemo(() => String(user?.role || "").toLowerCase() === "admin", [user?.role]);
 
   const loadData = useCallback(async () => {
@@ -151,10 +164,34 @@ const AdminScreen = () => {
     }
   }, [planActive, planCategory, planNetwork, planQ]);
 
+  const loadProfit = useCallback(async () => {
+    try {
+      setProfitLoading(true);
+      setProfitError("");
+      const [sumRes, settingsRes, sweepsRes] = await Promise.all([
+        getAdminProfitSummary(),
+        getAdminProfitSweepSettings(),
+        getAdminProfitSweeps(),
+      ]);
+      setProfitSummary(sumRes?.data?.summary || null);
+      setProfitSettings(settingsRes?.data?.settings || null);
+      setProfitSweeps(Array.isArray(sweepsRes?.data?.sweeps) ? sweepsRes.data.sweeps : []);
+    } catch (err) {
+      setProfitError(err?.response?.data?.msg || err?.response?.data?.message || "Failed to load profit data.");
+    } finally {
+      setProfitLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!isAdmin) return;
     if (section === "plans") loadPlans();
   }, [isAdmin, loadPlans, section]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    if (section === "plans") loadProfit();
+  }, [isAdmin, loadProfit, section]);
 
   const resetForm = () => {
     setForm(EMPTY_FORM);
@@ -377,6 +414,39 @@ const AdminScreen = () => {
     }
   };
 
+  const openProfit = async () => {
+    setProfitOpen(true);
+    await loadProfit();
+  };
+
+  const saveProfitSettings = async () => {
+    try {
+      setProfitLoading(true);
+      setProfitError("");
+      await updateAdminProfitSweepSettings(profitSettings || {});
+      await loadProfit();
+    } catch (err) {
+      setProfitError(err?.response?.data?.msg || err?.response?.data?.message || "Failed to save settings.");
+    } finally {
+      setProfitLoading(false);
+    }
+  };
+
+  const runSweepNow = async () => {
+    const ok = window.confirm("Run profit sweep now?");
+    if (!ok) return;
+    try {
+      setProfitLoading(true);
+      setProfitError("");
+      await runAdminProfitSweepNow(false);
+      await loadProfit();
+    } catch (err) {
+      setProfitError(err?.response?.data?.msg || err?.response?.data?.message || "Sweep failed.");
+    } finally {
+      setProfitLoading(false);
+    }
+  };
+
   if (!isAdmin) {
     return (
       <Page>
@@ -544,6 +614,10 @@ const AdminScreen = () => {
                 <Trash2 size={16} />
                 Reset Plans
               </DangerButton>
+              <SoftButton onClick={openProfit} disabled={profitLoading}>
+                <Wallet size={16} />
+                Profit Sweep
+              </SoftButton>
             </ActionRow>
           </FilterCard>
         )}
@@ -1218,6 +1292,128 @@ const AdminScreen = () => {
                 {planFormLoading ? "Saving..." : "Save Plan"}
               </ApplyButton>
             </ActionRow>
+          </ModalCard>
+        </ModalOverlay>
+      ) : null}
+
+      {profitOpen ? (
+        <ModalOverlay onClick={() => setProfitOpen(false)}>
+          <ModalCard onClick={(e) => e.stopPropagation()}>
+            <ModalHead>
+              <h3>Profit Sweep</h3>
+              <button onClick={() => setProfitOpen(false)}>
+                <X size={16} />
+              </button>
+            </ModalHead>
+
+            {profitError ? <ErrorBox>{profitError}</ErrorBox> : null}
+            {profitLoading ? <LoadingBox>Loading profit data...</LoadingBox> : null}
+
+            {profitSummary ? (
+              <ModalSection>
+                <h4>Summary</h4>
+                <p>Pending (unswept): {naira(profitSummary.pending?.profit)} ({profitSummary.pending?.count || 0} entries)</p>
+                <p>Swept: {naira(profitSummary.swept?.profit)} ({profitSummary.swept?.count || 0} entries)</p>
+                <p>Total: {naira(profitSummary.total?.profit)} ({profitSummary.total?.count || 0} entries)</p>
+              </ModalSection>
+            ) : null}
+
+            {profitSettings ? (
+              <>
+                <ModalSection>
+                  <h4>Auto Sweep Settings</h4>
+                  <p>Auto sweep moves profit to your dedicated bank account using Flutterwave Transfers.</p>
+                </ModalSection>
+                <FormGrid>
+                  <Field>
+                    <label>Enabled</label>
+                    <select
+                      value={profitSettings.enabled ? "true" : "false"}
+                      onChange={(e) =>
+                        setProfitSettings((s) => ({ ...(s || {}), enabled: e.target.value === "true" }))
+                      }
+                    >
+                      <option value="true">true</option>
+                      <option value="false">false</option>
+                    </select>
+                  </Field>
+                  <Field>
+                    <label>Minimum Amount</label>
+                    <input
+                      value={profitSettings.minAmount ?? 0}
+                      onChange={(e) => setProfitSettings((s) => ({ ...(s || {}), minAmount: Number(e.target.value) }))}
+                      type="number"
+                    />
+                  </Field>
+                  <Field>
+                    <label>Bank Code</label>
+                    <input
+                      value={profitSettings.bankCode || ""}
+                      onChange={(e) => setProfitSettings((s) => ({ ...(s || {}), bankCode: e.target.value }))}
+                      placeholder="e.g. 044"
+                    />
+                  </Field>
+                  <Field>
+                    <label>Account Number</label>
+                    <input
+                      value={profitSettings.accountNumber || ""}
+                      onChange={(e) => setProfitSettings((s) => ({ ...(s || {}), accountNumber: e.target.value }))}
+                      placeholder="0123456789"
+                    />
+                  </Field>
+                  <Field>
+                    <label>Account Name (optional)</label>
+                    <input
+                      value={profitSettings.accountName || ""}
+                      onChange={(e) => setProfitSettings((s) => ({ ...(s || {}), accountName: e.target.value }))}
+                    />
+                  </Field>
+                  <Field>
+                    <label>Cron</label>
+                    <input
+                      value={profitSettings.cron || ""}
+                      onChange={(e) => setProfitSettings((s) => ({ ...(s || {}), cron: e.target.value }))}
+                      placeholder="55 23 * * *"
+                    />
+                  </Field>
+                  <Field>
+                    <label>Timezone</label>
+                    <input
+                      value={profitSettings.timezone || ""}
+                      onChange={(e) => setProfitSettings((s) => ({ ...(s || {}), timezone: e.target.value }))}
+                      placeholder="Africa/Lagos"
+                    />
+                  </Field>
+                  <Field>
+                    <label>Narration</label>
+                    <input
+                      value={profitSettings.narration || ""}
+                      onChange={(e) => setProfitSettings((s) => ({ ...(s || {}), narration: e.target.value }))}
+                      placeholder="BiggiData profit sweep"
+                    />
+                  </Field>
+                </FormGrid>
+                <ActionRow>
+                  <ApplyButton onClick={saveProfitSettings} disabled={profitLoading}>
+                    {profitLoading ? "Saving..." : "Save Settings"}
+                  </ApplyButton>
+                  <SoftButton onClick={runSweepNow} disabled={profitLoading}>
+                    Run Sweep Now
+                  </SoftButton>
+                </ActionRow>
+              </>
+            ) : null}
+
+            {profitSweeps?.length ? (
+              <ModalSection>
+                <h4>Recent Sweeps</h4>
+                {profitSweeps.slice(0, 8).map((s) => (
+                  <p key={s.reference}>
+                    {dateFmt(s.createdAt)} - {naira(s.amount)} - {String(s.status || "").toUpperCase()}
+                  </p>
+                ))}
+              </ModalSection>
+            ) : null}
           </ModalCard>
         </ModalOverlay>
       ) : null}
