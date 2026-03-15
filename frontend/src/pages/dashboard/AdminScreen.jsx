@@ -174,7 +174,22 @@ const AdminScreen = () => {
         getAdminProfitSweeps(),
       ]);
       setProfitSummary(sumRes?.data?.summary || null);
-      setProfitSettings(settingsRes?.data?.settings || null);
+      const rawSettings = settingsRes?.data?.settings || null;
+      // Frontend-safe defaults in case older settings were saved empty.
+      const normalizedSettings = rawSettings
+        ? {
+            ...rawSettings,
+            cron: rawSettings.cron || "55 23 * * *",
+            timezone: rawSettings.timezone || "Africa/Lagos",
+            narration: rawSettings.narration || "BiggiData profit sweep",
+            minAmount:
+              rawSettings.minAmount === null || rawSettings.minAmount === undefined
+                ? 5000
+                : rawSettings.minAmount,
+            currency: rawSettings.currency || "NGN",
+          }
+        : null;
+      setProfitSettings(normalizedSettings);
       setProfitSweeps(Array.isArray(sweepsRes?.data?.sweeps) ? sweepsRes.data.sweeps : []);
     } catch (err) {
       setProfitError(err?.response?.data?.msg || err?.response?.data?.message || "Failed to load profit data.");
@@ -2097,7 +2112,7 @@ const ModalOverlay = styled.div`
 
 const ModalCard = styled.div`
   width: 100%;
-  max-width: 460px;
+  max-width: 520px;
   max-height: 85vh;
   overflow-y: auto;
   background: #fff;
