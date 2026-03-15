@@ -24,84 +24,8 @@ const SelectPlanScreen = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
-  const PLAN_PRESETS = {
-    mtn: [
-      { label: "500MB", sizeMb: 500, validity: "7 days", amount: 405, category: "SME" },
-      { label: "1GB", sizeMb: 1024, validity: "1 day", amount: 315, category: "SME" },
-      { label: "1GB", sizeMb: 1024, validity: "7 days", amount: 510, category: "SME" },
-      { label: "1GB", sizeMb: 1024, validity: "30 days", amount: 630, category: "SME" },
-      { label: "2GB", sizeMb: 2048, validity: "30 days", amount: 899, category: "SME" },
-      { label: "2.5GB", sizeMb: 2560, validity: "1 day", amount: 616, category: "SME" },
-      { label: "3GB", sizeMb: 3072, validity: "30 days", amount: 1230, category: "SME" },
-      { label: "5GB", sizeMb: 5120, validity: "30 days", amount: 1670, category: "SME" },
-      { label: "10GB", sizeMb: 10240, validity: "30 days", amount: 4430, category: "SME" },
-    ],
-    glo: [
-      { label: "200MB", sizeMb: 200, validity: "14 days", amount: 205, category: "CG" },
-      { label: "500MB", sizeMb: 500, validity: "30 days", amount: 310, category: "CG" },
-      { label: "1GB", sizeMb: 1024, validity: "30 days", amount: 505, category: "CG" },
-      { label: "2GB", sizeMb: 2048, validity: "30 days", amount: 910, category: "CG" },
-      { label: "3GB", sizeMb: 3072, validity: "30 days", amount: 1315, category: "CG" },
-      { label: "5GB", sizeMb: 5120, validity: "30 days", amount: 2125, category: "CG" },
-      { label: "10GB", sizeMb: 10240, validity: "30 days", amount: 4150, category: "CG" },
-    ],
-    airtel: [
-      { label: "100MB", sizeMb: 100, validity: "1/7 days", amount: 300, category: "CG" },
-      { label: "300MB", sizeMb: 300, validity: "1/7 days", amount: 409, category: "CG" },
-      { label: "500MB", sizeMb: 500, validity: "7/30 days", amount: 610, category: "CG" },
-      { label: "1GB", sizeMb: 1024, validity: "30 days", amount: 1120, category: "CG" },
-    ],
-  };
 
   const normalizeText = (value) => String(value || "").toLowerCase().replace(/\s+/g, " ").trim();
-  const extractSizeInMb = (plan) => {
-    const source = `${plan?.name || ""} ${plan?.plan_name || ""}`;
-    const match = source.match(/(\d+(?:\.\d+)?)\s*(gb|mb)/i);
-    if (!match) return null;
-    const value = Number(match[1]);
-    if (Number.isNaN(value)) return null;
-    const unit = String(match[2] || "").toLowerCase();
-    return unit === "gb" ? value * 1024 : value;
-  };
-  const pickClosestPlan = (plansWithSize, targetMb) => {
-    if (plansWithSize.length === 0) return null;
-    const sorted = [...plansWithSize].sort((a, b) => {
-      const da = Math.abs(a.sizeMb - targetMb);
-      const db = Math.abs(b.sizeMb - targetMb);
-      if (da !== db) return da - db;
-      return Number(a.plan.amount || 0) - Number(b.plan.amount || 0);
-    });
-    return sorted[0];
-  };
-  const buildConfiguredPlans = (rawPlans, networkLabel, networkKey) => {
-    const plansWithSize = rawPlans
-      .map((plan) => {
-        const id = plan.plan_id || plan._id || plan.id;
-        return { id, sizeMb: extractSizeInMb(plan), plan };
-      })
-      .filter((entry) => entry.id && entry.sizeMb !== null);
-
-    if (plansWithSize.length === 0) return [];
-    const presets = PLAN_PRESETS[networkKey] || [];
-    if (presets.length === 0) return [];
-
-    const selected = presets
-      .map((preset, index) => {
-        const picked = pickClosestPlan(plansWithSize, preset.sizeMb);
-        if (!picked) return null;
-        return {
-          ...picked.plan,
-          name: `${networkLabel} ${preset.label}`,
-          plan_name: `${networkLabel} ${preset.label}`,
-          validity: preset.validity,
-          amount: preset.amount,
-          category: preset.category,
-          uiId: `${picked.id}-${preset.label}-${preset.validity}-${index}`,
-        };
-      })
-      .filter(Boolean);
-    return selected;
-  };
 
   useEffect(() => {
     let live = true;
@@ -114,11 +38,16 @@ const SelectPlanScreen = () => {
         const res = await api.get(`/plans/network/${selectedNetwork.code}`);
         if (!live) return;
         const rawPlans = Array.isArray(res.data?.plans) ? res.data.plans : [];
-        const label = normalizeText(selectedNetwork?.label || selectedNetwork?.network || "").toUpperCase();
-        const networkKey = normalizeText(
-          selectedNetwork?.code || selectedNetwork?.network || selectedNetwork?.label || ""
-        );
-        setPlans(buildConfiguredPlans(rawPlans, label || "DATA", networkKey));
+        const normalizedPlans = rawPlans
+          .map((plan, idx) => ({
+            ...plan,
+            uiId: String(plan.plan_id || plan._id || plan.id || idx),
+          }))
+          .filter((plan) => plan.plan_id && plan.amount !== undefined);
+
+        // IMPORTANT: Use live backend plans directly to avoid price/validity mismatches.
+        // Hard-coded presets can cause wrong Zenipoint plan codes to be purchased.
+        setPlans(normalizedPlans);
       } catch (err) {
         if (!live) return;
         setError(err?.response?.data?.msg || "Could not load plans");

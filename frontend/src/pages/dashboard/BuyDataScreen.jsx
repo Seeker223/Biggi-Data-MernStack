@@ -3,7 +3,12 @@ import { useNavigate, useLocation } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
 import { ChevronLeft, ChevronDown, CheckCircle } from "lucide-react";
 import { AuthContext } from "../../context/AuthContext";
-import { buyData, getTransactionSecurityStatus, setTransactionPin, verifyTransactionPin } from "../../services/api";
+import api, {
+  buyData,
+  getTransactionSecurityStatus,
+  setTransactionPin,
+  verifyTransactionPin,
+} from "../../services/api";
 import TransactionAuthSheet from "../../components/TransactionAuthSheet";
 
 const BuyDataScreen = () => {
@@ -39,6 +44,34 @@ const BuyDataScreen = () => {
       setPrice(Number(p.amount || p.price || 0));
     }
   }, [location.state]);
+
+  // Always resolve plan details from backend by plan_id.
+  // This avoids any UI "preset" plan object accidentally being used for price/validity.
+  useEffect(() => {
+    let live = true;
+
+    const resolvePlan = async () => {
+      const planId = String(plan?.plan_id || "").trim();
+      if (!planId) return;
+
+      try {
+        const res = await api.get(`/plans/single/${encodeURIComponent(planId)}`);
+        const backendPlan = res?.data?.plan;
+        if (!live || !backendPlan?.plan_id) return;
+
+        // Keep local state consistent with backend pricing.
+        setPlan((prev) => ({ ...(prev || {}), ...backendPlan }));
+        setPrice(Number(backendPlan.amount || 0));
+      } catch {
+        // Non-blocking: keep existing plan object (user can still proceed).
+      }
+    };
+
+    resolvePlan();
+    return () => {
+      live = false;
+    };
+  }, [plan?.plan_id]);
 
   const validate = () => {
     if (!phone) return "Enter phone number";
