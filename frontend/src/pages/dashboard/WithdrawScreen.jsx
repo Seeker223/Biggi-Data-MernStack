@@ -76,14 +76,14 @@ const WithdrawScreen = () => {
   const { user, refreshUser, updateUser } = useContext(AuthContext);
 
   // Feature flag check
-  if (FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM) {
+  if (FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM || FEATURE_FLAGS.DISABLE_WITHDRAWALS) {
     return (
       <PageContainer>
         <ContentContainer>
           <DisabledContainer>
             <AlertCircle size={48} color={BRAND_COLORS.primary} style={{ marginBottom: '16px' }} />
             <DisabledTitle>Withdrawals Temporarily Disabled</DisabledTitle>
-            <DisabledText>Withdrawals are disabled while we undergo Play Store review.</DisabledText>
+            <DisabledText>Withdrawals are temporarily unavailable. Please check back later.</DisabledText>
             <PrimaryButton onClick={() => navigate(-1)}>
               Return
             </PrimaryButton>

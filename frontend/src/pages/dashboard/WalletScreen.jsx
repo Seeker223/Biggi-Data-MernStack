@@ -2,6 +2,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { ArrowLeft } from "lucide-react";
+import { FEATURE_FLAGS } from "../../constants/featureFlags";
 
 const WalletScreen = () => {
   const navigate = useNavigate();
@@ -19,7 +20,9 @@ const WalletScreen = () => {
 
         <Card>
           <PrimaryButton onClick={() => navigate("/deposit")}>Deposit Funds</PrimaryButton>
-          <PrimaryButton onClick={() => navigate("/withdraw")}>Withdraw Funds</PrimaryButton>
+          {!FEATURE_FLAGS.DISABLE_WITHDRAWALS ? (
+            <PrimaryButton onClick={() => navigate("/withdraw")}>Withdraw Funds</PrimaryButton>
+          ) : null}
           <PrimaryButton onClick={() => navigate("/redeem")}>Redeem Rewards</PrimaryButton>
         </Card>
       </Container>

@@ -432,12 +432,14 @@ const HomeScreen = () => {
                     >
                       <ActionText>Deposit</ActionText>
                     </ActionBtn>
-                    <ActionBtn
-                      onClick={goToWithdraw}
-                      disabled={FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM}
-                    >
-                      <ActionText>Withdraw</ActionText>
-                    </ActionBtn>
+                    {!FEATURE_FLAGS.DISABLE_WITHDRAWALS ? (
+                      <ActionBtn
+                        onClick={goToWithdraw}
+                        disabled={FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM}
+                      >
+                        <ActionText>Withdraw</ActionText>
+                      </ActionBtn>
+                    ) : null}
                   </ActionButtons>
                 </BalanceRow>
                 <Divider />
