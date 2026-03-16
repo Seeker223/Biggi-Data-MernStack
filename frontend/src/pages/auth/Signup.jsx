@@ -16,6 +16,8 @@ const Signup = () => {
     birthDate: '',
     state: '',
     referralCode: '',
+    bvn: '',
+    nin: '',
     password: '',
     confirmPassword: '',
   });
@@ -37,7 +39,7 @@ const Signup = () => {
 
   const handleRegister = async (e) => {
     e.preventDefault();
-    const { username, email, password, phoneNumber, birthDate, confirmPassword, state, referralCode } = form;
+    const { username, email, password, phoneNumber, birthDate, confirmPassword, state, referralCode, bvn, nin } = form;
 
     if (!username || !email || !password || !confirmPassword) {
       showModal('Please fill all required fields.', 'error');
@@ -66,7 +68,7 @@ const Signup = () => {
 
     setLoading(true);
     try {
-      const res = await register({ username, email, password, phoneNumber, birthDate, state, referralCode });
+      const res = await register({ username, email, password, phoneNumber, birthDate, state, referralCode, bvn, nin });
       
       if (res.success) {
         showModal('Registration successful! Welcome to Biggi Data.', 'success');
@@ -202,6 +204,28 @@ const Signup = () => {
                 placeholder="Enter referral code"
                 value={form.referralCode}
                 onChange={(e) => setForm({ ...form, referralCode: e.target.value })}
+              />
+            </InputWrapper>
+
+            {/* BVN / NIN */}
+            <InputWrapper>
+              <Label>BVN (optional)</Label>
+              <TextInput
+                type="text"
+                placeholder="11-digit BVN"
+                value={form.bvn}
+                onChange={(e) => setForm({ ...form, bvn: e.target.value.replace(/\D/g, "").slice(0, 11) })}
+              />
+              <PasswordHint>Required for virtual account deposits.</PasswordHint>
+            </InputWrapper>
+
+            <InputWrapper>
+              <Label>NIN (optional)</Label>
+              <TextInput
+                type="text"
+                placeholder="11-digit NIN"
+                value={form.nin}
+                onChange={(e) => setForm({ ...form, nin: e.target.value.replace(/\D/g, "").slice(0, 11) })}
               />
             </InputWrapper>
 

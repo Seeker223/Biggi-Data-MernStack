@@ -1,41 +1,21 @@
-import React, { useState, useContext, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
 import {
   ChevronLeft,
   AlertCircle,
-  CheckCircle,
-  XCircle,
-  RefreshCw,
   Info,
-  Clock,
 } from "lucide-react";
-import { AuthContext } from "../../context/AuthContext";
 import { FEATURE_FLAGS } from "../../constants/featureFlags";
 import {
-  getTransactionSecurityStatus,
-  getDepositStatus,
   getDepositFeeSettings,
-  reconcilePayment,
-  setTransactionPin,
-  verifyTransactionPin,
-  verifyFlutterwavePayment,
+  getVirtualAccount,
 } from "../../services/api";
-import TransactionAuthSheet from "../../components/TransactionAuthSheet";
 
 const SERVICE_CHARGE = 5;
-const POLL_INTERVAL = 3000;
-const MAX_POLL_ATTEMPTS = 20;
-const RECONCILE_ATTEMPTS = 3;
-const FLUTTERWAVE_PUBLIC_KEY =
-  import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY ||
-  import.meta.env.VITE_FLUTTERWAVE_KEY ||
-  import.meta.env.EXPO_PUBLIC_FLUTTERWAVE_KEY ||
-  "";
 
 const DepositScreen = () => {
   const navigate = useNavigate();
-  const { user, refreshUser, updateUser } = useContext(AuthContext);
 
   if (FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM) {
     return (
@@ -67,14 +47,7 @@ const DepositScreen = () => {
   }
 
   const [amount, setAmount] = useState("");
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [showAuthSheet, setShowAuthSheet] = useState(false);
-  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
-  const [paymentStatus, setPaymentStatus] = useState("idle");
-  const [txRef, setTxRef] = useState("");
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [transactionPin, setTransactionPin] = useState("");
-  const [pinConfigured, setPinConfigured] = useState(Boolean(user?.transactionPinEnabled));
+  const [showBankModal, setShowBankModal] = useState(false);
   const [feeSettings, setFeeSettings] = useState({
     enabled: true,
     flatFee: SERVICE_CHARGE,
@@ -82,16 +55,15 @@ const DepositScreen = () => {
     minFee: 0,
     maxFee: 0,
   });
+  const [virtualAccount, setVirtualAccount] = useState(null);
+  const [virtualLoading, setVirtualLoading] = useState(false);
+  const [virtualError, setVirtualError] = useState("");
+  const [showBvnModal, setShowBvnModal] = useState(false);
 
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [toastType, setToastType] = useState("info");
 
-  const pollTimer = useRef(null);
-  const pollCount = useRef(0);
-  const reconcileAttempts = useRef(0);
-  const currentTxRef = useRef("");
-  const pendingAmountRef = useRef(0);
 
   const showToast = (msg, type = "info") => {
     setToastMessage(msg);
@@ -99,17 +71,6 @@ const DepositScreen = () => {
     setToastVisible(true);
     setTimeout(() => setToastVisible(false), 3500);
   };
-
-  useEffect(() => {
-    return () => {
-      if (pollTimer.current) clearInterval(pollTimer.current);
-      currentTxRef.current = "";
-    };
-  }, []);
-
-  useEffect(() => {
-    setPinConfigured(Boolean(user?.transactionPinEnabled));
-  }, [user?.transactionPinEnabled]);
 
   useEffect(() => {
     let mounted = true;
@@ -120,6 +81,32 @@ const DepositScreen = () => {
         if (settings) setFeeSettings(settings);
       })
       .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    setVirtualLoading(true);
+    getVirtualAccount()
+      .then((res) => {
+        if (!mounted) return;
+        setVirtualAccount(res?.data?.account || null);
+        setVirtualError("");
+      })
+      .catch((err) => {
+        if (!mounted) return;
+        const msg = err?.response?.data?.message || "Failed to load virtual account.";
+        setVirtualError(msg);
+        if (/bvn|nin/i.test(msg)) {
+          setShowBvnModal(true);
+        }
+      })
+      .finally(() => {
+        if (!mounted) return;
+        setVirtualLoading(false);
+      });
     return () => {
       mounted = false;
     };
@@ -138,258 +125,20 @@ const DepositScreen = () => {
     return Math.max(0, Math.round(fee));
   };
   const serviceCharge = computeFee(enteredAmount);
-  const totalAmount = enteredAmount + serviceCharge;
+  const creditedAmount = Math.max(0, enteredAmount - serviceCharge);
   const isValidAmount = () => enteredAmount >= 100 && enteredAmount <= 1000000;
 
-  const stopPolling = () => {
-    if (pollTimer.current) {
-      clearInterval(pollTimer.current);
-      pollTimer.current = null;
-    }
-    pollCount.current = 0;
-    setIsProcessing(false);
-    currentTxRef.current = "";
-    pendingAmountRef.current = 0;
-    setTransactionPin("");
-  };
-
-  const loadFlutterwaveCheckout = async () => {
-    if (window.FlutterwaveCheckout) return true;
-    return new Promise((resolve) => {
-      const script = document.createElement("script");
-      script.src = "https://checkout.flutterwave.com/v3.js";
-      script.async = true;
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
-      document.body.appendChild(script);
-    });
-  };
-
-  const attemptReconciliation = async (reference) => {
-    if (reconcileAttempts.current >= RECONCILE_ATTEMPTS) {
-      showToast("Maximum reconciliation attempts reached", "error");
-      return false;
-    }
-
-    try {
-      reconcileAttempts.current += 1;
-      showToast(`Attempting reconciliation (${reconcileAttempts.current}/${RECONCILE_ATTEMPTS})`, "info");
-      const res = await reconcilePayment(reference, "", transactionPin.trim(), pendingAmountRef.current);
-      if (res?.data?.success) {
-        showToast("Payment reconciled successfully!", "success");
-        await refreshUser();
-        setAmount("");
-        setPaymentStatus("success");
-        stopPolling();
-        return true;
-      }
-      showToast(res?.data?.message || "Reconciliation failed. Try again.", "error");
-      return false;
-    } catch (error) {
-      showToast(error?.response?.data?.message || "Reconciliation failed. Try again.", "error");
-      return false;
-    }
-  };
-
-  const startPolling = (reference) => {
-    stopPolling();
-    currentTxRef.current = reference;
-    setPaymentStatus("pending");
-    setIsProcessing(true);
-    showToast("Payment received. Awaiting confirmation...", "info");
-
-    pollTimer.current = setInterval(async () => {
-      if (currentTxRef.current !== reference) {
-        stopPolling();
-        return;
-      }
-
-      pollCount.current += 1;
-      try {
-        const res = await getDepositStatus(reference);
-        const status = String(res?.data?.status || "").toLowerCase();
-        if (status === "successful") {
-          stopPolling();
-          setPaymentStatus("success");
-          showToast("Wallet credited successfully!", "success");
-          setAmount("");
-          await refreshUser();
-          return;
-        }
-        if (status === "failed") {
-          stopPolling();
-          setPaymentStatus("failed");
-          showToast("Payment failed", "error");
-          return;
-        }
-      } catch {
-        // keep polling
-      }
-
-      if (pollCount.current >= MAX_POLL_ATTEMPTS) {
-        stopPolling();
-        setPaymentStatus("idle");
-        showToast("Payment is still processing. Check your balance shortly.", "info");
-      }
-    }, POLL_INTERVAL);
-  };
-
-  const handleStartPayment = () => {
+  const handleShowBankDetails = () => {
     if (!isValidAmount()) {
       if (enteredAmount < 100) showToast("Minimum deposit is N100", "error");
       else if (enteredAmount > 1000000) showToast("Maximum deposit is N1,000,000", "error");
       return;
     }
-
-    if (isProcessing) {
-      showToast("Please wait for current transaction to complete", "info");
+    if (!virtualAccount && !virtualLoading) {
+      showToast(virtualError || "Virtual account not ready yet. Please try again.", "error");
       return;
     }
-    (async () => {
-      try {
-        const res = await getTransactionSecurityStatus();
-        setPinConfigured(Boolean(res?.data?.security?.transactionPinEnabled));
-      } catch {
-        // keep current local status
-      }
-      setShowAuthSheet(true);
-    })();
-  };
-
-  const handleAuthSelection = async ({ transactionPin: selectedPin = "", setupPin = "" }) => {
-    const pinValue = String(selectedPin || "").trim();
-    const setupPinValue = String(setupPin || pinValue).trim();
-    let pinJustCreated = false;
-    if (!pinConfigured) {
-      try {
-        await setTransactionPin(setupPinValue);
-        setPinConfigured(true);
-        updateUser?.({ transactionPinEnabled: true });
-        await refreshUser();
-        pinJustCreated = true;
-        showToast("Transaction PIN created successfully.", "success");
-      } catch (error) {
-        showToast(error?.response?.data?.message || "Failed to create transaction PIN.", "error");
-        return;
-      }
-    }
-    if (!/^\d{4}$/.test(pinValue)) {
-      showToast("Enter your 4-digit transaction PIN.", "error");
-      return;
-    }
-    if (!pinJustCreated) {
-      try {
-        await verifyTransactionPin(pinValue);
-        showToast("PIN verified successfully.", "success");
-      } catch (error) {
-        const message = error?.response?.data?.message || "Invalid transaction PIN.";
-        if (/not enabled/i.test(message)) {
-          setPinConfigured(false);
-          showToast("PIN is not enabled yet. Please create a new PIN to continue.", "info");
-        } else {
-          showToast(message, "error");
-        }
-        return;
-      }
-    }
-
-    setTransactionPin(pinValue);
-    const reference = `flw_${user?._id || "user"}_${Date.now()}`;
-    setTxRef(reference);
-    reconcileAttempts.current = 0;
-    pendingAmountRef.current = enteredAmount;
-    setShowAuthSheet(false);
-    setShowConfirm(true);
-  };
-
-  const handleFlutterwavePayment = async () => {
-    setShowConfirm(false);
-    setIsProcessing(true);
-
-    if (!FLUTTERWAVE_PUBLIC_KEY) {
-      showToast("Flutterwave key missing. Set VITE_FLUTTERWAVE_PUBLIC_KEY.", "error");
-      setIsProcessing(false);
-      return;
-    }
-
-    const loaded = await loadFlutterwaveCheckout();
-    if (!loaded || !window.FlutterwaveCheckout) {
-      showToast("Unable to load payment gateway", "error");
-      setIsProcessing(false);
-      return;
-    }
-
-    window.FlutterwaveCheckout({
-      public_key: FLUTTERWAVE_PUBLIC_KEY,
-      tx_ref: txRef,
-      amount: totalAmount,
-      currency: "NGN",
-      payment_options: "card,banktransfer,ussd",
-      customer: {
-        email: user?.email || "user@example.com",
-        name: user?.username || "User",
-      },
-      customizations: {
-        title: "Biggi Data Company",
-        description: "Wallet funding",
-      },
-      callback: async () => {
-        try {
-          const res = await verifyFlutterwavePayment(
-            txRef,
-            "",
-            transactionPin.trim(),
-            pendingAmountRef.current
-          );
-          if (res?.data?.success) {
-            setPaymentStatus("success");
-            showToast("Payment verified and wallet credited!", "success");
-            setAmount("");
-            await refreshUser();
-            stopPolling();
-            return;
-          }
-          startPolling(txRef);
-        } catch (error) {
-          const message = error?.response?.data?.message || "";
-          if (/biometric/i.test(message)) {
-            showToast(message, "error");
-            setIsProcessing(false);
-            return;
-          }
-          startPolling(txRef);
-        }
-      },
-      onclose: () => {
-        if (paymentStatus === "idle") setIsProcessing(false);
-      },
-    });
-  };
-
-  const renderStatusBanner = () => {
-    if (paymentStatus === "idle") return null;
-    const config = {
-      pending: { text: "Payment processing...", color: "#FF9800", icon: <Clock size={20} /> },
-      success: { text: "Payment successful", color: "#28a745", icon: <CheckCircle size={20} /> },
-      failed: { text: "Payment failed", color: "#ff5252", icon: <XCircle size={20} /> },
-    };
-    const statusConfig = config[paymentStatus];
-    return (
-      <StatusBanner $color={statusConfig.color}>
-        {statusConfig.icon}
-        <StatusText>{statusConfig.text}</StatusText>
-      </StatusBanner>
-    );
-  };
-
-  const renderReconcileButton = () => {
-    if (paymentStatus !== "pending" || !txRef || !isProcessing) return null;
-    return (
-      <ReconcileButton onClick={() => attemptReconciliation(txRef)}>
-        <RefreshCw size={20} />
-        <ReconcileText>Having issues? Tap here to reconcile</ReconcileText>
-      </ReconcileButton>
-    );
+    setShowBankModal(true);
   };
 
   return (
@@ -401,18 +150,8 @@ const DepositScreen = () => {
           </Toast>
         )}
 
-        {renderStatusBanner()}
-
         <Header>
-          <BackButton
-            onClick={() => {
-              if (isProcessing) {
-                setShowLeaveConfirm(true);
-              } else {
-                navigate(-1);
-              }
-            }}
-          >
+          <BackButton onClick={() => navigate(-1)}>
             <ChevronLeft size={26} />
           </BackButton>
           <HeaderTitle>Deposit Funds</HeaderTitle>
@@ -420,18 +159,17 @@ const DepositScreen = () => {
         </Header>
 
         <MainContent>
-          <Label>Enter Amount to Deposit</Label>
+          <Label>Enter Amount to Transfer</Label>
           <Input
             type="number"
             placeholder="N Amount (min N100, max N1,000,000)"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            disabled={isProcessing}
           />
 
           <Breakdown>
             <BreakdownRow>
-              <BreakdownLabel>Amount:</BreakdownLabel>
+              <BreakdownLabel>Transfer Amount:</BreakdownLabel>
               <BreakdownValue>N{enteredAmount.toLocaleString()}</BreakdownValue>
             </BreakdownRow>
             <BreakdownRow>
@@ -439,105 +177,97 @@ const DepositScreen = () => {
               <BreakdownValue>N{serviceCharge}</BreakdownValue>
             </BreakdownRow>
             <BreakdownRow $total>
-              <TotalLabel>Total:</TotalLabel>
-              <TotalValue>N{totalAmount.toLocaleString()}</TotalValue>
+              <TotalLabel>Estimated Wallet Credit:</TotalLabel>
+              <TotalValue>N{creditedAmount.toLocaleString()}</TotalValue>
             </BreakdownRow>
           </Breakdown>
 
-          {renderReconcileButton()}
-
-          <PrimaryButton onClick={handleStartPayment} disabled={!isValidAmount() || isProcessing}>
-            {isProcessing ? (
-              <ProcessingContainer>
-                <Spinner size={16} />
-                <PayText>Processing...</PayText>
-              </ProcessingContainer>
-            ) : (
-              <PayText>Pay N{totalAmount.toLocaleString()}</PayText>
-            )}
+          <PrimaryButton onClick={handleShowBankDetails} disabled={!isValidAmount()}>
+            <PayText>{virtualLoading ? "Loading Account..." : "Get Virtual Account"}</PayText>
           </PrimaryButton>
 
           <InfoBox>
             <Info size={18} />
             <InfoText>
-              - Payments usually complete within 1-2 minutes{"\n"}- If balance doesn't update, use the
-              reconcile button{"\n"}- Contact support if issues persist
+              - Transfer to your unique virtual account{"\n"}- Wallet credits automatically after payment is detected{"\n"}- Contact support if issues persist
             </InfoText>
           </InfoBox>
         </MainContent>
 
-        {showConfirm && (
-          <ModalOverlay onClick={() => setShowConfirm(false)}>
+        {showBankModal && (
+          <ModalOverlay onClick={() => setShowBankModal(false)}>
             <ModalContent onClick={(e) => e.stopPropagation()}>
-              <ModalTitle>Confirm Payment</ModalTitle>
-              <ModalDetails>
-                <ModalDetailRow>
-                  <ModalDetailLabel>Amount:</ModalDetailLabel>
-                  <ModalDetailValue>N{enteredAmount.toLocaleString()}</ModalDetailValue>
-                </ModalDetailRow>
-                <ModalDetailRow>
-                  <ModalDetailLabel>Service Charge:</ModalDetailLabel>
-                  <ModalDetailValue>N{serviceCharge}</ModalDetailValue>
-                </ModalDetailRow>
-                <ModalDetailRow $total>
-                  <ModalDetailLabel>Total:</ModalDetailLabel>
-                  <ModalTotal>N{totalAmount.toLocaleString()}</ModalTotal>
-                </ModalDetailRow>
-              </ModalDetails>
+              <ModalTitle>Your Virtual Account</ModalTitle>
+              {virtualError ? <ErrorText>{virtualError}</ErrorText> : null}
+              {virtualLoading && !virtualAccount ? (
+                <ModalDetails>
+                  <ModalDetailLabel>Loading virtual account...</ModalDetailLabel>
+                </ModalDetails>
+              ) : (
+                <ModalDetails>
+                  <ModalDetailRow>
+                    <ModalDetailLabel>Bank Name:</ModalDetailLabel>
+                    <ModalDetailValue>{virtualAccount?.bankName || "Loading"}</ModalDetailValue>
+                  </ModalDetailRow>
+                  <ModalDetailRow>
+                    <ModalDetailLabel>Account Number:</ModalDetailLabel>
+                    <ModalDetailValue>{virtualAccount?.accountNumber || "Loading"}</ModalDetailValue>
+                  </ModalDetailRow>
+                  <ModalDetailRow>
+                    <ModalDetailLabel>Account Name:</ModalDetailLabel>
+                    <ModalDetailValue>{virtualAccount?.accountName || "Loading"}</ModalDetailValue>
+                  </ModalDetailRow>
+                  <ModalDetailRow>
+                    <ModalDetailLabel>Transfer Amount:</ModalDetailLabel>
+                    <ModalDetailValue>N{enteredAmount.toLocaleString()}</ModalDetailValue>
+                  </ModalDetailRow>
+                  <ModalDetailRow>
+                    <ModalDetailLabel>Service Charge:</ModalDetailLabel>
+                    <ModalDetailValue>N{serviceCharge}</ModalDetailValue>
+                  </ModalDetailRow>
+                  <ModalDetailRow $total>
+                    <ModalDetailLabel>Estimated Credit:</ModalDetailLabel>
+                    <ModalTotal>N{creditedAmount.toLocaleString()}</ModalTotal>
+                  </ModalDetailRow>
+                </ModalDetails>
+              )}
+              <InfoBox>
+                <Info size={18} />
+                <InfoText>
+                  Transfer to this account. Service charge is deducted from the transfer amount, and the net credit is shown above.
+                </InfoText>
+              </InfoBox>
               <ModalButtons>
-                <SecondaryButton onClick={() => setShowConfirm(false)}>Cancel</SecondaryButton>
-                <PrimaryButton onClick={handleFlutterwavePayment}>Confirm & Pay</PrimaryButton>
+                <SecondaryButton onClick={() => setShowBankModal(false)}>Close</SecondaryButton>
+                <PrimaryButton onClick={() => setShowBankModal(false)}>I Have Transferred</PrimaryButton>
               </ModalButtons>
             </ModalContent>
           </ModalOverlay>
         )}
 
-        {showLeaveConfirm && (
-          <ModalOverlay onClick={() => setShowLeaveConfirm(false)}>
+        {showBvnModal && (
+          <ModalOverlay onClick={() => setShowBvnModal(false)}>
             <ModalContent onClick={(e) => e.stopPropagation()}>
-              <ModalTitle>Transaction In Progress</ModalTitle>
+              <ModalTitle>BVN or NIN Required</ModalTitle>
               <ModalDetails>
                 <ModalDetailLabel>
-                  A payment is being processed. Are you sure you want to leave this page?
+                  To enable virtual account deposits, please add your BVN or NIN in your profile.
                 </ModalDetailLabel>
               </ModalDetails>
               <ModalButtons>
-                <SecondaryButton onClick={() => setShowLeaveConfirm(false)}>
-                  Stay
-                </SecondaryButton>
-                <PrimaryButton
-                  onClick={() => {
-                    setShowLeaveConfirm(false);
-                    navigate(-1);
-                  }}
-                >
-                  Leave
-                </PrimaryButton>
+                <SecondaryButton onClick={() => setShowBvnModal(false)}>Close</SecondaryButton>
+                <PrimaryButton onClick={() => navigate("/edit-profile")}>Go to Profile</PrimaryButton>
               </ModalButtons>
             </ModalContent>
           </ModalOverlay>
         )}
 
-        <TransactionAuthSheet
-          visible={showAuthSheet}
-          loading={isProcessing}
-          title="Authorize Deposit"
-          subtitle={pinConfigured ? "Enter your 4-digit PIN." : "Create a new 4-digit PIN to continue."}
-          pinConfigured={pinConfigured}
-          onClose={() => setShowAuthSheet(false)}
-          onSubmit={handleAuthSelection}
-        />
       </ContentContainer>
     </PageContainer>
   );
 };
 
 export default DepositScreen;
-
-const spin = keyframes`
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-`;
 
 const slideDown = keyframes`
   from { opacity: 0; transform: translateY(-20px); }
@@ -588,23 +318,15 @@ const ToastText = styled.span`
   font-size: 14px;
 `;
 
-const StatusBanner = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 12px;
-  margin: 10px 0 20px;
+const ErrorText = styled.p`
+  margin: 10px 0 0;
+  padding: 8px 10px;
   border-radius: 8px;
-  background-color: ${(props) => props.$color};
-  width: 100%;
-  gap: 8px;
-  animation: ${fadeIn} 0.3s ease-out;
-`;
-
-const StatusText = styled.span`
-  color: #fff;
+  background: #fff2f2;
+  border: 1px solid #ffd1d1;
+  color: #9a1111;
+  font-size: 12px;
   font-weight: 600;
-  font-size: 14px;
 `;
 
 const Header = styled.div`
@@ -702,25 +424,6 @@ const TotalValue = styled(BreakdownValue)`
   color: #ff7a00;
 `;
 
-const ReconcileButton = styled.button`
-  background-color: #f0f0f0;
-  padding: 12px;
-  border-radius: 8px;
-  border: 1px solid #ddd;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-bottom: 20px;
-`;
-
-const ReconcileText = styled.span`
-  color: #ff7a00;
-  font-weight: 600;
-  font-size: 14px;
-`;
-
 const PrimaryButton = styled.button`
   background-color: ${(props) => (props.disabled ? "#ccc" : "#ff7a00")};
   padding: 18px;
@@ -728,22 +431,6 @@ const PrimaryButton = styled.button`
   border: none;
   cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
   width: 100%;
-`;
-
-const ProcessingContainer = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-`;
-
-const Spinner = styled.div`
-  width: ${(props) => props.size || 16}px;
-  height: ${(props) => props.size || 16}px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: 50%;
-  border-top-color: #fff;
-  animation: ${spin} 1s linear infinite;
 `;
 
 const PayText = styled.span`
@@ -847,3 +534,11 @@ const ModalButtons = styled.div`
   justify-content: space-between;
   gap: 10px;
 `;
+
+
+
+
+
+
+
+

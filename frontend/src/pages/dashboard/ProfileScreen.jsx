@@ -16,6 +16,12 @@ const normalizeSiteUrl = (raw) => {
   if (!value) return "https://biggidata.com.ng";
   return /^https?:\/\//i.test(value) ? value : `https://${value}`;
 };
+const maskId = (value = "") => {
+  const raw = String(value || "").replace(/\D/g, "");
+  if (!raw) return "Not provided";
+  if (raw.length <= 4) return raw;
+  return `${raw.slice(0, 2)}******${raw.slice(-2)}`;
+};
 
 const ProfileScreen = () => {
   const navigate = useNavigate();
@@ -136,7 +142,9 @@ const ProfileScreen = () => {
           <Avatar src={user.photo || DEFAULT_AVATAR} alt="Profile" />
           <Name>{user.username || "User"}</Name>
           <IdText>ID: {String(user._id || "").slice(-8)}</IdText>
-          <IdText>Referral Code: {user.referralCode || "—"}</IdText>
+          <IdText>Referral Code: {user.referralCode || "-"}</IdText>
+          <IdText>BVN: {maskId(user.bvn)}</IdText>
+          <IdText>NIN: {maskId(user.nin)}</IdText>
           {user.referralCode && (
             <ReferralRow>
               <ReferralInput

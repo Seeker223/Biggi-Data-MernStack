@@ -286,6 +286,7 @@ export const disableBiometricAuth = () => api.delete("/auth/biometric");
 export const refreshUserBalance = () => api.get("/wallet/balance");
 export const getDepositHistory = () => api.get("/wallet/deposit-history");
 export const getDepositFeeSettings = () => api.get("/wallet/deposit-fee-settings");
+export const getVirtualAccount = () => api.get("/wallet/virtual-account");
 
 export const verifyFlutterwavePayment = (tx_ref, biometricProof = "", transactionPin = "", amount = 0) =>
   api.post("/wallet/verify-flutterwave", { tx_ref, biometricProof, transactionPin, amount });

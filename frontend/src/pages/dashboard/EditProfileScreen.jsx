@@ -20,6 +20,8 @@ export default function EditProfileScreen() {
   const [email, setEmail] = useState("");
   const [stateValue, setStateValue] = useState("");
   const [referralInvite, setReferralInvite] = useState("");
+  const [bvn, setBvn] = useState("");
+  const [nin, setNin] = useState("");
 
   useEffect(() => {
     if (!user) return;
@@ -29,6 +31,8 @@ export default function EditProfileScreen() {
     setAvatarPreview(user.photo || "");
     setStateValue(user.state || "");
     setReferralInvite(user.referredByCode || "");
+    setBvn(user.bvn || "");
+    setNin(user.nin || "");
   }, [user]);
 
   const userIdShort = useMemo(() => String(user?._id || "").slice(-8), [user?._id]);
@@ -74,6 +78,8 @@ export default function EditProfileScreen() {
         email,
         state: stateValue,
         referredByCode: referralInvite,
+        bvn,
+        nin,
       });
 
       if (res?.data?.success) {
@@ -155,6 +161,20 @@ export default function EditProfileScreen() {
               onChange={(e) => setReferralInvite(e.target.value)}
               placeholder={user?.referredByCode ? "Referral code already set" : "Enter referral code"}
               disabled={Boolean(user?.referredByCode)}
+            />
+
+            <Label>BVN (11 digits)</Label>
+            <Input
+              value={bvn}
+              onChange={(e) => setBvn(e.target.value.replace(/\D/g, "").slice(0, 11))}
+              placeholder="Required for virtual account deposits"
+            />
+
+            <Label>NIN (11 digits)</Label>
+            <Input
+              value={nin}
+              onChange={(e) => setNin(e.target.value.replace(/\D/g, "").slice(0, 11))}
+              placeholder="Optional if BVN provided"
             />
 
             <PrimaryBtn type="button" onClick={submitProfile} disabled={loading}>
