@@ -83,6 +83,8 @@ const AdminScreen = () => {
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState("");
   const [form, setForm] = useState(EMPTY_FORM);
+  const [selectedUserIds, setSelectedUserIds] = useState(() => new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   // Plans admin state
   const [planLoading, setPlanLoading] = useState(false);
@@ -117,6 +119,12 @@ const AdminScreen = () => {
   const [profitError, setProfitError] = useState("");
 
   const isAdmin = useMemo(() => String(user?.role || "").toLowerCase() === "admin", [user?.role]);
+  const myUserId = useMemo(() => String(user?.id || user?._id || ""), [user?.id, user?._id]);
+
+  useEffect(() => {
+    // Avoid accidental bulk actions across filter/page changes.
+    setSelectedUserIds(new Set());
+  }, [page, search, role, userRole, verified, userAge, stateFilter, section]);
 
   const loadData = useCallback(async () => {
     try {
@@ -304,9 +312,81 @@ const AdminScreen = () => {
     try {
       await deleteAdminUser(entry.id);
       if (selectedUser?.id === entry.id) setSelectedUser(null);
+      setSelectedUserIds((prev) => {
+        const next = new Set(prev);
+        next.delete(entry.id);
+        return next;
+      });
       await loadData();
     } catch (err) {
       setError(err?.response?.data?.message || "Failed to delete user.");
+    }
+  };
+
+  const toggleSelectUser = (id) => {
+    if (!id) return;
+    if (String(id) === myUserId) return;
+    setSelectedUserIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAllOnPage = (users = []) => {
+    const ids = (users || [])
+      .map((u) => u?.id)
+      .filter((id) => id && String(id) !== myUserId);
+    if (!ids.length) return;
+    setSelectedUserIds((prev) => {
+      const next = new Set(prev);
+      const allSelected = ids.every((id) => next.has(id));
+      if (allSelected) ids.forEach((id) => next.delete(id));
+      else ids.forEach((id) => next.add(id));
+      return next;
+    });
+  };
+
+  const handleDeleteSelectedUsers = async (users = []) => {
+    const ids = Array.from(selectedUserIds || []);
+    if (!ids.length) return;
+
+    const ok = await Alert.confirm({
+      tone: "error",
+      title: "Delete Selected Users",
+      message: `Delete ${ids.length} selected user${ids.length === 1 ? "" : "s"}?\n\nThis cannot be undone.`,
+      confirmText: "Delete",
+      cancelText: "Cancel",
+    });
+    if (!ok) return;
+
+    try {
+      setBulkDeleting(true);
+      const results = await Promise.allSettled(ids.map((id) => deleteAdminUser(id)));
+      const failed = results.filter((r) => r.status === "rejected").length;
+
+      setSelectedUserIds(new Set());
+      if (selectedUser?.id && ids.includes(selectedUser.id)) setSelectedUser(null);
+      await loadData();
+
+      if (failed) {
+        Alert.alert({
+          tone: "warning",
+          title: "Some Deletes Failed",
+          message: `${failed} of ${ids.length} user(s) could not be deleted. Please refresh and try again.`,
+        });
+      } else {
+        Alert.alert({ tone: "success", title: "Deleted", message: "Selected users deleted successfully." });
+      }
+    } catch (err) {
+      Alert.alert({
+        tone: "error",
+        title: "Delete Failed",
+        message: err?.response?.data?.message || "Failed to delete selected users.",
+      });
+    } finally {
+      setBulkDeleting(false);
     }
   };
 
@@ -835,12 +915,40 @@ const AdminScreen = () => {
               )}
             </BarChartCard>
 
-            <SectionTitle>Users ({users.length})</SectionTitle>
+            <UsersHeaderRow>
+              <SectionTitle>Users ({users.length})</SectionTitle>
+              <BulkRow>
+                <BulkBtn type="button" onClick={() => toggleSelectAllOnPage(users)} disabled={loading || !users.length}>
+                  {users
+                    .map((u) => u?.id)
+                    .filter((id) => id && String(id) !== myUserId)
+                    .every((id) => selectedUserIds.has(id))
+                    ? "Unselect All"
+                    : "Select All"}
+                </BulkBtn>
+                <BulkDangerBtn
+                  type="button"
+                  onClick={() => handleDeleteSelectedUsers(users)}
+                  disabled={bulkDeleting || loading || selectedUserIds.size === 0}
+                >
+                  Delete Selected ({selectedUserIds.size})
+                </BulkDangerBtn>
+              </BulkRow>
+            </UsersHeaderRow>
             <UsersWrap>
               {users.map((entry) => (
                 <UserCard key={entry.id}>
                   <UserTop>
-                    <strong>{entry.personal?.username}</strong>
+                    <UserTopLeft>
+                      <SelectBox
+                        type="checkbox"
+                        checked={selectedUserIds.has(entry.id)}
+                        disabled={String(entry.id) === myUserId}
+                        onChange={() => toggleSelectUser(entry.id)}
+                        aria-label={`Select ${entry.personal?.username || "user"}`}
+                      />
+                      <strong>{entry.personal?.username}</strong>
+                    </UserTopLeft>
                     <Tag>{entry.personal?.role || "user"}</Tag>
                   </UserTop>
                   <UserMeta>{entry.personal?.email}</UserMeta>
@@ -859,7 +967,7 @@ const AdminScreen = () => {
                     <EditSmall onClick={() => openEdit(entry)}>
                       <Pencil size={14} /> Edit
                     </EditSmall>
-                    <DeleteSmall onClick={() => handleDeleteUser(entry)}>
+                    <DeleteSmall onClick={() => handleDeleteUser(entry)} disabled={String(entry.id) === myUserId}>
                       <Trash2 size={14} /> Delete
                     </DeleteSmall>
                   </UserActions>
@@ -1913,6 +2021,50 @@ const UsersWrap = styled.div`
   }
 `;
 
+const UsersHeaderRow = styled.div`
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  margin-bottom: 8px;
+  @media (max-width: 620px) {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+`;
+
+const BulkRow = styled.div`
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  @media (max-width: 620px) {
+    justify-content: flex-start;
+  }
+`;
+
+const BulkBtn = styled.button`
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  cursor: pointer;
+  font-weight: 800;
+  color: #111;
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+`;
+
+const BulkDangerBtn = styled(BulkBtn)`
+  border-color: #ffd0d0;
+  background: #fff2f2;
+  color: #a12a2a;
+`;
+
 const UserCard = styled.div`
   background: #fff;
   border: 1px solid #ececec;
@@ -1924,6 +2076,29 @@ const UserTop = styled.div`
   display: flex;
   justify-content: space-between;
   gap: 10px;
+`;
+
+const UserTopLeft = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+`;
+
+const SelectBox = styled.input`
+  width: 16px;
+  height: 16px;
+  accent-color: #ff7a00;
+  cursor: pointer;
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
 `;
 
 const Tag = styled.span`
