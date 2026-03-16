@@ -285,15 +285,16 @@ export const disableBiometricAuth = () => api.delete("/auth/biometric");
 // -----------------------------------------------------------
 export const refreshUserBalance = () => api.get("/wallet/balance");
 export const getDepositHistory = () => api.get("/wallet/deposit-history");
+export const getDepositFeeSettings = () => api.get("/wallet/deposit-fee-settings");
 
-export const verifyFlutterwavePayment = (tx_ref, biometricProof = "", transactionPin = "") =>
-  api.post("/wallet/verify-flutterwave", { tx_ref, biometricProof, transactionPin });
+export const verifyFlutterwavePayment = (tx_ref, biometricProof = "", transactionPin = "", amount = 0) =>
+  api.post("/wallet/verify-flutterwave", { tx_ref, biometricProof, transactionPin, amount });
 
 export const getDepositStatus = (tx_ref) =>
   api.get(`/wallet/deposit-status/${tx_ref}`);
 
-export const reconcilePayment = (tx_ref, biometricProof = "", transactionPin = "") =>
-  api.post("/wallet/reconcile-payment", { tx_ref, biometricProof, transactionPin });
+export const reconcilePayment = (tx_ref, biometricProof = "", transactionPin = "", amount = 0) =>
+  api.post("/wallet/reconcile-payment", { tx_ref, biometricProof, transactionPin, amount });
 
 export const redeemRewards = (payload = {}) => api.post("/wallet/redeem", payload);
 
@@ -569,6 +570,17 @@ export const updateAdminProfitSweepSettings = (payload) =>
 export const getAdminProfitSweeps = () => api.get("/admin/profit-sweep/sweeps");
 export const runAdminProfitSweepNow = (force = false) =>
   api.post("/admin/profit-sweep/sweep-now", { force });
+
+// -----------------------------------------------------------
+// ADMIN DEPOSIT FEE SETTINGS + LEDGER
+// -----------------------------------------------------------
+export const getAdminDepositFeeSettings = () => api.get("/admin/deposit-fee/settings");
+export const updateAdminDepositFeeSettings = (payload) =>
+  api.put("/admin/deposit-fee/settings", payload);
+export const getAdminDepositFeeLedger = (params = {}) =>
+  api.get("/admin/deposit-fee/ledger", { params });
+export const deleteAdminDepositFeeLedger = (id) =>
+  api.delete(`/admin/deposit-fee/ledger/${id}`);
 
 // -----------------------------------------------------------
 // GAME ANALYTICS

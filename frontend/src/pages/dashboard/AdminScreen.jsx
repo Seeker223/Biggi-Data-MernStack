@@ -8,6 +8,7 @@ import {
   Shield,
   Users,
   Wallet,
+  Percent,
   Trophy,
   X,
   Plus,
@@ -32,6 +33,10 @@ import {
   runAdminProfitSweepNow,
   updateAdminPlan,
   updateAdminProfitSweepSettings,
+  getAdminDepositFeeSettings,
+  updateAdminDepositFeeSettings,
+  getAdminDepositFeeLedger,
+  deleteAdminDepositFeeLedger,
 } from "../../services/api";
 import { Alert } from "../../utils/alert";
 
@@ -117,6 +122,15 @@ const AdminScreen = () => {
   const [profitOpen, setProfitOpen] = useState(false);
   const [profitLoading, setProfitLoading] = useState(false);
   const [profitError, setProfitError] = useState("");
+
+  // Deposit fee (admin)
+  const [depositFeeOpen, setDepositFeeOpen] = useState(false);
+  const [depositFeeSettings, setDepositFeeSettings] = useState(null);
+  const [depositFeeLedger, setDepositFeeLedger] = useState([]);
+  const [depositFeePage, setDepositFeePage] = useState(1);
+  const [depositFeePages, setDepositFeePages] = useState(1);
+  const [depositFeeLoading, setDepositFeeLoading] = useState(false);
+  const [depositFeeError, setDepositFeeError] = useState("");
 
   const isAdmin = useMemo(() => String(user?.role || "").toLowerCase() === "admin", [user?.role]);
   const myUserId = useMemo(() => String(user?.id || user?._id || ""), [user?.id, user?._id]);
@@ -572,6 +586,83 @@ const AdminScreen = () => {
     }
   };
 
+  const loadDepositFees = async (pageOverride = depositFeePage) => {
+    try {
+      setDepositFeeLoading(true);
+      setDepositFeeError("");
+      const [settingsRes, ledgerRes] = await Promise.all([
+        getAdminDepositFeeSettings(),
+        getAdminDepositFeeLedger({ page: pageOverride, limit: 20 }),
+      ]);
+      const rawSettings = settingsRes?.data?.settings || null;
+      const normalizedSettings = rawSettings
+        ? {
+            ...rawSettings,
+            flatFee: rawSettings.flatFee ?? 0,
+            percentFee: rawSettings.percentFee ?? 0,
+            minFee: rawSettings.minFee ?? "",
+            maxFee: rawSettings.maxFee ?? "",
+          }
+        : null;
+      setDepositFeeSettings(normalizedSettings);
+      setDepositFeeLedger(ledgerRes?.data?.entries || []);
+      setDepositFeePage(ledgerRes?.data?.pagination?.page || pageOverride);
+      setDepositFeePages(ledgerRes?.data?.pagination?.totalPages || 1);
+    } catch (err) {
+      setDepositFeeError(err?.response?.data?.message || "Failed to load deposit fee details.");
+    } finally {
+      setDepositFeeLoading(false);
+    }
+  };
+
+  const openDepositFees = async () => {
+    setDepositFeeOpen(true);
+    await loadDepositFees(1);
+  };
+
+  const saveDepositFeeSettings = async () => {
+    try {
+      setDepositFeeLoading(true);
+      setDepositFeeError("");
+      const payload = {
+        ...(depositFeeSettings || {}),
+        flatFee: Number(depositFeeSettings?.flatFee || 0),
+        percentFee: Number(depositFeeSettings?.percentFee || 0),
+        minFee: depositFeeSettings?.minFee === "" ? null : Number(depositFeeSettings?.minFee || 0),
+        maxFee: depositFeeSettings?.maxFee === "" ? null : Number(depositFeeSettings?.maxFee || 0),
+      };
+      await updateAdminDepositFeeSettings(payload);
+      await loadDepositFees(depositFeePage || 1);
+    } catch (err) {
+      setDepositFeeError(err?.response?.data?.message || "Failed to save deposit fee settings.");
+    } finally {
+      setDepositFeeLoading(false);
+    }
+  };
+
+  const deleteDepositFeeEntry = async (entry) => {
+    const ok = await Alert.confirm({
+      tone: "warning",
+      title: "Delete Fee Entry",
+      message: "Delete this deposit fee ledger entry? This cannot be undone.",
+      confirmText: "Delete",
+      cancelText: "Cancel",
+    });
+    if (!ok) return;
+    try {
+      await deleteAdminDepositFeeLedger(entry?._id);
+      await loadDepositFees(depositFeePage || 1);
+    } catch (err) {
+      setDepositFeeError(err?.response?.data?.message || "Failed to delete ledger entry.");
+    }
+  };
+
+  const goDepositFeePage = (nextPage) => {
+    const safePage = Math.min(Math.max(1, Number(nextPage || 1)), Number(depositFeePages || 1));
+    setDepositFeePage(safePage);
+    loadDepositFees(safePage);
+  };
+
   if (!isAdmin) {
     return (
       <Page>
@@ -743,6 +834,10 @@ const AdminScreen = () => {
                 <Wallet size={16} />
                 Profit Sweep
               </SoftButton>
+              <SoftButton onClick={openDepositFees} disabled={depositFeeLoading}>
+                <Percent size={16} />
+                Deposit Fees
+              </SoftButton>
             </ActionRow>
           </FilterCard>
         )}
@@ -792,7 +887,7 @@ const AdminScreen = () => {
                 <Donut
                   $private={privatePct}
                   $merchant={merchantPct}
-                  title={`Private ${privatePct}% • Merchant ${merchantPct}%`}
+                  title={`Private ${privatePct}% | Merchant ${merchantPct}%`}
                 >
                   <span>{userTotal}</span>
                   <small>Users</small>
@@ -952,7 +1047,7 @@ const AdminScreen = () => {
                     <Tag>{entry.personal?.role || "user"}</Tag>
                   </UserTop>
                   <UserMeta>{entry.personal?.email}</UserMeta>
-                  <UserMeta>State: {entry.personal?.state || "—"}</UserMeta>
+                  <UserMeta>State: {entry.personal?.state || "-"}</UserMeta>
                   <UserMeta>
                     Balances: {naira(entry.balances?.mainBalance)} main / {naira(entry.balances?.rewardBalance)} reward
                   </UserMeta>
@@ -1169,9 +1264,9 @@ const AdminScreen = () => {
             <ModalSection>
               <h4>Personal Info</h4>
               <p>Email: {selectedUser.personal?.email}</p>
-              <p>Phone: {selectedUser.personal?.phoneNumber || "—"}</p>
-              <p>State: {selectedUser.personal?.state || "—"}</p>
-              <p>Role: {selectedUser.personal?.role || "user"} / {selectedUser.personal?.userRole || "—"}</p>
+              <p>Phone: {selectedUser.personal?.phoneNumber || "-"}</p>
+              <p>State: {selectedUser.personal?.state || "-"}</p>
+              <p>Role: {selectedUser.personal?.role || "user"} / {selectedUser.personal?.userRole || "-"}</p>
               <p>Verified: {selectedUser.personal?.isVerified ? "Yes" : "No"}</p>
               <p>Last Login: {dateFmt(selectedUser.personal?.lastLogin)}</p>
             </ModalSection>
@@ -1567,6 +1662,162 @@ const AdminScreen = () => {
                 ))}
               </ModalSection>
             ) : null}
+          </ModalCard>
+        </ModalOverlay>
+      ) : null}
+
+      {depositFeeOpen ? (
+        <ModalOverlay onClick={() => setDepositFeeOpen(false)}>
+          <ModalCard onClick={(e) => e.stopPropagation()}>
+            <ModalHead>
+              <h3>Deposit Fee Profit</h3>
+              <button onClick={() => setDepositFeeOpen(false)}>
+                <X size={16} />
+              </button>
+            </ModalHead>
+
+            {depositFeeError ? <ErrorBox>{depositFeeError}</ErrorBox> : null}
+            {depositFeeLoading ? <LoadingBox>Loading deposit fees...</LoadingBox> : null}
+
+            <ModalSection>
+              <h4>Summary</h4>
+              <p>Entries (page): {depositFeeLedger.length}</p>
+              <p>Page: {depositFeePage} of {depositFeePages}</p>
+              <p>
+                Total (page): {naira(depositFeeLedger.reduce((sum, entry) => sum + Number(entry?.amount || 0), 0))}
+              </p>
+            </ModalSection>
+
+            {depositFeeSettings ? (
+              <>
+                <ModalSection>
+                  <h4>Deposit Fee Settings</h4>
+                  <p>Deposit service charges are treated as profit and swept with other earnings.</p>
+                </ModalSection>
+                <FormGrid>
+                  <Field>
+                    <label>Enabled</label>
+                    <select
+                      value={depositFeeSettings.enabled ? "true" : "false"}
+                      onChange={(e) =>
+                        setDepositFeeSettings((s) => ({ ...(s || {}), enabled: e.target.value === "true" }))
+                      }
+                    >
+                      <option value="true">true</option>
+                      <option value="false">false</option>
+                    </select>
+                  </Field>
+                  <Field>
+                    <label>Flat Fee (N)</label>
+                    <input
+                      type="number"
+                      value={depositFeeSettings.flatFee ?? 0}
+                      onChange={(e) =>
+                        setDepositFeeSettings((s) => ({ ...(s || {}), flatFee: Number(e.target.value) }))
+                      }
+                      placeholder="5"
+                    />
+                  </Field>
+                  <Field>
+                    <label>Percent Fee (%)</label>
+                    <input
+                      type="number"
+                      value={depositFeeSettings.percentFee ?? 0}
+                      onChange={(e) =>
+                        setDepositFeeSettings((s) => ({ ...(s || {}), percentFee: Number(e.target.value) }))
+                      }
+                      placeholder="0"
+                    />
+                  </Field>
+                  <Field>
+                    <label>Min Fee (N)</label>
+                    <input
+                      type="number"
+                      value={depositFeeSettings.minFee ?? ""}
+                      onChange={(e) =>
+                        setDepositFeeSettings((s) => ({
+                          ...(s || {}),
+                          minFee: e.target.value === "" ? "" : Number(e.target.value),
+                        }))
+                      }
+                      placeholder="0"
+                    />
+                  </Field>
+                  <Field>
+                    <label>Max Fee (N)</label>
+                    <input
+                      type="number"
+                      value={depositFeeSettings.maxFee ?? ""}
+                      onChange={(e) =>
+                        setDepositFeeSettings((s) => ({
+                          ...(s || {}),
+                          maxFee: e.target.value === "" ? "" : Number(e.target.value),
+                        }))
+                      }
+                      placeholder="0"
+                    />
+                  </Field>
+                </FormGrid>
+                <ActionRow>
+                  <ApplyButton onClick={saveDepositFeeSettings} disabled={depositFeeLoading}>
+                    {depositFeeLoading ? "Saving..." : "Save Settings"}
+                  </ApplyButton>
+                  <SoftButton onClick={() => loadDepositFees(depositFeePage || 1)} disabled={depositFeeLoading}>
+                    Refresh Ledger
+                  </SoftButton>
+                </ActionRow>
+              </>
+            ) : null}
+
+            <ModalSection>
+              <h4>Deposit Fee Ledger</h4>
+              {depositFeeLedger.length ? (
+                depositFeeLedger.map((entry) => {
+                  const metaUser =
+                    entry?.meta?.username ||
+                    entry?.meta?.userId ||
+                    entry?.userId ||
+                    entry?.user ||
+                    "Unknown user";
+                  return (
+                    <LedgerRow key={entry?._id || entry?.reference}>
+                      <LedgerMeta>
+                        <strong>
+                          {naira(entry?.amount)} | {String(entry?.status || "pending").toUpperCase()}
+                        </strong>
+                        <small>
+                          {metaUser} - {dateFmt(entry?.createdAt)}
+                        </small>
+                        <small>Ref: {entry?.reference || entry?._id}</small>
+                      </LedgerMeta>
+                      <DeleteSmall onClick={() => deleteDepositFeeEntry(entry)}>
+                        <Trash2 size={12} /> Delete
+                      </DeleteSmall>
+                    </LedgerRow>
+                  );
+                })
+              ) : (
+                <p>No deposit fee entries yet.</p>
+              )}
+            </ModalSection>
+
+            <Pager>
+              <PagerBtn
+                disabled={depositFeePage <= 1 || depositFeeLoading}
+                onClick={() => goDepositFeePage(depositFeePage - 1)}
+              >
+                Previous
+              </PagerBtn>
+              <PageLabel>
+                Page {depositFeePage} of {depositFeePages}
+              </PageLabel>
+              <PagerBtn
+                disabled={depositFeePage >= depositFeePages || depositFeeLoading}
+                onClick={() => goDepositFeePage(depositFeePage + 1)}
+              >
+                Next
+              </PagerBtn>
+            </Pager>
           </ModalCard>
         </ModalOverlay>
       ) : null}
@@ -2373,6 +2624,33 @@ const ModalSection = styled.div`
     font-size: 13px;
     font-weight: 520;
     color: #2a2a2a;
+  }
+`;
+
+const LedgerRow = styled.div`
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid #ececec;
+  align-items: center;
+  &:last-child {
+    border-bottom: none;
+  }
+`;
+
+const LedgerMeta = styled.div`
+  display: grid;
+  gap: 2px;
+  strong {
+    font-size: 13px;
+    font-weight: 760;
+    color: #111;
+  }
+  small {
+    font-size: 12px;
+    color: #555;
+    font-weight: 560;
   }
 `;
 

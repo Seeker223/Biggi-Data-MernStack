@@ -15,6 +15,7 @@ import { FEATURE_FLAGS } from "../../constants/featureFlags";
 import {
   getTransactionSecurityStatus,
   getDepositStatus,
+  getDepositFeeSettings,
   reconcilePayment,
   setTransactionPin,
   verifyTransactionPin,
@@ -74,6 +75,13 @@ const DepositScreen = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [transactionPin, setTransactionPin] = useState("");
   const [pinConfigured, setPinConfigured] = useState(Boolean(user?.transactionPinEnabled));
+  const [feeSettings, setFeeSettings] = useState({
+    enabled: true,
+    flatFee: SERVICE_CHARGE,
+    percentFee: 0,
+    minFee: 0,
+    maxFee: 0,
+  });
 
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
@@ -83,6 +91,7 @@ const DepositScreen = () => {
   const pollCount = useRef(0);
   const reconcileAttempts = useRef(0);
   const currentTxRef = useRef("");
+  const pendingAmountRef = useRef(0);
 
   const showToast = (msg, type = "info") => {
     setToastMessage(msg);
@@ -102,8 +111,34 @@ const DepositScreen = () => {
     setPinConfigured(Boolean(user?.transactionPinEnabled));
   }, [user?.transactionPinEnabled]);
 
+  useEffect(() => {
+    let mounted = true;
+    getDepositFeeSettings()
+      .then((res) => {
+        if (!mounted) return;
+        const settings = res?.data?.settings;
+        if (settings) setFeeSettings(settings);
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const enteredAmount = Number(amount) > 0 ? Number(amount) : 0;
-  const totalAmount = enteredAmount + SERVICE_CHARGE;
+  const computeFee = (value) => {
+    if (!feeSettings?.enabled) return 0;
+    const flat = Number(feeSettings.flatFee || 0);
+    const pct = Number(feeSettings.percentFee || 0);
+    let fee = flat + (pct > 0 ? (value * pct) / 100 : 0);
+    const minFee = Number(feeSettings.minFee || 0);
+    const maxFee = Number(feeSettings.maxFee || 0);
+    if (minFee > 0 && fee < minFee) fee = minFee;
+    if (maxFee > 0 && fee > maxFee) fee = maxFee;
+    return Math.max(0, Math.round(fee));
+  };
+  const serviceCharge = computeFee(enteredAmount);
+  const totalAmount = enteredAmount + serviceCharge;
   const isValidAmount = () => enteredAmount >= 100 && enteredAmount <= 1000000;
 
   const stopPolling = () => {
@@ -114,6 +149,7 @@ const DepositScreen = () => {
     pollCount.current = 0;
     setIsProcessing(false);
     currentTxRef.current = "";
+    pendingAmountRef.current = 0;
     setTransactionPin("");
   };
 
@@ -138,7 +174,7 @@ const DepositScreen = () => {
     try {
       reconcileAttempts.current += 1;
       showToast(`Attempting reconciliation (${reconcileAttempts.current}/${RECONCILE_ATTEMPTS})`, "info");
-      const res = await reconcilePayment(reference, "", transactionPin.trim());
+      const res = await reconcilePayment(reference, "", transactionPin.trim(), pendingAmountRef.current);
       if (res?.data?.success) {
         showToast("Payment reconciled successfully!", "success");
         await refreshUser();
@@ -261,6 +297,7 @@ const DepositScreen = () => {
     const reference = `flw_${user?._id || "user"}_${Date.now()}`;
     setTxRef(reference);
     reconcileAttempts.current = 0;
+    pendingAmountRef.current = enteredAmount;
     setShowAuthSheet(false);
     setShowConfirm(true);
   };
@@ -298,7 +335,12 @@ const DepositScreen = () => {
       },
       callback: async () => {
         try {
-          const res = await verifyFlutterwavePayment(txRef, "", transactionPin.trim());
+          const res = await verifyFlutterwavePayment(
+            txRef,
+            "",
+            transactionPin.trim(),
+            pendingAmountRef.current
+          );
           if (res?.data?.success) {
             setPaymentStatus("success");
             showToast("Payment verified and wallet credited!", "success");
@@ -394,7 +436,7 @@ const DepositScreen = () => {
             </BreakdownRow>
             <BreakdownRow>
               <BreakdownLabel>Service Charge:</BreakdownLabel>
-              <BreakdownValue>N{SERVICE_CHARGE}</BreakdownValue>
+              <BreakdownValue>N{serviceCharge}</BreakdownValue>
             </BreakdownRow>
             <BreakdownRow $total>
               <TotalLabel>Total:</TotalLabel>
@@ -435,7 +477,7 @@ const DepositScreen = () => {
                 </ModalDetailRow>
                 <ModalDetailRow>
                   <ModalDetailLabel>Service Charge:</ModalDetailLabel>
-                  <ModalDetailValue>N{SERVICE_CHARGE}</ModalDetailValue>
+                  <ModalDetailValue>N{serviceCharge}</ModalDetailValue>
                 </ModalDetailRow>
                 <ModalDetailRow $total>
                   <ModalDetailLabel>Total:</ModalDetailLabel>
