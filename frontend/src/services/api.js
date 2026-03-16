@@ -39,6 +39,18 @@ const shouldRememberAuth = () => localStorage.getItem(AUTH_REMEMBER_KEY) === "1"
 
 const getPrimaryStorage = () => (shouldRememberAuth() ? localStorage : sessionStorage);
 
+const getStoredAccessToken = () => {
+  const primary = getPrimaryStorage();
+  return (
+    primary.getItem("userToken") ||
+    primary.getItem("token") ||
+    localStorage.getItem("userToken") ||
+    localStorage.getItem("token") ||
+    sessionStorage.getItem("userToken") ||
+    sessionStorage.getItem("token")
+  );
+};
+
 const getStoredRefreshToken = () =>
   getPrimaryStorage().getItem("refreshToken") ||
   getPrimaryStorage().getItem("userRefreshToken") ||
@@ -78,10 +90,7 @@ const clearStoredTokens = () => {
 
 let refreshHydrationPromise = null;
 const hydrateRefreshTokenIfMissing = async () => {
-  const token =
-    getPrimaryStorage().getItem("userToken") ||
-    localStorage.getItem("userToken") ||
-    sessionStorage.getItem("userToken");
+  const token = getStoredAccessToken();
   if (!token || getStoredRefreshToken()) return;
   if (!refreshHydrationPromise) {
     refreshHydrationPromise = axios
@@ -105,10 +114,7 @@ const hydrateRefreshTokenIfMissing = async () => {
 // -----------------------------------------------------------
 api.interceptors.request.use((config) => {
   return hydrateRefreshTokenIfMissing().then(() => {
-    const token =
-      getPrimaryStorage().getItem("userToken") ||
-      localStorage.getItem("userToken") ||
-      sessionStorage.getItem("userToken");
+    const token = getStoredAccessToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
