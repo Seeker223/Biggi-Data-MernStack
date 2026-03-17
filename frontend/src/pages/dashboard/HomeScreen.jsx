@@ -1857,31 +1857,14 @@ const GameCard = styled.div`
   &::before {
     content: "";
     position: absolute;
-    inset: -30px -30px auto auto;
-    width: 200px;
-    height: 200px;
-    background: radial-gradient(
-      circle at 30% 30%,
-      rgba(255, 122, 0, 0.35),
-      transparent 60%
-    );
+    display: none;
     pointer-events: none;
   }
 
   &::after {
     content: "";
     position: absolute;
-    left: 12px;
-    right: 12px;
-    top: 12px;
-    height: 3px;
-    background: linear-gradient(
-      90deg,
-      rgba(255, 122, 0, 0.0),
-      rgba(255, 122, 0, 0.75),
-      rgba(255, 122, 0, 0.0)
-    );
-    opacity: 0.7;
+    display: none;
     pointer-events: none;
   }
 
@@ -1997,14 +1980,7 @@ const MonthlyGameCard = styled.div`
   &::before {
     content: "";
     position: absolute;
-    inset: -50px auto auto -50px;
-    width: 240px;
-    height: 240px;
-    background: radial-gradient(
-      circle at 40% 40%,
-      rgba(255, 122, 0, 0.30),
-      transparent 62%
-    );
+    display: none;
     pointer-events: none;
   }
 
