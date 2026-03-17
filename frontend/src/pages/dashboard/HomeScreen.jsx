@@ -87,7 +87,8 @@ const HomeScreen = () => {
   const [stateModalVisible, setStateModalVisible] = useState(false);
   const [referralModalVisible, setReferralModalVisible] = useState(false);
   const [referralWinModalVisible, setReferralWinModalVisible] = useState(false);
-  const [referralWinModalData, setReferralWinModalData] = useState({ message: "", amount: null });
+  const [referralWinModalData, setReferralWinModalData] = useState({ message: "", amount: null, id: null });
+  const [eligibilityError, setEligibilityError] = useState("");
 
   const [isUploading, setIsUploading] = useState(false);
   const [virtualAccount, setVirtualAccount] = useState(null);
@@ -97,7 +98,7 @@ const HomeScreen = () => {
 
   useEffect(() => {
     refreshUser();
-  }, []);
+  }, [refreshUser]);
 
   const loadMonthlyEligibility = useCallback(async () => {
     try {
@@ -119,8 +120,9 @@ const HomeScreen = () => {
         raffleTicketsUnplayed: Number(e.raffleTicketsUnplayed || 0),
         raffleTicketsPlayed: Number(e.raffleTicketsPlayed || 0),
       });
+      setEligibilityError("");
     } catch {
-      // Keep last known eligibility values if the request fails.
+      setEligibilityError("Tap to retry loading your ticket status.");
     }
   }, []);
 
@@ -195,6 +197,7 @@ const HomeScreen = () => {
       setReferralWinModalData({
         message: unreadReferral.message || "You earned a referral reward.",
         amount: unreadReferral.amount ?? null,
+        id: unreadReferral._id || unreadReferral.id || null,
       });
       setReferralWinModalVisible(true);
     }
@@ -476,9 +479,27 @@ const HomeScreen = () => {
                           </AccountMetaRow>
                         </>
                       ) : (
-                        <AccountMuted>
-                          {virtualError || "Add BVN/NIN in profile to enable virtual account deposits."}
-                        </AccountMuted>
+                        <>
+                          <AccountMuted>
+                            {virtualError || "Add BVN/NIN in profile to enable virtual account deposits."}
+                          </AccountMuted>
+                          <AccountMetaRow>
+                            <AccountUpdated>
+                              Updated:{" "}
+                              {virtualUpdatedAt
+                                ? new Date(virtualUpdatedAt).toLocaleString()
+                                : "—"}
+                            </AccountUpdated>
+                            <RefreshButton
+                              type="button"
+                              onClick={fetchVirtualAccount}
+                              disabled={virtualLoading}
+                              aria-label="Refresh virtual account"
+                            >
+                              <RefreshCw size={14} />
+                            </RefreshButton>
+                          </AccountMetaRow>
+                        </>
                       )}
                     </AccountInfo>
                   </div>
@@ -644,6 +665,11 @@ const HomeScreen = () => {
                   {FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "Prize hidden" : ""}
                 </MonthlyPrize>
                 <MonthlySubtitle>Monthly Jackpot</MonthlySubtitle>
+                {eligibilityError ? (
+                  <RetryNote role="button" onClick={loadMonthlyEligibility}>
+                    {eligibilityError}
+                  </RetryNote>
+                ) : null}
                 
                 {/* Monthly Progress */}
                 <ProgressContainer>
@@ -894,8 +920,15 @@ const HomeScreen = () => {
               )}
               <ModalBtn
                 onClick={() => {
+                  if (referralWinModalData.id) {
+                    const nextItems = (user?.notificationItems || []).map((item) =>
+                      item?._id === referralWinModalData.id || item?.id === referralWinModalData.id
+                        ? { ...item, seen: true }
+                        : item
+                    );
+                    updateUser?.({ notificationItems: nextItems });
+                  }
                   setReferralWinModalVisible(false);
-                  markNotificationsAsSeen();
                 }}
               >
                 <ModalBtnText>OK</ModalBtnText>
@@ -2038,6 +2071,21 @@ const MonthlySubtitle = styled.p`
   @media (max-width: 480px) {
     font-size: 13px;
   }
+`;
+
+const RetryNote = styled.button`
+  margin: -10px auto 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 122, 0, 0.12);
+  border: 1px solid rgba(255, 122, 0, 0.3);
+  color: #ffb26b;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
 `;
 
 const ProgressContainer = styled.div`
