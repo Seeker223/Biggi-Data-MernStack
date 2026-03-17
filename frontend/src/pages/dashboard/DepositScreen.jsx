@@ -123,11 +123,23 @@ const DepositScreen = () => {
     const maxFee = Number(feeSettings.maxFee || 0);
     if (minFee > 0 && fee < minFee) fee = minFee;
     if (maxFee > 0 && fee > maxFee) fee = maxFee;
-    return Math.max(0, Math.ceil(fee));
+    return Math.max(0, Math.round(fee));
   };
+  const computeTransferForCredit = (creditTarget) => {
+    if (creditTarget <= 0) return { transfer: 0, fee: 0 };
+    let transfer = creditTarget + computeFee(creditTarget);
+    let fee = computeFee(transfer);
+    for (let i = 0; i < 5; i += 1) {
+      const nextTransfer = creditTarget + fee;
+      if (Math.abs(nextTransfer - transfer) < 0.5) break;
+      transfer = nextTransfer;
+      fee = computeFee(transfer);
+    }
+    return { transfer: Math.round(transfer), fee };
+  };
+
   const creditedAmount = Math.max(0, enteredAmount);
-  const serviceCharge = computeFee(creditedAmount);
-  const transferAmount = Math.max(0, creditedAmount + serviceCharge);
+  const { transfer: transferAmount, fee: serviceCharge } = computeTransferForCredit(creditedAmount);
   const isValidAmount = () => enteredAmount >= 100 && transferAmount <= 1000000;
 
   const handleShowBankDetails = () => {
