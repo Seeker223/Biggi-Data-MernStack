@@ -125,9 +125,9 @@ const DepositScreen = () => {
     if (maxFee > 0 && fee > maxFee) fee = maxFee;
     return Math.max(0, Math.ceil(fee));
   };
-  const transferAmount = enteredAmount;
-  const serviceCharge = computeFee(transferAmount);
-  const creditedAmount = Math.max(0, transferAmount + serviceCharge);
+  const creditedAmount = Math.max(0, enteredAmount);
+  const serviceCharge = computeFee(creditedAmount);
+  const transferAmount = Math.max(0, creditedAmount + serviceCharge);
   const isValidAmount = () => enteredAmount >= 100 && transferAmount <= 1000000;
 
   const handleShowBankDetails = () => {
@@ -161,26 +161,26 @@ const DepositScreen = () => {
         </Header>
 
         <MainContent>
-          <Label>Enter Transfer Amount</Label>
+          <Label>Enter Amount to Credit</Label>
           <Input
             type="number"
-            placeholder="N Transfer Amount (min N100, max N1,000,000)"
+            placeholder="N Wallet Credit (min N100)"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
           />
 
           <Breakdown>
             <BreakdownRow>
-              <BreakdownLabel>Transfer Amount:</BreakdownLabel>
-              <BreakdownValue>N{transferAmount.toLocaleString()}</BreakdownValue>
+              <BreakdownLabel>Estimated Wallet Credit:</BreakdownLabel>
+              <BreakdownValue>N{creditedAmount.toLocaleString()}</BreakdownValue>
             </BreakdownRow>
             <BreakdownRow>
               <BreakdownLabel>Service Charge:</BreakdownLabel>
               <BreakdownValue>N{serviceCharge.toLocaleString()}</BreakdownValue>
             </BreakdownRow>
             <BreakdownRow $total>
-              <TotalLabel>Estimated Wallet Credit:</TotalLabel>
-              <TotalValue>N{creditedAmount.toLocaleString()}</TotalValue>
+              <TotalLabel>Transfer Amount:</TotalLabel>
+              <TotalValue>N{transferAmount.toLocaleString()}</TotalValue>
             </BreakdownRow>
           </Breakdown>
 
@@ -191,7 +191,7 @@ const DepositScreen = () => {
           <InfoBox>
             <Info size={18} />
             <InfoText>
-              - Estimated wallet credit = transfer amount + service charge{"\n"}- Wallet credits automatically after payment is detected{"\n"}- Contact support if issues persist
+              - Transfer amount = wallet credit + service charge{"\n"}- Wallet credits automatically after payment is detected{"\n"}- Contact support if issues persist
             </InfoText>
           </InfoBox>
         </MainContent>
@@ -224,13 +224,17 @@ const DepositScreen = () => {
                   <ModalDetailValue>N{transferAmount.toLocaleString()}</ModalDetailValue>
                 </ModalDetailRow>
                 <ModalDetailRow>
+                  <ModalDetailLabel>Estimated Wallet Credit:</ModalDetailLabel>
+                  <ModalDetailValue>N{creditedAmount.toLocaleString()}</ModalDetailValue>
+                </ModalDetailRow>
+                <ModalDetailRow>
                   <ModalDetailLabel>Service Charge:</ModalDetailLabel>
                   <ModalDetailValue>N{serviceCharge.toLocaleString()}</ModalDetailValue>
                 </ModalDetailRow>
-                  <ModalDetailRow $total>
-                    <ModalDetailLabel>Estimated Credit:</ModalDetailLabel>
-                    <ModalTotal>N{creditedAmount.toLocaleString()}</ModalTotal>
-                  </ModalDetailRow>
+                <ModalDetailRow $total>
+                  <ModalDetailLabel>Transfer Amount:</ModalDetailLabel>
+                  <ModalTotal>N{transferAmount.toLocaleString()}</ModalTotal>
+                </ModalDetailRow>
                 </ModalDetails>
               )}
               <InfoBox>
