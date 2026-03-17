@@ -1850,8 +1850,8 @@ const GameCard = styled.div`
   align-items: center;
   margin: 0 0 20px 0;
   animation: ${fadeInUp} 0.7s ease-out 0.2s both;
-  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.38);
-  border: 1px solid rgba(255, 122, 0, 0.28);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   overflow: hidden;
 
   &::before {
@@ -1973,8 +1973,8 @@ const MonthlyGameCard = styled.div`
   ${props => props.$pulse && css`
     animation: ${pulse} 1.5s ease-in-out infinite, ${fadeInUp} 0.7s ease-out 0.3s both;
   `}
-  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.38);
-  border: 1px solid rgba(255, 122, 0, 0.28);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   overflow: hidden;
 
   &::before {
