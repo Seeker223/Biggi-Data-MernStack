@@ -1,10 +1,15 @@
-import React, { useContext, useMemo, useState } from "react";
+import React, { useContext, useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { ChevronLeft, Gift, Wallet, CheckCircle, AlertCircle } from "lucide-react";
 import { AuthContext } from "../../context/AuthContext";
 import { FEATURE_FLAGS } from "../../constants/featureFlags";
-import { redeemRewards } from "../../services/api";
+import {
+  redeemRewards,
+  getTransactionSecurityStatus,
+  setTransactionPin,
+  verifyTransactionPin,
+} from "../../services/api";
 import TransactionAuthSheet from "../../components/TransactionAuthSheet";
 
 const MIN_REDEEM = 100;
@@ -19,6 +24,11 @@ const RedeemScreen = () => {
   const [showAuthSheet, setShowAuthSheet] = useState(false);
   const [toast, setToast] = useState({ visible: false, type: "info", message: "" });
   const [success, setSuccess] = useState({ visible: false, amount: 0 });
+  const [pinConfigured, setPinConfigured] = useState(Boolean(user?.transactionPinEnabled));
+
+  useEffect(() => {
+    setPinConfigured(Boolean(user?.transactionPinEnabled));
+  }, [user?.transactionPinEnabled]);
 
   const rewardBalance = Number(user?.rewardBalance || 0);
   const mainBalance = Number(user?.mainBalance || 0);
@@ -46,6 +56,12 @@ const RedeemScreen = () => {
 
   const handleRedeem = async () => {
     if (!canSubmit) return;
+    try {
+      const res = await getTransactionSecurityStatus();
+      setPinConfigured(Boolean(res?.data?.security?.transactionPinEnabled));
+    } catch {
+      // keep current local status
+    }
     setShowAuthSheet(true);
   };
 
@@ -96,8 +112,41 @@ const RedeemScreen = () => {
   };
 
   const handleAuthSelection = async (authPayload) => {
+    const pinValue = String(authPayload?.transactionPin || "").trim();
+    const setupPinValue = String(authPayload?.setupPin || pinValue).trim();
+    let pinJustCreated = false;
+    if (!pinConfigured) {
+      if (!/^\d{4}$/.test(setupPinValue)) {
+        showToast("Create a valid 4-digit PIN to continue.", "error");
+        return;
+      }
+      try {
+        await setTransactionPin(setupPinValue);
+        setPinConfigured(true);
+        updateUser?.({ transactionPinEnabled: true });
+        await refreshUser();
+        pinJustCreated = true;
+      } catch (error) {
+        showToast(error?.response?.data?.message || "Failed to create transaction PIN.", "error");
+        return;
+      }
+    }
+    if (!pinJustCreated) {
+      try {
+        await verifyTransactionPin(pinValue);
+      } catch (error) {
+        const message = error?.response?.data?.message || "Invalid transaction PIN.";
+        if (/not enabled/i.test(message)) {
+          setPinConfigured(false);
+          showToast("PIN is not enabled yet. Please create a new PIN to continue.", "error");
+        } else {
+          showToast(message, "error");
+        }
+        return;
+      }
+    }
     setShowAuthSheet(false);
-    await processRedeem(authPayload);
+    await processRedeem({ transactionPin: pinValue });
   };
 
   return (
@@ -198,7 +247,8 @@ const RedeemScreen = () => {
         visible={showAuthSheet}
         loading={submitting}
         title="Authorize Redeem"
-        subtitle="Enter your 4-digit PIN."
+        subtitle={pinConfigured ? "Enter your 4-digit PIN." : "Create a new 4-digit PIN to continue."}
+        pinConfigured={pinConfigured}
         onClose={() => setShowAuthSheet(false)}
         onSubmit={handleAuthSelection}
       />
