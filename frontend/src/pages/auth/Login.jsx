@@ -66,13 +66,15 @@ const Login = () => {
         setModalVisible(false);
         navigate('/');
       }, 600);
+    } else if (res.requiresVerification) {
+      showModal(res.error || 'Please verify your email.', 'info');
+      setTimeout(() => {
+        setModalVisible(false);
+        navigate('/verify-email', { state: { email } });
+      }, 600);
     } else {
       showModal(res.error || 'Invalid email or password.', 'error');
     }
-  };
-
-  const handleSocialClick = (provider) => {
-    showModal(`${provider} login is coming soon.`, 'info');
   };
 
   return (

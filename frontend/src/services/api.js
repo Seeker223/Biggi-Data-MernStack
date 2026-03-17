@@ -385,6 +385,11 @@ export const verifyTransactionPin = (pin) =>
 export const disableTransactionPin = (currentPin) =>
   api.delete("/user/transaction-pin", { data: { currentPin } });
 
+export const verifyEmailOtp = (payload) =>
+  api.post("/auth/verify-email", payload);
+export const resendVerificationOtp = (payload) =>
+  api.post("/auth/resend-verification", payload);
+
 export const updateAvatar = async (formData) => {
   try {
     const token = localStorage.getItem("userToken") || sessionStorage.getItem("userToken");

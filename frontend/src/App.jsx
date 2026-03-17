@@ -12,6 +12,7 @@ import ConfirmModalHost from './components/ConfirmModalHost';
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
 import ForgotPassword from './pages/auth/ForgotPassword';
+import VerifyEmail from './pages/auth/VerifyEmail';
 import LaunchScreen from './pages/LaunchScreen';
 import HomeScreen from './pages/dashboard/HomeScreen';
 import DepositScreen from './pages/dashboard/DepositScreen';
@@ -72,6 +73,7 @@ function App() {
             <Route path="/launch" element={<LaunchScreen />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             
             {/* Protected Routes */}

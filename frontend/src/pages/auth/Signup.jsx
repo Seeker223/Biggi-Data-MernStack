@@ -88,7 +88,13 @@ const Signup = () => {
         referralCode: referralCode.trim(),
       });
       
-      if (res.success) {
+      if (res.success && res.requiresVerification) {
+        showModal('We sent a 6-digit code to your email. Please verify to continue.', 'success');
+        setTimeout(() => {
+          setModalVisible(false);
+          navigate('/verify-email', { state: { email: email.trim().toLowerCase() } });
+        }, 900);
+      } else if (res.success) {
         showModal('Registration successful! Welcome to Biggi Data.', 'success');
         setTimeout(() => {
           setModalVisible(false);
@@ -641,34 +647,6 @@ const SignupButtonText = styled.span`
   }
 `;
 
-const AlternativeContainer = styled.div`
-  display: flex;
-  align-items: center;
-  width: 100%;
-  max-width: 360px;
-  margin: 24px 0;
-
-  @media (max-width: 480px) {
-    margin: 20px 0;
-  }
-`;
-
-const Divider = styled.div`
-  flex: 1;
-  height: 1px;
-  background-color: #E5E7EB;
-`;
-
-const AlternativeText = styled.span`
-  color: #6B7280;
-  font-size: 14px;
-  margin: 0 12px;
-
-  @media (max-width: 480px) {
-    font-size: 13px;
-    margin: 0 10px;
-  }
-`;
 
 
 const FooterRow = styled.div`

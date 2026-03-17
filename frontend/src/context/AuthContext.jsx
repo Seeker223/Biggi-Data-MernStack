@@ -133,6 +133,14 @@ export const AuthProvider = ({ children }) => {
       
       return { success: true };
     } catch (error) {
+      if (error?.response?.data?.requiresVerification) {
+        return {
+          success: false,
+          requiresVerification: true,
+          email: error?.response?.data?.email,
+          error: getAuthErrorMessage(error, "Please verify your email"),
+        };
+      }
       return { 
         success: false, 
         error: getAuthErrorMessage(error, "Login failed"),
@@ -179,8 +187,11 @@ export const AuthProvider = ({ children }) => {
             };
 
       const res = await api.post("/auth/register", userData);
-      const { token: newToken, refreshToken: newRefreshToken, user: createdUser } = res.data;
+      if (res?.data?.requiresVerification) {
+        return { success: true, requiresVerification: true, email: res?.data?.email };
+      }
 
+      const { token: newToken, refreshToken: newRefreshToken, user: createdUser } = res.data;
       persistAuthTokens({
         token: newToken,
         refreshToken: newRefreshToken,
