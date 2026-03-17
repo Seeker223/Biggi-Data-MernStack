@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { Home, Ticket, Wallet, User } from 'lucide-react';
 import { FEATURE_FLAGS } from '../constants/featureFlags';
 import './FloatingBottomNav.css';
 
@@ -8,15 +9,15 @@ const FloatingBottomNav = () => {
   const location = useLocation();
 
   const navItems = [
-    { icon: '🏠', label: 'Home', path: '/' },
+    { icon: Home, label: 'Home', path: '/' },
     { 
-      icon: '🎫', 
+      icon: Ticket, 
       label: 'Draws', 
       path: '/daily-draw',
       disabled: FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM
     },
-    { icon: '💰', label: 'Wallet', path: '/wallet' },
-    { icon: '👤', label: 'Profile', path: '/profile' },
+    { icon: Wallet, label: 'Wallet', path: '/wallet' },
+    { icon: User, label: 'Profile', path: '/profile' },
   ];
 
   return (
@@ -29,7 +30,9 @@ const FloatingBottomNav = () => {
             onClick={() => !item.disabled && navigate(item.path)}
             disabled={item.disabled}
           >
-            <span className="nav-icon">{item.icon}</span>
+            <span className="nav-icon">
+              <item.icon className="nav-icon-svg" size={22} />
+            </span>
             <span className="nav-label">{item.label}</span>
           </button>
         ))}

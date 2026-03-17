@@ -1298,20 +1298,20 @@ const AccountInfo = styled.div`
   display: flex;
   flex-direction: column;
   gap: 2px;
-  max-width: 260px;
+  max-width: 280px;
 `;
 
 const AccountLine = styled.div`
   color: #111;
-  font-weight: 700;
-  font-size: 12px;
+  font-weight: 800;
+  font-size: 13.5px;
   letter-spacing: 0.2px;
 `;
 
 const AccountMuted = styled.div`
-  color: #5a5a5a;
-  font-size: 11px;
-  font-weight: 600;
+  color: #4a4a4a;
+  font-size: 12px;
+  font-weight: 700;
 `;
 
 const AccountMetaRow = styled.div`
@@ -1322,9 +1322,9 @@ const AccountMetaRow = styled.div`
 `;
 
 const AccountUpdated = styled.span`
-  color: #7a7a7a;
-  font-size: 10px;
-  font-weight: 600;
+  color: #6a6a6a;
+  font-size: 11px;
+  font-weight: 700;
 `;
 
 const RefreshButton = styled.button`
@@ -1775,7 +1775,7 @@ const BundleDesc = styled.p`
 
 const GameCard = styled.div`
   position: relative;
-  background: linear-gradient(180deg, #1b1b1b 0%, #0f0f0f 100%);
+  background: linear-gradient(140deg, #1a0a02 0%, #120804 35%, #0a0a0a 100%);
   border-radius: 18px;
   padding: 20px;
   display: flex;
@@ -1784,15 +1784,15 @@ const GameCard = styled.div`
   margin: 0 0 20px 0;
   animation: ${fadeInUp} 0.7s ease-out 0.2s both;
   box-shadow: 0 14px 34px rgba(0, 0, 0, 0.38);
-  border: 1px solid rgba(255, 122, 0, 0.22);
+  border: 1px solid rgba(255, 122, 0, 0.28);
   overflow: hidden;
 
   &::before {
     content: "";
     position: absolute;
-    inset: -40px -40px auto auto;
-    width: 180px;
-    height: 180px;
+    inset: -30px -30px auto auto;
+    width: 200px;
+    height: 200px;
     background: radial-gradient(
       circle at 30% 30%,
       rgba(255, 122, 0, 0.35),
@@ -1804,10 +1804,10 @@ const GameCard = styled.div`
   &::after {
     content: "";
     position: absolute;
-    left: 14px;
-    right: 14px;
-    top: 14px;
-    height: 2px;
+    left: 12px;
+    right: 12px;
+    top: 12px;
+    height: 3px;
     background: linear-gradient(
       90deg,
       rgba(255, 122, 0, 0.0),
@@ -1916,7 +1916,7 @@ const PlayText = styled.span`
 
 const MonthlyGameCard = styled.div`
   position: relative;
-  background: linear-gradient(180deg, #1b1b1b 0%, #0f0f0f 100%);
+  background: linear-gradient(145deg, #1b0b03 0%, #120904 35%, #0b0b0b 100%);
   border-radius: 18px;
   padding: 20px;
   animation: ${fadeInUp} 0.7s ease-out 0.3s both;
@@ -1924,15 +1924,15 @@ const MonthlyGameCard = styled.div`
     animation: ${pulse} 1.5s ease-in-out infinite, ${fadeInUp} 0.7s ease-out 0.3s both;
   `}
   box-shadow: 0 14px 34px rgba(0, 0, 0, 0.38);
-  border: 1px solid rgba(255, 122, 0, 0.22);
+  border: 1px solid rgba(255, 122, 0, 0.28);
   overflow: hidden;
 
   &::before {
     content: "";
     position: absolute;
-    inset: -60px auto auto -60px;
-    width: 220px;
-    height: 220px;
+    inset: -50px auto auto -50px;
+    width: 240px;
+    height: 240px;
     background: radial-gradient(
       circle at 40% 40%,
       rgba(255, 122, 0, 0.30),

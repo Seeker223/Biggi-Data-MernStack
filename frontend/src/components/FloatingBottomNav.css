@@ -51,7 +51,9 @@
 }
 
 .nav-icon {
-  font-size: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .nav-label {
@@ -61,8 +63,14 @@
   white-space: nowrap;
 }
 
-.nav-item.active .nav-icon {
+.nav-icon-svg {
+  color: #111;
+  transition: color 0.3s ease, transform 0.3s ease;
+}
+
+.nav-item.active .nav-icon-svg {
   color: #FF7A00;
+  transform: translateY(-1px);
 }
 
 .nav-item.active .nav-label {
