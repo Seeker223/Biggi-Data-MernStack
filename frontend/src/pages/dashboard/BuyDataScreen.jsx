@@ -101,6 +101,10 @@ const BuyDataScreen = () => {
     const backendPlanId = plan.plan_id || plan.code || plan.id || plan._id;
 
     try {
+      if (!backendPlanId) {
+        setErrorMsg("Selected plan is not available. Please reselect a plan.");
+        return;
+      }
       const pinValue = transactionPin.trim();
       if (!/^\d{4}$/.test(pinValue)) {
         setErrorMsg("Enter your 4-digit transaction PIN.");
@@ -152,6 +156,10 @@ const BuyDataScreen = () => {
     const setupPinValue = String(authPayload?.setupPin || pinValue).trim();
     let pinJustCreated = false;
     if (!pinConfigured) {
+      if (!/^\d{4}$/.test(setupPinValue)) {
+        setErrorMsg("Create a valid 4-digit PIN to continue.");
+        return;
+      }
       try {
         await setTransactionPin(setupPinValue);
         setPinConfigured(true);
