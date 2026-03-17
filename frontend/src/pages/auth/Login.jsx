@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from 'react';
+﻿import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import styled, { keyframes } from 'styled-components';
@@ -65,10 +65,14 @@ const Login = () => {
       setTimeout(() => {
         setModalVisible(false);
         navigate('/');
-      }, 1200);
+      }, 600);
     } else {
       showModal(res.error || 'Invalid email or password.', 'error');
     }
+  };
+
+  const handleSocialClick = (provider) => {
+    showModal(`${provider} login is coming soon.`, 'info');
   };
 
   return (
@@ -87,7 +91,7 @@ const Login = () => {
               <Label>Username or Email</Label>
               <TextInput
                 type="text"
-                placeholder="example@example.com"
+                placeholder="Email or username"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 autoCapitalize="none"
@@ -141,11 +145,9 @@ const Login = () => {
             <SocialText>or sign up with</SocialText>
             
             <SocialRow>
-              <SocialIcon type="button">
-                <Facebook size={22} />
+              <SocialIcon type="button" onClick={() => handleSocialClick('Facebook')}>\r\n                <Facebook size={22} />
               </SocialIcon>
-              <SocialIcon type="button">
-                <Mail size={22} />
+              <SocialIcon type="button" onClick={() => handleSocialClick('Email')}>\r\n                <Mail size={22} />
               </SocialIcon>
             </SocialRow>
 
@@ -168,6 +170,8 @@ const Login = () => {
           >
             {modalType === 'success' ? (
               <CheckCircle size={40} color="#16A34A" />
+            ) : modalType === 'info' ? (
+              <AlertCircle size={40} color="#0EA5E9" />
             ) : (
               <AlertCircle size={40} color="#DC2626" />
             )}
@@ -647,7 +651,8 @@ const ModalContainer = styled.div`
   display: flex;
   flex-direction: column;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-  border-left: 5px solid ${props => props.$type === 'success' ? '#16A34A' : '#DC2626'};
+  border-left: 5px solid ${props =>
+    props.$type === 'success' ? '#16A34A' : props.$type === 'info' ? '#0EA5E9' : '#DC2626'};
   animation: ${fadeIn} 0.3s ease-out;
 
   @media (max-width: 480px) {
@@ -826,3 +831,6 @@ const RememberCheckbox = styled.input`
   accent-color: #FF8000;
   cursor: pointer;
 `;
+
+
+
