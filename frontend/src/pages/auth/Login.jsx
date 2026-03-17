@@ -2,7 +2,7 @@
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import styled, { keyframes } from 'styled-components';
-import { Eye, EyeOff, CheckCircle, AlertCircle, Facebook, Mail } from 'lucide-react';
+import { Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react';
 
 const Login = () => {
   const REMEMBER_LOGIN_KEY = 'remember_login_inputs';
@@ -141,16 +141,6 @@ const Login = () => {
             <SignupButton as={Link} to="/signup">
               Sign Up
             </SignupButton>
-
-            <SocialText>or sign up with</SocialText>
-            
-            <SocialRow>
-              <SocialIcon type="button" onClick={() => handleSocialClick('Facebook')}>\r\n                <Facebook size={22} />
-              </SocialIcon>
-              <SocialIcon type="button" onClick={() => handleSocialClick('Email')}>\r\n                <Mail size={22} />
-              </SocialIcon>
-            </SocialRow>
-
             <FooterRow>
               <FooterText>Don't have an account? </FooterText>
               <FooterLink as={Link} to="/signup">
@@ -508,71 +498,6 @@ const FingerprintHighlight = styled.span`
   font-weight: 600;
 `;
 
-const SocialText = styled.p`
-  margin-top: 16px;
-  color: #6B7280;
-  text-align: center;
-  font-size: 14px;
-  margin-bottom: 12px;
-
-  @media (max-width: 480px) {
-    font-size: 13px;
-    margin-top: 14px;
-  }
-`;
-
-const SocialRow = styled.div`
-  display: flex;
-  flex-direction: row;
-  margin-top: 12px;
-  justify-content: center;
-  gap: 24px;
-
-  @media (max-width: 480px) {
-    gap: 20px;
-  }
-
-  @media (max-width: 360px) {
-    gap: 16px;
-  }
-`;
-
-const SocialIcon = styled.button`
-  padding: 8px;
-  border: 1px solid #D1D5DB;
-  border-radius: 50px;
-  background: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  color: #4B5563;
-  transition: all 0.2s ease;
-  
-  &:hover {
-    background-color: #F9FAFB;
-    border-color: #9CA3AF;
-  }
-  
-  &:focus {
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(156, 163, 175, 0.3);
-  }
-
-  @media (max-width: 480px) {
-    width: 38px;
-    height: 38px;
-    padding: 7px;
-  }
-
-  @media (max-width: 360px) {
-    width: 36px;
-    height: 36px;
-    padding: 6px;
-  }
-`;
 
 const FooterRow = styled.div`
   display: flex;
@@ -816,6 +741,15 @@ const RememberRow = styled.div`
   align-items: center;
 `;
 
+const RememberNote = styled.p`
+  width: 100%;
+  max-width: 360px;
+  margin: 4px 0 12px;
+  font-size: 12px;
+  color: #6B7280;
+  line-height: 1.4;
+`;
+
 const RememberLabel = styled.label`
   display: inline-flex;
   align-items: center;
@@ -831,6 +765,7 @@ const RememberCheckbox = styled.input`
   accent-color: #FF8000;
   cursor: pointer;
 `;
+
 
 
 
