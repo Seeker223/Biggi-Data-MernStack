@@ -29,7 +29,7 @@ import FloatingBottomNav from '../../components/FloatingBottomNav';
 import BrandLoader from '../../components/BrandLoader';
 import { AuthContext } from '../../context/AuthContext';
 import { FEATURE_FLAGS } from '../../constants/featureFlags';
-import { getMonthlyEligibility, updateAvatar } from '../../services/api';
+import { getMonthlyEligibility, updateAvatar, getVirtualAccount } from '../../services/api';
 
 const HomeScreen = () => {
   const navigate = useNavigate();
@@ -90,6 +90,9 @@ const HomeScreen = () => {
   const [referralWinModalData, setReferralWinModalData] = useState({ message: "", amount: null });
 
   const [isUploading, setIsUploading] = useState(false);
+  const [virtualAccount, setVirtualAccount] = useState(null);
+  const [virtualLoading, setVirtualLoading] = useState(false);
+  const [virtualError, setVirtualError] = useState("");
 
   useEffect(() => {
     refreshUser();
@@ -124,6 +127,30 @@ const HomeScreen = () => {
     if (!user) return;
     loadMonthlyEligibility();
   }, [user?._id, user?.dataBundleCount, loadMonthlyEligibility]);
+
+  useEffect(() => {
+    if (!user) return;
+    let mounted = true;
+    setVirtualLoading(true);
+    getVirtualAccount()
+      .then((res) => {
+        if (!mounted) return;
+        setVirtualAccount(res?.data?.account || null);
+        setVirtualError("");
+      })
+      .catch((err) => {
+        if (!mounted) return;
+        setVirtualAccount(null);
+        setVirtualError(err?.response?.data?.message || "Virtual account not available yet.");
+      })
+      .finally(() => {
+        if (!mounted) return;
+        setVirtualLoading(false);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [user?._id]);
 
   useEffect(() => {
     if (user && !user.state) {
@@ -424,6 +451,23 @@ const HomeScreen = () => {
                   <div>
                     <BalanceLabel>Main Balance</BalanceLabel>
                     <Balance>N{mainBalance.toLocaleString()}</Balance>
+                    <AccountInfo>
+                      {virtualLoading ? (
+                        <AccountMuted>Loading virtual account...</AccountMuted>
+                      ) : virtualAccount?.accountNumber ? (
+                        <>
+                          <AccountLine>
+                            {virtualAccount.bankName} • {virtualAccount.accountNumber}
+                          </AccountLine>
+                          <AccountMuted>{virtualAccount.accountName}</AccountMuted>
+                          <AccountMuted>Auto-credit after transfer.</AccountMuted>
+                        </>
+                      ) : (
+                        <AccountMuted>
+                          {virtualError || "Add BVN/NIN in profile to enable virtual account deposits."}
+                        </AccountMuted>
+                      )}
+                    </AccountInfo>
                   </div>
                   <ActionButtons>
                     <ActionBtn
@@ -1201,6 +1245,27 @@ const Balance = styled.div`
   @media (max-width: 360px) {
     font-size: 20px;
   }
+`;
+
+const AccountInfo = styled.div`
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 260px;
+`;
+
+const AccountLine = styled.div`
+  color: #111;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.2px;
+`;
+
+const AccountMuted = styled.div`
+  color: #5a5a5a;
+  font-size: 11px;
+  font-weight: 600;
 `;
 
 const ActionButtons = styled.div`
