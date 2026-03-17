@@ -117,21 +117,23 @@ const DepositScreen = () => {
     if (!feeSettings?.enabled) return 0;
     const flat = Number(feeSettings.flatFee || 0);
     const pct = Number(feeSettings.percentFee || 0);
-    let fee = flat + (pct > 0 ? (value * pct) / 100 : 0);
+    const rate = pct > 1 ? pct / 100 : pct;
+    let fee = flat + (rate > 0 ? value * rate : 0);
     const minFee = Number(feeSettings.minFee || 0);
     const maxFee = Number(feeSettings.maxFee || 0);
     if (minFee > 0 && fee < minFee) fee = minFee;
     if (maxFee > 0 && fee > maxFee) fee = maxFee;
-    return Math.max(0, Math.round(fee));
+    return Math.max(0, Math.ceil(fee));
   };
-  const serviceCharge = computeFee(enteredAmount);
-  const creditedAmount = Math.max(0, enteredAmount - serviceCharge);
-  const isValidAmount = () => enteredAmount >= 100 && enteredAmount <= 1000000;
+  const transferAmount = enteredAmount;
+  const serviceCharge = computeFee(transferAmount);
+  const creditedAmount = Math.max(0, transferAmount + serviceCharge);
+  const isValidAmount = () => enteredAmount >= 100 && transferAmount <= 1000000;
 
   const handleShowBankDetails = () => {
     if (!isValidAmount()) {
-      if (enteredAmount < 100) showToast("Minimum deposit is N100", "error");
-      else if (enteredAmount > 1000000) showToast("Maximum deposit is N1,000,000", "error");
+      if (enteredAmount < 100) showToast("Minimum credit amount is N100", "error");
+      else if (transferAmount > 1000000) showToast("Transfer amount cannot exceed N1,000,000", "error");
       return;
     }
     if (!virtualAccount && !virtualLoading) {
@@ -159,10 +161,10 @@ const DepositScreen = () => {
         </Header>
 
         <MainContent>
-          <Label>Enter Amount to Transfer</Label>
+          <Label>Enter Transfer Amount</Label>
           <Input
             type="number"
-            placeholder="N Amount (min N100, max N1,000,000)"
+            placeholder="N Transfer Amount (min N100, max N1,000,000)"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
           />
@@ -170,11 +172,11 @@ const DepositScreen = () => {
           <Breakdown>
             <BreakdownRow>
               <BreakdownLabel>Transfer Amount:</BreakdownLabel>
-              <BreakdownValue>N{enteredAmount.toLocaleString()}</BreakdownValue>
+              <BreakdownValue>N{transferAmount.toLocaleString()}</BreakdownValue>
             </BreakdownRow>
             <BreakdownRow>
               <BreakdownLabel>Service Charge:</BreakdownLabel>
-              <BreakdownValue>N{serviceCharge}</BreakdownValue>
+              <BreakdownValue>N{serviceCharge.toLocaleString()}</BreakdownValue>
             </BreakdownRow>
             <BreakdownRow $total>
               <TotalLabel>Estimated Wallet Credit:</TotalLabel>
@@ -189,7 +191,7 @@ const DepositScreen = () => {
           <InfoBox>
             <Info size={18} />
             <InfoText>
-              - Transfer to your unique virtual account{"\n"}- Wallet credits automatically after payment is detected{"\n"}- Contact support if issues persist
+              - Estimated wallet credit = transfer amount + service charge{"\n"}- Wallet credits automatically after payment is detected{"\n"}- Contact support if issues persist
             </InfoText>
           </InfoBox>
         </MainContent>
@@ -218,13 +220,13 @@ const DepositScreen = () => {
                     <ModalDetailValue>{virtualAccount?.accountName || "Loading"}</ModalDetailValue>
                   </ModalDetailRow>
                   <ModalDetailRow>
-                    <ModalDetailLabel>Transfer Amount:</ModalDetailLabel>
-                    <ModalDetailValue>N{enteredAmount.toLocaleString()}</ModalDetailValue>
-                  </ModalDetailRow>
-                  <ModalDetailRow>
-                    <ModalDetailLabel>Service Charge:</ModalDetailLabel>
-                    <ModalDetailValue>N{serviceCharge}</ModalDetailValue>
-                  </ModalDetailRow>
+                  <ModalDetailLabel>Transfer Amount:</ModalDetailLabel>
+                  <ModalDetailValue>N{transferAmount.toLocaleString()}</ModalDetailValue>
+                </ModalDetailRow>
+                <ModalDetailRow>
+                  <ModalDetailLabel>Service Charge:</ModalDetailLabel>
+                  <ModalDetailValue>N{serviceCharge.toLocaleString()}</ModalDetailValue>
+                </ModalDetailRow>
                   <ModalDetailRow $total>
                     <ModalDetailLabel>Estimated Credit:</ModalDetailLabel>
                     <ModalTotal>N{creditedAmount.toLocaleString()}</ModalTotal>
@@ -234,7 +236,7 @@ const DepositScreen = () => {
               <InfoBox>
                 <Info size={18} />
                 <InfoText>
-                  Transfer to this account. Service charge is deducted from the transfer amount, and the net credit is shown above.
+                  Transfer the exact amount shown. Service charge is added, and the wallet credit shown above is what you will receive.
                 </InfoText>
               </InfoBox>
               <ModalButtons>

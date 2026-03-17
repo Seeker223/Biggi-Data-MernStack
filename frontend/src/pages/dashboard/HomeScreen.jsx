@@ -93,6 +93,7 @@ const HomeScreen = () => {
   const [virtualAccount, setVirtualAccount] = useState(null);
   const [virtualLoading, setVirtualLoading] = useState(false);
   const [virtualError, setVirtualError] = useState("");
+  const [virtualUpdatedAt, setVirtualUpdatedAt] = useState(null);
 
   useEffect(() => {
     refreshUser();
@@ -128,29 +129,25 @@ const HomeScreen = () => {
     loadMonthlyEligibility();
   }, [user?._id, user?.dataBundleCount, loadMonthlyEligibility]);
 
+  const fetchVirtualAccount = useCallback(async () => {
+    setVirtualLoading(true);
+    try {
+      const res = await getVirtualAccount();
+      setVirtualAccount(res?.data?.account || null);
+      setVirtualError("");
+      setVirtualUpdatedAt(Date.now());
+    } catch (err) {
+      setVirtualAccount(null);
+      setVirtualError(err?.response?.data?.message || "Virtual account not available yet.");
+    } finally {
+      setVirtualLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!user) return;
-    let mounted = true;
-    setVirtualLoading(true);
-    getVirtualAccount()
-      .then((res) => {
-        if (!mounted) return;
-        setVirtualAccount(res?.data?.account || null);
-        setVirtualError("");
-      })
-      .catch((err) => {
-        if (!mounted) return;
-        setVirtualAccount(null);
-        setVirtualError(err?.response?.data?.message || "Virtual account not available yet.");
-      })
-      .finally(() => {
-        if (!mounted) return;
-        setVirtualLoading(false);
-      });
-    return () => {
-      mounted = false;
-    };
-  }, [user?._id]);
+    fetchVirtualAccount();
+  }, [user?._id, fetchVirtualAccount]);
 
   useEffect(() => {
     if (user && !user.state) {
@@ -461,6 +458,22 @@ const HomeScreen = () => {
                           </AccountLine>
                           <AccountMuted>{virtualAccount.accountName}</AccountMuted>
                           <AccountMuted>Auto-credit after transfer.</AccountMuted>
+                          <AccountMetaRow>
+                            <AccountUpdated>
+                              Updated:{" "}
+                              {virtualUpdatedAt
+                                ? new Date(virtualUpdatedAt).toLocaleString()
+                                : "—"}
+                            </AccountUpdated>
+                            <RefreshButton
+                              type="button"
+                              onClick={fetchVirtualAccount}
+                              disabled={virtualLoading}
+                              aria-label="Refresh virtual account"
+                            >
+                              <RefreshCw size={14} />
+                            </RefreshButton>
+                          </AccountMetaRow>
                         </>
                       ) : (
                         <AccountMuted>
@@ -1266,6 +1279,43 @@ const AccountMuted = styled.div`
   color: #5a5a5a;
   font-size: 11px;
   font-weight: 600;
+`;
+
+const AccountMetaRow = styled.div`
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const AccountUpdated = styled.span`
+  color: #7a7a7a;
+  font-size: 10px;
+  font-weight: 600;
+`;
+
+const RefreshButton = styled.button`
+  border: none;
+  background: #f2f2f2;
+  color: #444;
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background: #e8e8e8;
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
 `;
 
 const ActionButtons = styled.div`
