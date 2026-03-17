@@ -1571,6 +1571,12 @@ const AdminScreen = () => {
                 <ModalSection>
                   <h4>Auto Sweep Settings</h4>
                   <p>Auto sweep moves profit to your dedicated bank account using Flutterwave Transfers.</p>
+                  <p>
+                    Profit Destination:{" "}
+                    {profitSettings.accountName || "Account"} •{" "}
+                    {profitSettings.accountNumber || "—"} •{" "}
+                    {profitSettings.bankCode || "—"}
+                  </p>
                 </ModalSection>
                 <FormGrid>
                   <Field>
