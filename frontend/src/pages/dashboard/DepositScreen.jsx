@@ -183,7 +183,7 @@ const DepositScreen = () => {
 
           <Breakdown>
             <BreakdownRow>
-              <BreakdownLabel>Estimated Wallet Credit:</BreakdownLabel>
+              <BreakdownLabel>Main Balance Credit:</BreakdownLabel>
               <BreakdownValue>N{creditedAmount.toLocaleString()}</BreakdownValue>
             </BreakdownRow>
             <BreakdownRow>
@@ -191,7 +191,7 @@ const DepositScreen = () => {
               <BreakdownValue>N{serviceCharge.toLocaleString()}</BreakdownValue>
             </BreakdownRow>
             <BreakdownRow $total>
-              <TotalLabel>Transfer Amount:</TotalLabel>
+              <TotalLabel>Transfer Amount (You Pay):</TotalLabel>
               <TotalValue>N{transferAmount.toLocaleString()}</TotalValue>
             </BreakdownRow>
           </Breakdown>
@@ -236,7 +236,7 @@ const DepositScreen = () => {
                   <ModalDetailValue>N{transferAmount.toLocaleString()}</ModalDetailValue>
                 </ModalDetailRow>
                 <ModalDetailRow>
-                  <ModalDetailLabel>Estimated Wallet Credit:</ModalDetailLabel>
+                  <ModalDetailLabel>Main Balance Credit:</ModalDetailLabel>
                   <ModalDetailValue>N{creditedAmount.toLocaleString()}</ModalDetailValue>
                 </ModalDetailRow>
                 <ModalDetailRow>
@@ -244,7 +244,7 @@ const DepositScreen = () => {
                   <ModalDetailValue>N{serviceCharge.toLocaleString()}</ModalDetailValue>
                 </ModalDetailRow>
                 <ModalDetailRow $total>
-                  <ModalDetailLabel>Transfer Amount:</ModalDetailLabel>
+                  <ModalDetailLabel>Transfer Amount (You Pay):</ModalDetailLabel>
                   <ModalTotal>N{transferAmount.toLocaleString()}</ModalTotal>
                 </ModalDetailRow>
                 </ModalDetails>
