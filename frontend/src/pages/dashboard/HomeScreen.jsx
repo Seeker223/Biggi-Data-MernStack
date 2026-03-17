@@ -1842,7 +1842,7 @@ const BundleDesc = styled.p`
 
 const GameCard = styled.div`
   position: relative;
-  background: #0f0f12;
+  background: #070707;
   border-radius: 18px;
   padding: 20px;
   display: flex;
@@ -1983,7 +1983,7 @@ const PlayText = styled.span`
 
 const MonthlyGameCard = styled.div`
   position: relative;
-  background: #0f0f12;
+  background: #070707;
   border-radius: 18px;
   padding: 20px;
   animation: ${fadeInUp} 0.7s ease-out 0.3s both;
