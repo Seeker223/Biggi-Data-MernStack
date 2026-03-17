@@ -288,6 +288,10 @@ const WithdrawScreen = () => {
     const setupPinValue = String(authPayload?.setupPin || pinValue).trim();
     let pinJustCreated = false;
     if (!pinConfigured) {
+      if (!/^\d{4}$/.test(setupPinValue)) {
+        showToast("Create a valid 4-digit PIN to continue.", "error");
+        return;
+      }
       try {
         await setTransactionPin(setupPinValue);
         setPinConfigured(true);
