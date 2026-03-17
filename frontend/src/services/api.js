@@ -250,6 +250,7 @@ export const testBackendConnection = async () => {
 // -----------------------------------------------------------
 export const loginUser = (payload) => api.post("/auth/login", payload);
 export const registerUser = (payload) => api.post("/auth/register", payload);
+export const forgotPassword = (email) => api.post("/auth/forgot-password", { email });
 export const fetchUser = () => api.get("/auth/me");
 export const getBiometricStatus = () => api.get("/auth/biometric/status");
 export const beginBiometricRegistration = () =>
