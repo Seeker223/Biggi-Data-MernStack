@@ -2,7 +2,7 @@ import React, { useEffect, useState, useContext } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import styled, { keyframes } from 'styled-components';
-import { Eye, EyeOff, CheckCircle, AlertCircle, Mail, Facebook } from 'lucide-react';
+import { Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react';
 
 const Signup = () => {
   const { register } = useContext(AuthContext);
@@ -16,8 +16,6 @@ const Signup = () => {
     birthDate: '',
     state: '',
     referralCode: '',
-    bvn: '',
-    nin: '',
     password: '',
     confirmPassword: '',
   });
@@ -39,7 +37,7 @@ const Signup = () => {
 
   const handleRegister = async (e) => {
     e.preventDefault();
-    const { username, email, password, phoneNumber, birthDate, confirmPassword, state, referralCode, bvn, nin } = form;
+    const { username, email, password, phoneNumber, birthDate, confirmPassword, state, referralCode } = form;
 
     if (!username || !email || !password || !confirmPassword) {
       showModal('Please fill all required fields.', 'error');
@@ -47,6 +45,18 @@ const Signup = () => {
     }
     if (!state) {
       showModal('Please select your state.', 'error');
+      return;
+    }
+
+    const phoneDigits = String(phoneNumber || "").replace(/\D/g, "");
+    if (phoneDigits.length < 10) {
+      showModal('Please enter a valid phone number.', 'error');
+      return;
+    }
+
+    const birthDateRegex = /^\d{2}-\d{2}-\d{2}$/;
+    if (!birthDateRegex.test(birthDate)) {
+      showModal('Date of Birth must be in DD-MM-YY format.', 'error');
       return;
     }
 
@@ -68,7 +78,15 @@ const Signup = () => {
 
     setLoading(true);
     try {
-      const res = await register({ username, email, password, phoneNumber, birthDate, state, referralCode, bvn, nin });
+      const res = await register({
+        username,
+        email: email.trim().toLowerCase(),
+        password,
+        phoneNumber,
+        birthDate,
+        state,
+        referralCode: referralCode.trim(),
+      });
       
       if (res.success) {
         showModal('Registration successful! Welcome to Biggi Data.', 'success');
@@ -99,20 +117,21 @@ const Signup = () => {
 
   const formatDate = (text) => {
     let cleaned = text.replace(/\D/g, '');
-    if (cleaned.length >= 4) {
-      cleaned = cleaned.substring(0, 4) + '-' + cleaned.substring(4);
+    if (cleaned.length >= 2) {
+      cleaned = cleaned.substring(0, 2) + '-' + cleaned.substring(2);
     }
-    if (cleaned.length >= 7) {
-      cleaned = cleaned.substring(0, 7) + '-' + cleaned.substring(7, 9);
+    if (cleaned.length >= 5) {
+      cleaned = cleaned.substring(0, 5) + '-' + cleaned.substring(5, 7);
     }
-    setForm({ ...form, birthDate: cleaned });
+    setForm({ ...form, birthDate: cleaned.substring(0, 8) });
   };
 
   const formatPhoneNumber = (text) => {
     let cleaned = text.replace(/\D/g, '');
     if (cleaned.startsWith('0')) {
-      cleaned = '+234' + cleaned.substring(1);
-    } else if (cleaned.startsWith('234')) {
+      cleaned = '234' + cleaned.substring(1);
+    }
+    if (cleaned.startsWith('234')) {
       cleaned = '+' + cleaned;
     } else if (!cleaned.startsWith('+')) {
       cleaned = '+' + cleaned;
@@ -173,10 +192,10 @@ const Signup = () => {
               <Label>Date of Birth *</Label>
               <TextInput
                 type="text"
-                placeholder="YYYY-MM-DD"
+                placeholder="DD-MM-YY"
                 value={form.birthDate}
                 onChange={(e) => formatDate(e.target.value)}
-                maxLength={10}
+                maxLength={8}
               />
             </InputWrapper>
 
@@ -204,28 +223,6 @@ const Signup = () => {
                 placeholder="Enter referral code"
                 value={form.referralCode}
                 onChange={(e) => setForm({ ...form, referralCode: e.target.value })}
-              />
-            </InputWrapper>
-
-            {/* BVN / NIN */}
-            <InputWrapper>
-              <Label>BVN (optional)</Label>
-              <TextInput
-                type="text"
-                placeholder="11-digit BVN"
-                value={form.bvn}
-                onChange={(e) => setForm({ ...form, bvn: e.target.value.replace(/\D/g, "").slice(0, 11) })}
-              />
-              <PasswordHint>Required for virtual account deposits.</PasswordHint>
-            </InputWrapper>
-
-            <InputWrapper>
-              <Label>NIN (optional)</Label>
-              <TextInput
-                type="text"
-                placeholder="11-digit NIN"
-                value={form.nin}
-                onChange={(e) => setForm({ ...form, nin: e.target.value.replace(/\D/g, "").slice(0, 11) })}
               />
             </InputWrapper>
 
@@ -288,24 +285,7 @@ const Signup = () => {
               <LoginButtonText>Log In</LoginButtonText>
             </LoginButton>
 
-            {/* Alternative Options */}
-            <AlternativeContainer>
-              <Divider />
-              <AlternativeText>or sign up with</AlternativeText>
-              <Divider />
-            </AlternativeContainer>
-
-            {/* Social Buttons */}
-            <SocialButtons>
-              <SocialButton type="button">
-                <Mail size={20} color="#DB4437" />
-                <SocialButtonText>Google</SocialButtonText>
-              </SocialButton>
-              <SocialButton type="button">
-                <Facebook size={20} color="#1877F2" />
-                <SocialButtonText>Facebook</SocialButtonText>
-              </SocialButton>
-            </SocialButtons>
+            {/* Social signup disabled for now */}
 
             {/* Footer */}
             <FooterRow>
@@ -690,70 +670,6 @@ const AlternativeText = styled.span`
   }
 `;
 
-const SocialButtons = styled.div`
-  display: flex;
-  gap: 12px;
-  width: 100%;
-  max-width: 360px;
-  margin-bottom: 24px;
-
-  @media (max-width: 480px) {
-    gap: 10px;
-    margin-bottom: 20px;
-  }
-
-  @media (max-width: 360px) {
-    gap: 8px;
-  }
-`;
-
-const SocialButton = styled.button`
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #F9FAFB;
-  border: 1px solid #E5E7EB;
-  border-radius: 12px;
-  padding: 12px;
-  gap: 8px;
-  cursor: pointer;
-  font-family: inherit;
-  transition: all 0.2s ease;
-  
-  &:hover {
-    background-color: #F3F4F6;
-  }
-  
-  &:focus {
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(209, 213, 219, 0.3);
-  }
-
-  @media (max-width: 480px) {
-    padding: 11px;
-    gap: 6px;
-  }
-
-  @media (max-width: 360px) {
-    padding: 10px;
-    gap: 5px;
-  }
-`;
-
-const SocialButtonText = styled.span`
-  color: #374151;
-  font-weight: 500;
-  font-size: 14px;
-
-  @media (max-width: 480px) {
-    font-size: 13px;
-  }
-
-  @media (max-width: 360px) {
-    font-size: 12px;
-  }
-`;
 
 const FooterRow = styled.div`
   display: flex;
