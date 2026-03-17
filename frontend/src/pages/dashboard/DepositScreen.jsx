@@ -187,7 +187,7 @@ const DepositScreen = () => {
               <BreakdownValue>N{creditedAmount.toLocaleString()}</BreakdownValue>
             </BreakdownRow>
             <BreakdownRow>
-              <BreakdownLabel>Service Charge:</BreakdownLabel>
+              <BreakdownLabel>Biggi Gain (Service Charge):</BreakdownLabel>
               <BreakdownValue>N{serviceCharge.toLocaleString()}</BreakdownValue>
             </BreakdownRow>
             <BreakdownRow $total>
@@ -236,9 +236,9 @@ const DepositScreen = () => {
                     <ModalDetailValue>N{creditedAmount.toLocaleString()}</ModalDetailValue>
                   </ModalDetailRow>
                   <ModalDetailRow>
-                    <ModalDetailLabel>Service Charge:</ModalDetailLabel>
-                    <ModalDetailValue>N{serviceCharge.toLocaleString()}</ModalDetailValue>
-                  </ModalDetailRow>
+                  <ModalDetailLabel>Biggi Gain (Service Charge):</ModalDetailLabel>
+                  <ModalDetailValue>N{serviceCharge.toLocaleString()}</ModalDetailValue>
+                </ModalDetailRow>
                   <ModalDetailRow $total>
                     <ModalDetailLabel>Transfer Amount (You Pay):</ModalDetailLabel>
                     <ModalTotal>N{transferAmount.toLocaleString()}</ModalTotal>
