@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
 import { CheckCircle, AlertCircle } from "lucide-react";
@@ -17,13 +17,35 @@ const VerifyEmail = () => {
     return stateEmail || params.get("email") || "";
   }, [location.state, location.search]);
 
+  const initialExpires = useMemo(() => {
+    const seconds = Number(location.state?.expiresInSeconds || 0);
+    return seconds > 0 ? Date.now() + seconds * 1000 : Date.now() + 10 * 60 * 1000;
+  }, [location.state]);
+
   const [email, setEmail] = useState(initialEmail);
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
+  const [otpExpiresAt, setOtpExpiresAt] = useState(initialExpires);
+  const [resendCooldown, setResendCooldown] = useState(60);
+  const [editingEmail, setEditingEmail] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalType, setModalType] = useState("success");
   const [modalMessage, setModalMessage] = useState("");
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setOtpExpiresAt((prev) => prev);
+      setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const timeLeft = Math.max(0, Math.floor((otpExpiresAt - Date.now()) / 1000));
+  const timeLeftLabel = `${String(Math.floor(timeLeft / 60)).padStart(2, "0")}:${String(
+    timeLeft % 60
+  ).padStart(2, "0")}`;
+  const isExpired = timeLeft <= 0;
 
   const showModal = (message, type = "error") => {
     setModalMessage(message);
@@ -37,6 +59,10 @@ const VerifyEmail = () => {
     const code = String(otp || "").trim();
     if (!trimmedEmail) {
       showModal("Please enter your email.", "error");
+      return;
+    }
+    if (isExpired) {
+      showModal("This code has expired. Please request a new one.", "error");
       return;
     }
     if (!/^\d{6}$/.test(code)) {
@@ -75,6 +101,9 @@ const VerifyEmail = () => {
     try {
       const res = await resendVerificationOtp({ email: trimmedEmail });
       showModal(res?.data?.message || "Verification code sent.", "success");
+      const expiresIn = Number(res?.data?.expiresInSeconds || 600);
+      setOtpExpiresAt(Date.now() + expiresIn * 1000);
+      setResendCooldown(60);
     } catch (error) {
       showModal(
         error?.response?.data?.error || error?.response?.data?.message || "Failed to resend code.",
@@ -92,27 +121,53 @@ const VerifyEmail = () => {
         <Subtitle>Enter the 6-digit code sent to your email.</Subtitle>
 
         <Form onSubmit={handleVerify}>
-          <Input
-            type="email"
-            placeholder="Email address"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
+          <EmailRow>
+            <Input
+              type="email"
+              placeholder="Email address"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={!editingEmail}
+            />
+            <ChangeEmailButton
+              type="button"
+              onClick={() => setEditingEmail((prev) => !prev)}
+            >
+              {editingEmail ? "Done" : "Change email"}
+            </ChangeEmailButton>
+          </EmailRow>
           <Input
             type="text"
             placeholder="6-digit code"
             value={otp}
             onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
           />
-          <PrimaryButton type="submit" disabled={loading}>
+          <TimerText>
+            Code expires in {timeLeftLabel}
+          </TimerText>
+          {isExpired ? <ExpiredBanner>Code expired. Please resend a new code.</ExpiredBanner> : null}
+          <PrimaryButton type="submit" disabled={loading || isExpired}>
             {loading ? "Verifying..." : "Verify Email"}
           </PrimaryButton>
         </Form>
 
         <ResendRow>
-          <ResendButton type="button" onClick={handleResend} disabled={resending}>
-            {resending ? "Sending..." : "Resend code"}
+          <ResendButton
+            type="button"
+            onClick={handleResend}
+            disabled={resending || resendCooldown > 0}
+          >
+            {resending
+              ? "Sending..."
+              : resendCooldown > 0
+              ? `Resend in ${resendCooldown}s`
+              : "Resend code"}
           </ResendButton>
+          {resendCooldown > 0 ? (
+            <RateLimitText>
+              Rate limit: please wait {resendCooldown}s before requesting another code.
+            </RateLimitText>
+          ) : null}
           <LinkText to="/login">Back to login</LinkText>
         </ResendRow>
       </Card>
@@ -184,6 +239,13 @@ const Form = styled.form`
   gap: 12px;
 `;
 
+const EmailRow = styled.div`
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+`;
+
 const Input = styled.input`
   border: 1px solid #e5e7eb;
   border-radius: 12px;
@@ -194,6 +256,16 @@ const Input = styled.input`
     border-color: #ff7a00;
     box-shadow: 0 0 0 3px rgba(255, 122, 0, 0.12);
   }
+`;
+
+const ChangeEmailButton = styled.button`
+  border: none;
+  background: #f3f4f6;
+  color: #111;
+  padding: 12px 12px;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
 `;
 
 const PrimaryButton = styled.button`
@@ -210,11 +282,31 @@ const PrimaryButton = styled.button`
   }
 `;
 
+const TimerText = styled.p`
+  margin: 0;
+  font-size: 12px;
+  color: #6b7280;
+  text-align: right;
+`;
+
+const ExpiredBanner = styled.div`
+  background: #fff3cd;
+  border: 1px solid #ffeeba;
+  color: #8a6d3b;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+`;
+
 const ResendRow = styled.div`
   margin-top: 14px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
 `;
 
 const ResendButton = styled.button`
@@ -223,6 +315,12 @@ const ResendButton = styled.button`
   color: #ff7a00;
   font-weight: 700;
   cursor: pointer;
+`;
+
+const RateLimitText = styled.p`
+  margin: 0;
+  font-size: 11px;
+  color: #6b7280;
 `;
 
 const LinkText = styled(Link)`

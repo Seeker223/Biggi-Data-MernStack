@@ -92,7 +92,12 @@ const Signup = () => {
         showModal('We sent a 6-digit code to your email. Please verify to continue.', 'success');
         setTimeout(() => {
           setModalVisible(false);
-          navigate('/verify-email', { state: { email: email.trim().toLowerCase() } });
+          navigate('/verify-email', {
+            state: {
+              email: email.trim().toLowerCase(),
+              expiresInSeconds: res.expiresInSeconds || 600,
+            },
+          });
         }, 900);
       } else if (res.success) {
         showModal('Registration successful! Welcome to Biggi Data.', 'success');
