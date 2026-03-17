@@ -21,6 +21,7 @@ import {
   Wallet,
   LogOut,
   User,
+  Copy,
 } from 'lucide-react';
 import Lottie from "lottie-react";
 import specialTicketAnim from "../../assets/lottie/special-ticket.json";
@@ -29,7 +30,7 @@ import FloatingBottomNav from '../../components/FloatingBottomNav';
 import BrandLoader from '../../components/BrandLoader';
 import { AuthContext } from '../../context/AuthContext';
 import { FEATURE_FLAGS } from '../../constants/featureFlags';
-import { getMonthlyEligibility, updateAvatar, getVirtualAccount } from '../../services/api';
+import { getMonthlyEligibility, updateAvatar, getVirtualAccount, getDepositFeeSettings } from '../../services/api';
 
 const HomeScreen = () => {
   const navigate = useNavigate();
@@ -95,6 +96,7 @@ const HomeScreen = () => {
   const [virtualLoading, setVirtualLoading] = useState(false);
   const [virtualError, setVirtualError] = useState("");
   const [virtualUpdatedAt, setVirtualUpdatedAt] = useState(null);
+  const [depositFeeSettings, setDepositFeeSettings] = useState(null);
 
   useEffect(() => {
     refreshUser();
@@ -124,6 +126,19 @@ const HomeScreen = () => {
     } catch {
       setEligibilityError("Tap to retry loading your ticket status.");
     }
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    getDepositFeeSettings()
+      .then((res) => {
+        if (!mounted) return;
+        setDepositFeeSettings(res?.data?.settings || null);
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -332,6 +347,17 @@ const HomeScreen = () => {
     }
   };
 
+  const handleCopyAccount = async () => {
+    if (!virtualAccount?.accountNumber) return;
+    const text = `${virtualAccount.accountNumber} - ${virtualAccount.accountName || "Biggi Data"} (${virtualAccount.bankName || ""})`;
+    try {
+      await navigator.clipboard.writeText(text);
+      showUploadModal("Copied", "Account details copied to clipboard.", "success");
+    } catch {
+      showUploadModal("Copy failed", "Unable to copy. Please select and copy manually.", "error");
+    }
+  };
+
   const uploadPhoto = async () => {
     if (!selectedFile) return;
     try {
@@ -456,11 +482,27 @@ const HomeScreen = () => {
                         <AccountMuted>Loading virtual account...</AccountMuted>
                       ) : virtualAccount?.accountNumber ? (
                         <>
-                          <AccountLine>
-                            {virtualAccount.bankName} • {virtualAccount.accountNumber}
-                          </AccountLine>
+                          <AccountLineRow>
+                            <AccountLine>
+                              {virtualAccount.bankName} • {virtualAccount.accountNumber}
+                            </AccountLine>
+                            <CopyButton onClick={handleCopyAccount} aria-label="Copy account details">
+                              <Copy size={14} />
+                            </CopyButton>
+                          </AccountLineRow>
                           <AccountMuted>{virtualAccount.accountName}</AccountMuted>
                           <AccountMuted>Auto-credit after transfer.</AccountMuted>
+                          {depositFeeSettings ? (
+                            <AccountMuted>
+                              Service charge:{" "}
+                              {depositFeeSettings.percentFee
+                                ? `${depositFeeSettings.percentFee}%`
+                                : "N0"}{" "}
+                              {depositFeeSettings.flatFee
+                                ? `+ N${Number(depositFeeSettings.flatFee || 0).toLocaleString()}`
+                                : ""}
+                            </AccountMuted>
+                          ) : null}
                           <AccountMetaRow>
                             <AccountUpdated>
                               Updated:{" "}
@@ -1301,11 +1343,36 @@ const AccountInfo = styled.div`
   max-width: 280px;
 `;
 
+const AccountLineRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
 const AccountLine = styled.div`
   color: #111;
   font-weight: 800;
   font-size: 13.5px;
   letter-spacing: 0.2px;
+`;
+
+const CopyButton = styled.button`
+  border: none;
+  background: #ffe6cc;
+  color: #ff7a00;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #ffd9b3;
+    transform: translateY(-1px);
+  }
 `;
 
 const AccountMuted = styled.div`
@@ -1775,7 +1842,7 @@ const BundleDesc = styled.p`
 
 const GameCard = styled.div`
   position: relative;
-  background: linear-gradient(140deg, #1a0a02 0%, #120804 35%, #0a0a0a 100%);
+  background: #0f0f12;
   border-radius: 18px;
   padding: 20px;
   display: flex;
@@ -1916,7 +1983,7 @@ const PlayText = styled.span`
 
 const MonthlyGameCard = styled.div`
   position: relative;
-  background: linear-gradient(145deg, #1b0b03 0%, #120904 35%, #0b0b0b 100%);
+  background: #0f0f12;
   border-radius: 18px;
   padding: 20px;
   animation: ${fadeInUp} 0.7s ease-out 0.3s both;
