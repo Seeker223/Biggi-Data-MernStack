@@ -556,6 +556,8 @@ export const updateAdminUser = (id, payload) => api.put(`/admin/users/${id}`, pa
 export const deleteAdminUser = (id) => api.delete(`/admin/users/${id}`);
 export const getAdminUnmatchedDeposits = (params = {}) =>
   api.get("/admin/unmatched-deposits", { params });
+export const assignUnmatchedDeposit = (id, payload) =>
+  api.post(`/admin/unmatched-deposits/${encodeURIComponent(id)}/assign`, payload);
 
 // -----------------------------------------------------------
 // ADMIN PLANS

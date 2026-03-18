@@ -39,6 +39,7 @@ import {
   getAdminDepositFeeLedger,
   deleteAdminDepositFeeLedger,
   getAdminUnmatchedDeposits,
+  assignUnmatchedDeposit,
 } from "../../services/api";
 import { Alert } from "../../utils/alert";
 
@@ -142,6 +143,12 @@ const AdminScreen = () => {
   const [unmatchedPage, setUnmatchedPage] = useState(1);
   const [unmatchedPages, setUnmatchedPages] = useState(1);
   const [unmatchedSearch, setUnmatchedSearch] = useState("");
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [assignTarget, setAssignTarget] = useState(null);
+  const [assignValue, setAssignValue] = useState("");
+  const [assignNote, setAssignNote] = useState("");
+  const [assignLoading, setAssignLoading] = useState(false);
+  const [assignError, setAssignError] = useState("");
 
   const isAdmin = useMemo(() => String(user?.role || "").toLowerCase() === "admin", [user?.role]);
   const myUserId = useMemo(() => String(user?.id || user?._id || ""), [user?.id, user?._id]);
@@ -572,6 +579,41 @@ const AdminScreen = () => {
   const goUnmatchedPage = async (nextPage) => {
     setUnmatchedPage(nextPage);
     await loadUnmatchedDeposits(nextPage);
+  };
+
+  const openAssign = (entry) => {
+    setAssignTarget(entry);
+    setAssignValue("");
+    setAssignNote("");
+    setAssignError("");
+    setAssignOpen(true);
+  };
+
+  const submitAssign = async () => {
+    if (!assignTarget?._id) return;
+    if (!assignValue.trim()) {
+      setAssignError("Enter user email or user ID.");
+      return;
+    }
+    try {
+      setAssignLoading(true);
+      setAssignError("");
+      await assignUnmatchedDeposit(assignTarget._id, {
+        userIdOrEmail: assignValue.trim(),
+        note: assignNote.trim(),
+      });
+      setAssignOpen(false);
+      await loadUnmatchedDeposits(unmatchedPage);
+      Alert.alert({
+        tone: "success",
+        title: "Assigned",
+        message: "Deposit has been credited successfully.",
+      });
+    } catch (err) {
+      setAssignError(err?.response?.data?.message || "Failed to assign deposit.");
+    } finally {
+      setAssignLoading(false);
+    }
   };
 
   const saveProfitSettings = async () => {
@@ -1922,6 +1964,7 @@ const AdminScreen = () => {
                       </small>
                       <small>Ref: {entry?.reference || entry?._id}</small>
                     </LedgerMeta>
+                    <SoftButton onClick={() => openAssign(entry)}>Assign</SoftButton>
                   </LedgerRow>
                 ))
               ) : (
@@ -1946,6 +1989,56 @@ const AdminScreen = () => {
                 Next
               </PagerBtn>
             </Pager>
+          </ModalCard>
+        </ModalOverlay>
+      ) : null}
+
+      {assignOpen ? (
+        <ModalOverlay onClick={() => setAssignOpen(false)}>
+          <ModalCard onClick={(e) => e.stopPropagation()}>
+            <ModalHead>
+              <h3>Assign Deposit</h3>
+              <button onClick={() => setAssignOpen(false)}>
+                <X size={16} />
+              </button>
+            </ModalHead>
+
+            {assignError ? <ErrorBox>{assignError}</ErrorBox> : null}
+            <ModalSection>
+              <h4>Deposit</h4>
+              <p>Amount: {naira(assignTarget?.amount)}</p>
+              <p>Reference: {assignTarget?.reference || assignTarget?._id}</p>
+            </ModalSection>
+
+            <FormGrid>
+              <Field>
+                <label>User Email or ID</label>
+                <input
+                  type="text"
+                  value={assignValue}
+                  onChange={(e) => setAssignValue(e.target.value)}
+                  placeholder="user@example.com or userId"
+                />
+              </Field>
+              <Field>
+                <label>Note (optional)</label>
+                <input
+                  type="text"
+                  value={assignNote}
+                  onChange={(e) => setAssignNote(e.target.value)}
+                  placeholder="Reason or reference"
+                />
+              </Field>
+            </FormGrid>
+
+            <ModalActions>
+              <ApplyButton onClick={submitAssign} disabled={assignLoading}>
+                {assignLoading ? "Assigning..." : "Assign & Credit"}
+              </ApplyButton>
+              <CancelBtn onClick={() => setAssignOpen(false)} disabled={assignLoading}>
+                Cancel
+              </CancelBtn>
+            </ModalActions>
           </ModalCard>
         </ModalOverlay>
       ) : null}
