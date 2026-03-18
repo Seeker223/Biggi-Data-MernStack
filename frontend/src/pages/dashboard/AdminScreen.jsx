@@ -14,6 +14,7 @@ import {
   Plus,
   Pencil,
   Trash2,
+  AlertTriangle,
 } from "lucide-react";
 import FloatingBottomNav from "../../components/FloatingBottomNav";
 import { AuthContext } from "../../context/AuthContext";
@@ -37,6 +38,7 @@ import {
   updateAdminDepositFeeSettings,
   getAdminDepositFeeLedger,
   deleteAdminDepositFeeLedger,
+  getAdminUnmatchedDeposits,
 } from "../../services/api";
 import { Alert } from "../../utils/alert";
 
@@ -131,6 +133,15 @@ const AdminScreen = () => {
   const [depositFeePages, setDepositFeePages] = useState(1);
   const [depositFeeLoading, setDepositFeeLoading] = useState(false);
   const [depositFeeError, setDepositFeeError] = useState("");
+
+  // Unmatched deposits (admin)
+  const [unmatchedOpen, setUnmatchedOpen] = useState(false);
+  const [unmatchedLoading, setUnmatchedLoading] = useState(false);
+  const [unmatchedError, setUnmatchedError] = useState("");
+  const [unmatchedRecords, setUnmatchedRecords] = useState([]);
+  const [unmatchedPage, setUnmatchedPage] = useState(1);
+  const [unmatchedPages, setUnmatchedPages] = useState(1);
+  const [unmatchedSearch, setUnmatchedSearch] = useState("");
 
   const isAdmin = useMemo(() => String(user?.role || "").toLowerCase() === "admin", [user?.role]);
   const myUserId = useMemo(() => String(user?.id || user?._id || ""), [user?.id, user?._id]);
@@ -552,6 +563,17 @@ const AdminScreen = () => {
     await loadProfit();
   };
 
+  const openUnmatched = async () => {
+    setUnmatchedOpen(true);
+    setUnmatchedPage(1);
+    await loadUnmatchedDeposits(1);
+  };
+
+  const goUnmatchedPage = async (nextPage) => {
+    setUnmatchedPage(nextPage);
+    await loadUnmatchedDeposits(nextPage);
+  };
+
   const saveProfitSettings = async () => {
     try {
       setProfitLoading(true);
@@ -612,6 +634,26 @@ const AdminScreen = () => {
       setDepositFeeError(err?.response?.data?.message || "Failed to load deposit fee details.");
     } finally {
       setDepositFeeLoading(false);
+    }
+  };
+
+  const loadUnmatchedDeposits = async (pageOverride = unmatchedPage) => {
+    try {
+      setUnmatchedLoading(true);
+      setUnmatchedError("");
+      const res = await getAdminUnmatchedDeposits({
+        page: pageOverride,
+        limit: 20,
+        search: unmatchedSearch.trim() || undefined,
+      });
+      const list = Array.isArray(res?.data?.unmatched) ? res.data.unmatched : [];
+      setUnmatchedRecords(list);
+      setUnmatchedPage(res?.data?.pagination?.page || pageOverride);
+      setUnmatchedPages(res?.data?.pagination?.totalPages || 1);
+    } catch (err) {
+      setUnmatchedError(err?.response?.data?.message || "Failed to load unmatched deposits.");
+    } finally {
+      setUnmatchedLoading(false);
     }
   };
 
@@ -837,6 +879,10 @@ const AdminScreen = () => {
               <SoftButton onClick={openDepositFees} disabled={depositFeeLoading}>
                 <Percent size={16} />
                 Deposit Fees
+              </SoftButton>
+              <SoftButton onClick={openUnmatched} disabled={unmatchedLoading}>
+                <AlertTriangle size={16} />
+                Unmatched Deposits
               </SoftButton>
             </ActionRow>
           </FilterCard>
@@ -1820,6 +1866,82 @@ const AdminScreen = () => {
               <PagerBtn
                 disabled={depositFeePage >= depositFeePages || depositFeeLoading}
                 onClick={() => goDepositFeePage(depositFeePage + 1)}
+              >
+                Next
+              </PagerBtn>
+            </Pager>
+          </ModalCard>
+        </ModalOverlay>
+      ) : null}
+
+      {unmatchedOpen ? (
+        <ModalOverlay onClick={() => setUnmatchedOpen(false)}>
+          <ModalCard onClick={(e) => e.stopPropagation()}>
+            <ModalHead>
+              <h3>Unmatched Deposits</h3>
+              <button onClick={() => setUnmatchedOpen(false)}>
+                <X size={16} />
+              </button>
+            </ModalHead>
+
+            {unmatchedError ? <ErrorBox>{unmatchedError}</ErrorBox> : null}
+            {unmatchedLoading ? <LoadingBox>Loading unmatched deposits...</LoadingBox> : null}
+
+            <ModalSection>
+              <h4>Search</h4>
+              <SearchRow>
+                <Search size={16} />
+                <SearchInput
+                  placeholder="Search reference, account, email..."
+                  value={unmatchedSearch}
+                  onChange={(e) => setUnmatchedSearch(e.target.value)}
+                />
+              </SearchRow>
+              <ActionRow>
+                <ApplyButton onClick={() => loadUnmatchedDeposits(1)} disabled={unmatchedLoading}>
+                  Apply
+                </ApplyButton>
+                <SoftButton onClick={() => loadUnmatchedDeposits(unmatchedPage)} disabled={unmatchedLoading}>
+                  Refresh
+                </SoftButton>
+              </ActionRow>
+            </ModalSection>
+
+            <ModalSection>
+              <h4>Unmatched List</h4>
+              {unmatchedRecords.length ? (
+                unmatchedRecords.map((entry) => (
+                  <LedgerRow key={entry?._id || entry?.reference}>
+                    <LedgerMeta>
+                      <strong>
+                        {naira(entry?.amount)} | {String(entry?.status || "unmatched").toUpperCase()}
+                      </strong>
+                      <small>
+                        {entry?.customerEmail || "No email"} •{" "}
+                        {entry?.accountNumber || "No account"} • {dateFmt(entry?.createdAt)}
+                      </small>
+                      <small>Ref: {entry?.reference || entry?._id}</small>
+                    </LedgerMeta>
+                  </LedgerRow>
+                ))
+              ) : (
+                <p>No unmatched deposits found.</p>
+              )}
+            </ModalSection>
+
+            <Pager>
+              <PagerBtn
+                disabled={unmatchedPage <= 1 || unmatchedLoading}
+                onClick={() => goUnmatchedPage(unmatchedPage - 1)}
+              >
+                Previous
+              </PagerBtn>
+              <PageLabel>
+                Page {unmatchedPage} of {unmatchedPages}
+              </PageLabel>
+              <PagerBtn
+                disabled={unmatchedPage >= unmatchedPages || unmatchedLoading}
+                onClick={() => goUnmatchedPage(unmatchedPage + 1)}
               >
                 Next
               </PagerBtn>
