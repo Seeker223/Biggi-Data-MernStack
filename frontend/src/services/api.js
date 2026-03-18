@@ -594,6 +594,13 @@ export const deleteAdminDepositFeeLedger = (id) =>
   api.delete(`/admin/deposit-fee/ledger/${id}`);
 
 // -----------------------------------------------------------
+// ADMIN EMAIL SETTINGS
+// -----------------------------------------------------------
+export const getAdminEmailSettings = () => api.get("/admin/email-settings");
+export const updateAdminEmailSettings = (payload) =>
+  api.put("/admin/email-settings", payload);
+
+// -----------------------------------------------------------
 // GAME ANALYTICS
 // -----------------------------------------------------------
 export const getGameAnalytics = (period = "monthly") =>

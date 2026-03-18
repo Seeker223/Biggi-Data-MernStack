@@ -40,6 +40,8 @@ import {
   deleteAdminDepositFeeLedger,
   getAdminUnmatchedDeposits,
   assignUnmatchedDeposit,
+  getAdminEmailSettings,
+  updateAdminEmailSettings,
 } from "../../services/api";
 import { Alert } from "../../utils/alert";
 
@@ -62,6 +64,25 @@ const EMPTY_FORM = {
   dataBundleCount: 0,
   tickets: 0,
 };
+
+const EMAIL_TYPES = [
+  { key: "signup", label: "Signup" },
+  { key: "deposit", label: "Deposit" },
+  { key: "withdraw_requested", label: "Withdrawal Requested" },
+  { key: "withdraw_success", label: "Withdrawal Success" },
+  { key: "withdraw_failed", label: "Withdrawal Failed" },
+  { key: "redeem", label: "Redeem" },
+  { key: "data_purchase_success", label: "Data Purchase Success" },
+  { key: "data_purchase_failed", label: "Data Purchase Failed" },
+  { key: "weekly_entry", label: "Weekly Draw Entry" },
+  { key: "weekly_result", label: "Weekly Draw Result" },
+  { key: "weekly_claim", label: "Weekly Draw Claim" },
+  { key: "monthly_entry", label: "Monthly Draw Entry" },
+  { key: "monthly_result", label: "Monthly Draw Result" },
+  { key: "monthly_claim", label: "Monthly Draw Claim" },
+  { key: "top_random_win", label: "Top Random Winner" },
+  { key: "top_random_claim", label: "Top Random Claim" },
+];
 
 const NIGERIA_STATES = [
   "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue", "Borno",
@@ -149,6 +170,12 @@ const AdminScreen = () => {
   const [assignNote, setAssignNote] = useState("");
   const [assignLoading, setAssignLoading] = useState(false);
   const [assignError, setAssignError] = useState("");
+
+  // Email settings (admin)
+  const [emailSettingsOpen, setEmailSettingsOpen] = useState(false);
+  const [emailSettings, setEmailSettings] = useState(null);
+  const [emailSettingsLoading, setEmailSettingsLoading] = useState(false);
+  const [emailSettingsError, setEmailSettingsError] = useState("");
 
   const isAdmin = useMemo(() => String(user?.role || "").toLowerCase() === "admin", [user?.role]);
   const myUserId = useMemo(() => String(user?.id || user?._id || ""), [user?.id, user?._id]);
@@ -576,6 +603,24 @@ const AdminScreen = () => {
     await loadUnmatchedDeposits(1);
   };
 
+  const openEmailSettings = async () => {
+    setEmailSettingsOpen(true);
+    await loadEmailSettings();
+  };
+
+  const saveEmailSettings = async () => {
+    try {
+      setEmailSettingsLoading(true);
+      setEmailSettingsError("");
+      await updateAdminEmailSettings(emailSettings || {});
+      await loadEmailSettings();
+    } catch (err) {
+      setEmailSettingsError(err?.response?.data?.message || "Failed to save email settings.");
+    } finally {
+      setEmailSettingsLoading(false);
+    }
+  };
+
   const goUnmatchedPage = async (nextPage) => {
     setUnmatchedPage(nextPage);
     await loadUnmatchedDeposits(nextPage);
@@ -676,6 +721,19 @@ const AdminScreen = () => {
       setDepositFeeError(err?.response?.data?.message || "Failed to load deposit fee details.");
     } finally {
       setDepositFeeLoading(false);
+    }
+  };
+
+  const loadEmailSettings = async () => {
+    try {
+      setEmailSettingsLoading(true);
+      setEmailSettingsError("");
+      const res = await getAdminEmailSettings();
+      setEmailSettings(res?.data?.settings || null);
+    } catch (err) {
+      setEmailSettingsError(err?.response?.data?.message || "Failed to load email settings.");
+    } finally {
+      setEmailSettingsLoading(false);
     }
   };
 
@@ -925,6 +983,10 @@ const AdminScreen = () => {
               <SoftButton onClick={openUnmatched} disabled={unmatchedLoading}>
                 <AlertTriangle size={16} />
                 Unmatched Deposits
+              </SoftButton>
+              <SoftButton onClick={openEmailSettings} disabled={emailSettingsLoading}>
+                <Shield size={16} />
+                Email Settings
               </SoftButton>
             </ActionRow>
           </FilterCard>
@@ -2037,6 +2099,91 @@ const AdminScreen = () => {
               </ApplyButton>
               <CancelBtn onClick={() => setAssignOpen(false)} disabled={assignLoading}>
                 Cancel
+              </CancelBtn>
+            </ModalActions>
+          </ModalCard>
+        </ModalOverlay>
+      ) : null}
+
+      {emailSettingsOpen ? (
+        <ModalOverlay onClick={() => setEmailSettingsOpen(false)}>
+          <ModalCard onClick={(e) => e.stopPropagation()}>
+            <ModalHead>
+              <h3>Email Settings</h3>
+              <button onClick={() => setEmailSettingsOpen(false)}>
+                <X size={16} />
+              </button>
+            </ModalHead>
+
+            {emailSettingsError ? <ErrorBox>{emailSettingsError}</ErrorBox> : null}
+            {emailSettingsLoading ? <LoadingBox>Loading email settings...</LoadingBox> : null}
+
+            <ModalSection>
+              <h4>Global Controls</h4>
+              <FormGrid>
+                <Field>
+                  <label>Enabled</label>
+                  <select
+                    value={emailSettings?.enabled ? "true" : "false"}
+                    onChange={(e) =>
+                      setEmailSettings((s) => ({ ...(s || {}), enabled: e.target.value === "true" }))
+                    }
+                  >
+                    <option value="true">true</option>
+                    <option value="false">false</option>
+                  </select>
+                </Field>
+                <Field>
+                  <label>Rate Limit / Hour</label>
+                  <input
+                    type="number"
+                    value={emailSettings?.rateLimitPerHour ?? 20}
+                    onChange={(e) =>
+                      setEmailSettings((s) => ({
+                        ...(s || {}),
+                        rateLimitPerHour: Number(e.target.value || 0),
+                      }))
+                    }
+                    placeholder="20"
+                  />
+                </Field>
+              </FormGrid>
+            </ModalSection>
+
+            <ModalSection>
+              <h4>Per-Event Toggles</h4>
+              <FormGrid>
+                {EMAIL_TYPES.map((item) => (
+                  <Field key={item.key}>
+                    <label>{item.label}</label>
+                    <select
+                      value={
+                        emailSettings?.perType?.[item.key] === false ? "false" : "true"
+                      }
+                      onChange={(e) =>
+                        setEmailSettings((s) => ({
+                          ...(s || {}),
+                          perType: {
+                            ...(s?.perType || {}),
+                            [item.key]: e.target.value === "true",
+                          },
+                        }))
+                      }
+                    >
+                      <option value="true">enabled</option>
+                      <option value="false">disabled</option>
+                    </select>
+                  </Field>
+                ))}
+              </FormGrid>
+            </ModalSection>
+
+            <ModalActions>
+              <ApplyButton onClick={saveEmailSettings} disabled={emailSettingsLoading}>
+                {emailSettingsLoading ? "Saving..." : "Save Settings"}
+              </ApplyButton>
+              <CancelBtn onClick={() => setEmailSettingsOpen(false)} disabled={emailSettingsLoading}>
+                Close
               </CancelBtn>
             </ModalActions>
           </ModalCard>
