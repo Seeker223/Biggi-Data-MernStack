@@ -75,10 +75,10 @@ const DepositScreen = () => {
     setTimeout(() => setToastVisible(false), 3500);
   };
 
-  const loadVirtualAccount = async () => {
+  const loadVirtualAccount = async (amountToUse) => {
     setVirtualLoading(true);
     try {
-      const res = await getVirtualAccount();
+      const res = await getVirtualAccount(amountToUse);
       setVirtualAccount(res?.data?.account || null);
       setVirtualError("");
       return res?.data?.account || null;
@@ -150,7 +150,7 @@ const DepositScreen = () => {
       return;
     }
     if (!useStaticVirtualAccount || (!virtualAccount && !virtualLoading)) {
-      const account = await loadVirtualAccount();
+      const account = await loadVirtualAccount(transferAmount);
       if (!account) {
         showToast(virtualError || VIRTUAL_ACCOUNT_FALLBACK, "error");
         return;
