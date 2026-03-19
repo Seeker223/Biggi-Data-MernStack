@@ -32,6 +32,9 @@ import { AuthContext } from '../../context/AuthContext';
 import { FEATURE_FLAGS } from '../../constants/featureFlags';
 import { getMonthlyEligibility, updateAvatar, getVirtualAccount, getDepositFeeSettings } from '../../services/api';
 
+const VIRTUAL_ACCOUNT_FALLBACK =
+  "We are unable to process your request right now. Please try again shortly. Virtual account not ready yet. Please try again later.";
+
 const HomeScreen = () => {
   const navigate = useNavigate();
   const DEFAULT_AVATAR = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
@@ -160,7 +163,7 @@ const HomeScreen = () => {
       setVirtualUpdatedAt(Date.now());
     } catch (err) {
       setVirtualAccount(null);
-      setVirtualError(err?.response?.data?.message || "Virtual account not available yet.");
+      setVirtualError(err?.response?.data?.message || VIRTUAL_ACCOUNT_FALLBACK);
     } finally {
       setVirtualLoading(false);
     }
@@ -530,7 +533,7 @@ const HomeScreen = () => {
                         ) : (
                           <>
                             <AccountMuted>
-                              {virtualError || "Add BVN/NIN in profile to enable virtual account deposits."}
+                              {virtualError || VIRTUAL_ACCOUNT_FALLBACK}
                             </AccountMuted>
                             <AccountMetaRow>
                               <AccountUpdated>

@@ -13,6 +13,8 @@ import {
 } from "../../services/api";
 
 const SERVICE_CHARGE = 5;
+const VIRTUAL_ACCOUNT_FALLBACK =
+  "We are unable to process your request right now. Please try again shortly. Virtual account not ready yet. Please try again later.";
 
 const DepositScreen = () => {
   const navigate = useNavigate();
@@ -81,7 +83,7 @@ const DepositScreen = () => {
       setVirtualError("");
       return res?.data?.account || null;
     } catch (err) {
-      const msg = err?.response?.data?.message || "Failed to load virtual account.";
+      const msg = err?.response?.data?.message || VIRTUAL_ACCOUNT_FALLBACK;
       setVirtualError(msg);
       if (/bvn|nin/i.test(msg)) {
         setShowBvnModal(true);
@@ -150,7 +152,7 @@ const DepositScreen = () => {
     if (!useStaticVirtualAccount || (!virtualAccount && !virtualLoading)) {
       const account = await loadVirtualAccount();
       if (!account) {
-        showToast(virtualError || "Virtual account not ready yet. Please try again.", "error");
+        showToast(virtualError || VIRTUAL_ACCOUNT_FALLBACK, "error");
         return;
       }
     }
