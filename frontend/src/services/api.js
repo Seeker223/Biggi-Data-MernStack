@@ -250,7 +250,10 @@ export const testBackendConnection = async () => {
 // -----------------------------------------------------------
 export const loginUser = (payload) => api.post("/auth/login", payload);
 export const registerUser = (payload) => api.post("/auth/register", payload);
+export const forgotPassword = (email) => api.post("/auth/forgot-password", { email });
 export const fetchUser = () => api.get("/auth/me");
+export const verifyEmailOtp = (payload) => api.post("/auth/verify-email", payload);
+export const resendVerificationOtp = (payload) => api.post("/auth/resend-verification", payload);
 export const getBiometricStatus = () => api.get("/auth/biometric/status");
 export const beginBiometricRegistration = () =>
   withBiometricRetry(() =>
@@ -285,6 +288,8 @@ export const disableBiometricAuth = () => api.delete("/auth/biometric");
 // -----------------------------------------------------------
 export const refreshUserBalance = () => api.get("/wallet/balance");
 export const getDepositHistory = () => api.get("/wallet/deposit-history");
+export const getVirtualAccount = (amount) =>
+  api.get("/wallet/virtual-account", amount ? { params: { amount } } : {});
 export const getDepositFeeSettings = () => api.get("/wallet/deposit-fee-settings");
 
 export const verifyFlutterwavePayment = (tx_ref, biometricProof = "", transactionPin = "", amount = 0) =>
