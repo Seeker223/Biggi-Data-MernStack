@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { AuthContext } from "../../context/AuthContext";
 import { FEATURE_FLAGS } from "../../constants/featureFlags";
+import { FLUTTERWAVE_PUBLIC_KEY } from "../../constants/flutterwave";
 import {
   getTransactionSecurityStatus,
   getDepositStatus,
@@ -27,12 +28,6 @@ const SERVICE_CHARGE = 5;
 const POLL_INTERVAL = 3000;
 const MAX_POLL_ATTEMPTS = 20;
 const RECONCILE_ATTEMPTS = 3;
-const FLUTTERWAVE_PUBLIC_KEY =
-  import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY ||
-  import.meta.env.VITE_FLUTTERWAVE_KEY ||
-  import.meta.env.EXPO_PUBLIC_FLUTTERWAVE_KEY ||
-  "";
-
 const DepositScreen = () => {
   const navigate = useNavigate();
   const { user, refreshUser, updateUser } = useContext(AuthContext);
