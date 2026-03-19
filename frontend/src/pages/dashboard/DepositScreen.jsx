@@ -63,6 +63,7 @@ const DepositScreen = () => {
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [toastType, setToastType] = useState("info");
+  const useStaticVirtualAccount = FEATURE_FLAGS.USE_STATIC_VIRTUAL_ACCOUNT;
 
 
   const showToast = (msg, type = "info") => {
@@ -70,6 +71,25 @@ const DepositScreen = () => {
     setToastType(type);
     setToastVisible(true);
     setTimeout(() => setToastVisible(false), 3500);
+  };
+
+  const loadVirtualAccount = async () => {
+    setVirtualLoading(true);
+    try {
+      const res = await getVirtualAccount();
+      setVirtualAccount(res?.data?.account || null);
+      setVirtualError("");
+      return res?.data?.account || null;
+    } catch (err) {
+      const msg = err?.response?.data?.message || "Failed to load virtual account.";
+      setVirtualError(msg);
+      if (/bvn|nin/i.test(msg)) {
+        setShowBvnModal(true);
+      }
+      return null;
+    } finally {
+      setVirtualLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -87,30 +107,9 @@ const DepositScreen = () => {
   }, []);
 
   useEffect(() => {
-    let mounted = true;
-    setVirtualLoading(true);
-    getVirtualAccount()
-      .then((res) => {
-        if (!mounted) return;
-        setVirtualAccount(res?.data?.account || null);
-        setVirtualError("");
-      })
-      .catch((err) => {
-        if (!mounted) return;
-        const msg = err?.response?.data?.message || "Failed to load virtual account.";
-        setVirtualError(msg);
-        if (/bvn|nin/i.test(msg)) {
-          setShowBvnModal(true);
-        }
-      })
-      .finally(() => {
-        if (!mounted) return;
-        setVirtualLoading(false);
-      });
-    return () => {
-      mounted = false;
-    };
-  }, []);
+    if (!useStaticVirtualAccount) return;
+    loadVirtualAccount();
+  }, [useStaticVirtualAccount]);
 
   const enteredAmount = Number(amount) > 0 ? Number(amount) : 0;
   const computeFee = (value) => {
@@ -142,15 +141,18 @@ const DepositScreen = () => {
   const { transfer: transferAmount, fee: serviceCharge } = computeTransferForCredit(creditedAmount);
   const isValidAmount = () => enteredAmount >= 100 && transferAmount <= 1000000;
 
-  const handleShowBankDetails = () => {
+  const handleShowBankDetails = async () => {
     if (!isValidAmount()) {
       if (enteredAmount < 100) showToast("Minimum credit amount is N100", "error");
       else if (transferAmount > 1000000) showToast("Transfer amount cannot exceed N1,000,000", "error");
       return;
     }
-    if (!virtualAccount && !virtualLoading) {
-      showToast(virtualError || "Virtual account not ready yet. Please try again.", "error");
-      return;
+    if (!useStaticVirtualAccount || (!virtualAccount && !virtualLoading)) {
+      const account = await loadVirtualAccount();
+      if (!account) {
+        showToast(virtualError || "Virtual account not ready yet. Please try again.", "error");
+        return;
+      }
     }
     setShowBankModal(true);
   };
@@ -197,7 +199,13 @@ const DepositScreen = () => {
           </Breakdown>
 
           <PrimaryButton onClick={handleShowBankDetails} disabled={!isValidAmount()}>
-            <PayText>{virtualLoading ? "Loading Account..." : "Get Virtual Account"}</PayText>
+            <PayText>
+              {virtualLoading
+                ? "Loading Account..."
+                : useStaticVirtualAccount
+                ? "Get Virtual Account"
+                : "Generate Virtual Account"}
+            </PayText>
           </PrimaryButton>
 
           <InfoBox>

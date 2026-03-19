@@ -147,6 +147,11 @@ const HomeScreen = () => {
   }, [user?._id, user?.dataBundleCount, loadMonthlyEligibility]);
 
   const fetchVirtualAccount = useCallback(async () => {
+    if (!FEATURE_FLAGS.USE_STATIC_VIRTUAL_ACCOUNT) {
+      setVirtualAccount(null);
+      setVirtualError("");
+      return;
+    }
     setVirtualLoading(true);
     try {
       const res = await getVirtualAccount();
@@ -162,7 +167,7 @@ const HomeScreen = () => {
   }, []);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !FEATURE_FLAGS.USE_STATIC_VIRTUAL_ACCOUNT) return;
     fetchVirtualAccount();
   }, [user?._id, fetchVirtualAccount]);
 
@@ -258,6 +263,7 @@ const HomeScreen = () => {
   const role = String(user?.userRole || "").toLowerCase();
   const isPrivateRole = role === "private";
   const isMerchantRole = role === "merchant";
+  const useStaticVirtualAccount = FEATURE_FLAGS.USE_STATIC_VIRTUAL_ACCOUNT;
 
   const goToDeposit = () => navigate('/deposit');
   const goToWithdraw = () => navigate('/withdraw');
@@ -477,73 +483,75 @@ const HomeScreen = () => {
                   <div>
                     <BalanceLabel>Main Balance</BalanceLabel>
                     <Balance>N{mainBalance.toLocaleString()}</Balance>
-                    <AccountInfo>
-                      {virtualLoading ? (
-                        <AccountMuted>Loading virtual account...</AccountMuted>
-                      ) : virtualAccount?.accountNumber ? (
-                        <>
-                          <AccountLineRow>
-                            <AccountLine>
-                              {virtualAccount.bankName} • {virtualAccount.accountNumber}
-                            </AccountLine>
-                            <CopyButton onClick={handleCopyAccount} aria-label="Copy account details">
-                              <Copy size={14} />
-                            </CopyButton>
-                          </AccountLineRow>
-                          <AccountMuted>{virtualAccount.accountName}</AccountMuted>
-                          <AccountMuted>Auto-credit after transfer.</AccountMuted>
-                          {depositFeeSettings ? (
+                    {useStaticVirtualAccount ? (
+                      <AccountInfo>
+                        {virtualLoading ? (
+                          <AccountMuted>Loading virtual account...</AccountMuted>
+                        ) : virtualAccount?.accountNumber ? (
+                          <>
+                            <AccountLineRow>
+                              <AccountLine>
+                                {virtualAccount.bankName} • {virtualAccount.accountNumber}
+                              </AccountLine>
+                              <CopyButton onClick={handleCopyAccount} aria-label="Copy account details">
+                                <Copy size={14} />
+                              </CopyButton>
+                            </AccountLineRow>
+                            <AccountMuted>{virtualAccount.accountName}</AccountMuted>
+                            <AccountMuted>Auto-credit after transfer.</AccountMuted>
+                            {depositFeeSettings ? (
+                              <AccountMuted>
+                                Service charge:{" "}
+                                {depositFeeSettings.percentFee
+                                  ? `${depositFeeSettings.percentFee}%`
+                                  : "N0"}{" "}
+                                {depositFeeSettings.flatFee
+                                  ? `+ N${Number(depositFeeSettings.flatFee || 0).toLocaleString()}`
+                                  : ""}
+                              </AccountMuted>
+                            ) : null}
+                            <AccountMetaRow>
+                              <AccountUpdated>
+                                Updated:{" "}
+                                {virtualUpdatedAt
+                                  ? new Date(virtualUpdatedAt).toLocaleString()
+                                  : "—"}
+                              </AccountUpdated>
+                              <RefreshButton
+                                type="button"
+                                onClick={fetchVirtualAccount}
+                                disabled={virtualLoading}
+                                aria-label="Refresh virtual account"
+                              >
+                                <RefreshCw size={14} />
+                              </RefreshButton>
+                            </AccountMetaRow>
+                          </>
+                        ) : (
+                          <>
                             <AccountMuted>
-                              Service charge:{" "}
-                              {depositFeeSettings.percentFee
-                                ? `${depositFeeSettings.percentFee}%`
-                                : "N0"}{" "}
-                              {depositFeeSettings.flatFee
-                                ? `+ N${Number(depositFeeSettings.flatFee || 0).toLocaleString()}`
-                                : ""}
+                              {virtualError || "Add BVN/NIN in profile to enable virtual account deposits."}
                             </AccountMuted>
-                          ) : null}
-                          <AccountMetaRow>
-                            <AccountUpdated>
-                              Updated:{" "}
-                              {virtualUpdatedAt
-                                ? new Date(virtualUpdatedAt).toLocaleString()
-                                : "—"}
-                            </AccountUpdated>
-                            <RefreshButton
-                              type="button"
-                              onClick={fetchVirtualAccount}
-                              disabled={virtualLoading}
-                              aria-label="Refresh virtual account"
-                            >
-                              <RefreshCw size={14} />
-                            </RefreshButton>
-                          </AccountMetaRow>
-                        </>
-                      ) : (
-                        <>
-                          <AccountMuted>
-                            {virtualError || "Add BVN/NIN in profile to enable virtual account deposits."}
-                          </AccountMuted>
-                          <AccountMetaRow>
-                            <AccountUpdated>
-                              Updated:{" "}
-                              {virtualUpdatedAt
-                                ? new Date(virtualUpdatedAt).toLocaleString()
-                                : "—"}
-                            </AccountUpdated>
-                            <RefreshButton
-                              type="button"
-                              onClick={fetchVirtualAccount}
-                              disabled={virtualLoading}
-                              aria-label="Refresh virtual account"
-                            >
-                              <RefreshCw size={14} />
-                            </RefreshButton>
-                          </AccountMetaRow>
-                        </>
-                      )}
-                    </AccountInfo>
+                            <AccountMetaRow>
+                              <AccountUpdated>
+                                Updated:{" "}
+                                {virtualUpdatedAt
+                                  ? new Date(virtualUpdatedAt).toLocaleString()
+                                  : "—"}
+                              </AccountUpdated>
+                              <RefreshButton
+                                type="button"
+                                onClick={fetchVirtualAccount}
+                                disabled={virtualLoading}
+                                aria-label="Refresh virtual account"
+                              >
+                                <RefreshCw size={14} />
+                              </RefreshButton>
+                            </AccountMetaRow>
+                          </>
+                        )}
+                      </AccountInfo>
+                    ) : null}
                   </div>
                   <ActionButtons>
                     <ActionBtn
