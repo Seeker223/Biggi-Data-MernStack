@@ -10,6 +10,7 @@ import { FEATURE_FLAGS } from "../../constants/featureFlags";
 import {
   getDepositFeeSettings,
   getVirtualAccount,
+  refreshUserBalance,
 } from "../../services/api";
 
 const SERVICE_CHARGE = 5;
@@ -66,6 +67,10 @@ const DepositScreen = () => {
   const [toastMessage, setToastMessage] = useState("");
   const [toastType, setToastType] = useState("info");
   const useStaticVirtualAccount = FEATURE_FLAGS.USE_STATIC_VIRTUAL_ACCOUNT;
+  const [awaitingCredit, setAwaitingCredit] = useState(false);
+  const [baselineBalance, setBaselineBalance] = useState(null);
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
+  const [successModalMessage, setSuccessModalMessage] = useState("");
 
 
   const showToast = (msg, type = "info") => {
@@ -158,6 +163,55 @@ const DepositScreen = () => {
     }
     setShowBankModal(true);
   };
+
+  const handlePaymentTransferred = async () => {
+    setShowBankModal(false);
+    try {
+      const res = await refreshUserBalance();
+      const currentBalance = Number(res?.data?.balance?.main || 0);
+      setBaselineBalance(currentBalance);
+    } catch {
+      setBaselineBalance(null);
+    }
+    setAwaitingCredit(true);
+    showToast("Payment received. Waiting for confirmation...", "info");
+  };
+
+  useEffect(() => {
+    if (!awaitingCredit) return;
+
+    let attempts = 0;
+    const maxAttempts = 12;
+    const intervalMs = 5000;
+
+    const poll = async () => {
+      attempts += 1;
+      try {
+        const res = await refreshUserBalance();
+        const currentBalance = Number(res?.data?.balance?.main || 0);
+        const baseline = Number.isFinite(baselineBalance) ? baselineBalance : currentBalance;
+        if (currentBalance >= baseline + creditedAmount) {
+          setAwaitingCredit(false);
+          setSuccessModalMessage(
+            `Deposit confirmed. Main balance credited with N${creditedAmount.toLocaleString()}.`
+          );
+          setSuccessModalVisible(true);
+        }
+      } catch {
+        // Silent retry
+      }
+
+      if (attempts >= maxAttempts) {
+        setAwaitingCredit(false);
+        showToast("Payment still pending. It may take a few minutes to confirm.", "info");
+      }
+    };
+
+    const timer = setInterval(poll, intervalMs);
+    poll();
+
+    return () => clearInterval(timer);
+  }, [awaitingCredit, baselineBalance, creditedAmount]);
 
   return (
     <PageContainer>
@@ -263,7 +317,21 @@ const DepositScreen = () => {
               </InfoBox>
               <ModalButtons>
                 <SecondaryButton onClick={() => setShowBankModal(false)}>Close</SecondaryButton>
-                <PrimaryButton onClick={() => setShowBankModal(false)}>I Have Transferred</PrimaryButton>
+                <PrimaryButton onClick={handlePaymentTransferred}>I Have Transferred</PrimaryButton>
+              </ModalButtons>
+            </ModalContent>
+          </ModalOverlay>
+        )}
+
+        {successModalVisible && (
+          <ModalOverlay onClick={() => setSuccessModalVisible(false)}>
+            <ModalContent onClick={(e) => e.stopPropagation()}>
+              <ModalTitle>Deposit Confirmed</ModalTitle>
+              <ModalDetails>
+                <ModalDetailLabel>{successModalMessage}</ModalDetailLabel>
+              </ModalDetails>
+              <ModalButtons>
+                <PrimaryButton onClick={() => setSuccessModalVisible(false)}>Close</PrimaryButton>
               </ModalButtons>
             </ModalContent>
           </ModalOverlay>
