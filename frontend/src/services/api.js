@@ -250,7 +250,6 @@ export const testBackendConnection = async () => {
 // -----------------------------------------------------------
 export const loginUser = (payload) => api.post("/auth/login", payload);
 export const registerUser = (payload) => api.post("/auth/register", payload);
-export const forgotPassword = (email) => api.post("/auth/forgot-password", { email });
 export const fetchUser = () => api.get("/auth/me");
 export const getBiometricStatus = () => api.get("/auth/biometric/status");
 export const beginBiometricRegistration = () =>
@@ -287,8 +286,6 @@ export const disableBiometricAuth = () => api.delete("/auth/biometric");
 export const refreshUserBalance = () => api.get("/wallet/balance");
 export const getDepositHistory = () => api.get("/wallet/deposit-history");
 export const getDepositFeeSettings = () => api.get("/wallet/deposit-fee-settings");
-export const getVirtualAccount = (amount) =>
-  api.get("/wallet/virtual-account", amount ? { params: { amount } } : {});
 
 export const verifyFlutterwavePayment = (tx_ref, biometricProof = "", transactionPin = "", amount = 0) =>
   api.post("/wallet/verify-flutterwave", { tx_ref, biometricProof, transactionPin, amount });
@@ -386,11 +383,6 @@ export const verifyTransactionPin = (pin) =>
   api.post("/user/transaction-pin/verify", { pin });
 export const disableTransactionPin = (currentPin) =>
   api.delete("/user/transaction-pin", { data: { currentPin } });
-
-export const verifyEmailOtp = (payload) =>
-  api.post("/auth/verify-email", payload);
-export const resendVerificationOtp = (payload) =>
-  api.post("/auth/resend-verification", payload);
 
 export const updateAvatar = async (formData) => {
   try {
@@ -555,10 +547,6 @@ export const getAdminUserById = (id) => api.get(`/admin/users/${id}`);
 export const createAdminUser = (payload) => api.post("/admin/users", payload);
 export const updateAdminUser = (id, payload) => api.put(`/admin/users/${id}`, payload);
 export const deleteAdminUser = (id) => api.delete(`/admin/users/${id}`);
-export const getAdminUnmatchedDeposits = (params = {}) =>
-  api.get("/admin/unmatched-deposits", { params });
-export const assignUnmatchedDeposit = (id, payload) =>
-  api.post(`/admin/unmatched-deposits/${encodeURIComponent(id)}/assign`, payload);
 
 // -----------------------------------------------------------
 // ADMIN PLANS
@@ -593,13 +581,6 @@ export const getAdminDepositFeeLedger = (params = {}) =>
   api.get("/admin/deposit-fee/ledger", { params });
 export const deleteAdminDepositFeeLedger = (id) =>
   api.delete(`/admin/deposit-fee/ledger/${id}`);
-
-// -----------------------------------------------------------
-// ADMIN EMAIL SETTINGS
-// -----------------------------------------------------------
-export const getAdminEmailSettings = () => api.get("/admin/email-settings");
-export const updateAdminEmailSettings = (payload) =>
-  api.put("/admin/email-settings", payload);
 
 // -----------------------------------------------------------
 // GAME ANALYTICS

@@ -14,7 +14,6 @@ import {
   Plus,
   Pencil,
   Trash2,
-  AlertTriangle,
 } from "lucide-react";
 import FloatingBottomNav from "../../components/FloatingBottomNav";
 import { AuthContext } from "../../context/AuthContext";
@@ -38,10 +37,6 @@ import {
   updateAdminDepositFeeSettings,
   getAdminDepositFeeLedger,
   deleteAdminDepositFeeLedger,
-  getAdminUnmatchedDeposits,
-  assignUnmatchedDeposit,
-  getAdminEmailSettings,
-  updateAdminEmailSettings,
 } from "../../services/api";
 import { Alert } from "../../utils/alert";
 
@@ -64,25 +59,6 @@ const EMPTY_FORM = {
   dataBundleCount: 0,
   tickets: 0,
 };
-
-const EMAIL_TYPES = [
-  { key: "signup", label: "Signup" },
-  { key: "deposit", label: "Deposit" },
-  { key: "withdraw_requested", label: "Withdrawal Requested" },
-  { key: "withdraw_success", label: "Withdrawal Success" },
-  { key: "withdraw_failed", label: "Withdrawal Failed" },
-  { key: "redeem", label: "Redeem" },
-  { key: "data_purchase_success", label: "Data Purchase Success" },
-  { key: "data_purchase_failed", label: "Data Purchase Failed" },
-  { key: "weekly_entry", label: "Weekly Draw Entry" },
-  { key: "weekly_result", label: "Weekly Draw Result" },
-  { key: "weekly_claim", label: "Weekly Draw Claim" },
-  { key: "monthly_entry", label: "Monthly Draw Entry" },
-  { key: "monthly_result", label: "Monthly Draw Result" },
-  { key: "monthly_claim", label: "Monthly Draw Claim" },
-  { key: "top_random_win", label: "Top Random Winner" },
-  { key: "top_random_claim", label: "Top Random Claim" },
-];
 
 const NIGERIA_STATES = [
   "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue", "Borno",
@@ -155,27 +131,6 @@ const AdminScreen = () => {
   const [depositFeePages, setDepositFeePages] = useState(1);
   const [depositFeeLoading, setDepositFeeLoading] = useState(false);
   const [depositFeeError, setDepositFeeError] = useState("");
-
-  // Unmatched deposits (admin)
-  const [unmatchedOpen, setUnmatchedOpen] = useState(false);
-  const [unmatchedLoading, setUnmatchedLoading] = useState(false);
-  const [unmatchedError, setUnmatchedError] = useState("");
-  const [unmatchedRecords, setUnmatchedRecords] = useState([]);
-  const [unmatchedPage, setUnmatchedPage] = useState(1);
-  const [unmatchedPages, setUnmatchedPages] = useState(1);
-  const [unmatchedSearch, setUnmatchedSearch] = useState("");
-  const [assignOpen, setAssignOpen] = useState(false);
-  const [assignTarget, setAssignTarget] = useState(null);
-  const [assignValue, setAssignValue] = useState("");
-  const [assignNote, setAssignNote] = useState("");
-  const [assignLoading, setAssignLoading] = useState(false);
-  const [assignError, setAssignError] = useState("");
-
-  // Email settings (admin)
-  const [emailSettingsOpen, setEmailSettingsOpen] = useState(false);
-  const [emailSettings, setEmailSettings] = useState(null);
-  const [emailSettingsLoading, setEmailSettingsLoading] = useState(false);
-  const [emailSettingsError, setEmailSettingsError] = useState("");
 
   const isAdmin = useMemo(() => String(user?.role || "").toLowerCase() === "admin", [user?.role]);
   const myUserId = useMemo(() => String(user?.id || user?._id || ""), [user?.id, user?._id]);
@@ -597,70 +552,6 @@ const AdminScreen = () => {
     await loadProfit();
   };
 
-  const openUnmatched = async () => {
-    setUnmatchedOpen(true);
-    setUnmatchedPage(1);
-    await loadUnmatchedDeposits(1);
-  };
-
-  const openEmailSettings = async () => {
-    setEmailSettingsOpen(true);
-    await loadEmailSettings();
-  };
-
-  const saveEmailSettings = async () => {
-    try {
-      setEmailSettingsLoading(true);
-      setEmailSettingsError("");
-      await updateAdminEmailSettings(emailSettings || {});
-      await loadEmailSettings();
-    } catch (err) {
-      setEmailSettingsError(err?.response?.data?.message || "Failed to save email settings.");
-    } finally {
-      setEmailSettingsLoading(false);
-    }
-  };
-
-  const goUnmatchedPage = async (nextPage) => {
-    setUnmatchedPage(nextPage);
-    await loadUnmatchedDeposits(nextPage);
-  };
-
-  const openAssign = (entry) => {
-    setAssignTarget(entry);
-    setAssignValue("");
-    setAssignNote("");
-    setAssignError("");
-    setAssignOpen(true);
-  };
-
-  const submitAssign = async () => {
-    if (!assignTarget?._id) return;
-    if (!assignValue.trim()) {
-      setAssignError("Enter user email or user ID.");
-      return;
-    }
-    try {
-      setAssignLoading(true);
-      setAssignError("");
-      await assignUnmatchedDeposit(assignTarget._id, {
-        userIdOrEmail: assignValue.trim(),
-        note: assignNote.trim(),
-      });
-      setAssignOpen(false);
-      await loadUnmatchedDeposits(unmatchedPage);
-      Alert.alert({
-        tone: "success",
-        title: "Assigned",
-        message: "Deposit has been credited successfully.",
-      });
-    } catch (err) {
-      setAssignError(err?.response?.data?.message || "Failed to assign deposit.");
-    } finally {
-      setAssignLoading(false);
-    }
-  };
-
   const saveProfitSettings = async () => {
     try {
       setProfitLoading(true);
@@ -721,39 +612,6 @@ const AdminScreen = () => {
       setDepositFeeError(err?.response?.data?.message || "Failed to load deposit fee details.");
     } finally {
       setDepositFeeLoading(false);
-    }
-  };
-
-  const loadEmailSettings = async () => {
-    try {
-      setEmailSettingsLoading(true);
-      setEmailSettingsError("");
-      const res = await getAdminEmailSettings();
-      setEmailSettings(res?.data?.settings || null);
-    } catch (err) {
-      setEmailSettingsError(err?.response?.data?.message || "Failed to load email settings.");
-    } finally {
-      setEmailSettingsLoading(false);
-    }
-  };
-
-  const loadUnmatchedDeposits = async (pageOverride = unmatchedPage) => {
-    try {
-      setUnmatchedLoading(true);
-      setUnmatchedError("");
-      const res = await getAdminUnmatchedDeposits({
-        page: pageOverride,
-        limit: 20,
-        search: unmatchedSearch.trim() || undefined,
-      });
-      const list = Array.isArray(res?.data?.unmatched) ? res.data.unmatched : [];
-      setUnmatchedRecords(list);
-      setUnmatchedPage(res?.data?.pagination?.page || pageOverride);
-      setUnmatchedPages(res?.data?.pagination?.totalPages || 1);
-    } catch (err) {
-      setUnmatchedError(err?.response?.data?.message || "Failed to load unmatched deposits.");
-    } finally {
-      setUnmatchedLoading(false);
     }
   };
 
@@ -979,14 +837,6 @@ const AdminScreen = () => {
               <SoftButton onClick={openDepositFees} disabled={depositFeeLoading}>
                 <Percent size={16} />
                 Deposit Fees
-              </SoftButton>
-              <SoftButton onClick={openUnmatched} disabled={unmatchedLoading}>
-                <AlertTriangle size={16} />
-                Unmatched Deposits
-              </SoftButton>
-              <SoftButton onClick={openEmailSettings} disabled={emailSettingsLoading}>
-                <Shield size={16} />
-                Email Settings
               </SoftButton>
             </ActionRow>
           </FilterCard>
@@ -1721,12 +1571,6 @@ const AdminScreen = () => {
                 <ModalSection>
                   <h4>Auto Sweep Settings</h4>
                   <p>Auto sweep moves profit to your dedicated bank account using Flutterwave Transfers.</p>
-                  <p>
-                    Profit Destination:{" "}
-                    {profitSettings.accountName || "Account"} •{" "}
-                    {profitSettings.accountNumber || "—"} •{" "}
-                    {profitSettings.bankCode || "—"}
-                  </p>
                 </ModalSection>
                 <FormGrid>
                   <Field>
@@ -1974,218 +1818,6 @@ const AdminScreen = () => {
                 Next
               </PagerBtn>
             </Pager>
-          </ModalCard>
-        </ModalOverlay>
-      ) : null}
-
-      {unmatchedOpen ? (
-        <ModalOverlay onClick={() => setUnmatchedOpen(false)}>
-          <ModalCard onClick={(e) => e.stopPropagation()}>
-            <ModalHead>
-              <h3>Unmatched Deposits</h3>
-              <button onClick={() => setUnmatchedOpen(false)}>
-                <X size={16} />
-              </button>
-            </ModalHead>
-
-            {unmatchedError ? <ErrorBox>{unmatchedError}</ErrorBox> : null}
-            {unmatchedLoading ? <LoadingBox>Loading unmatched deposits...</LoadingBox> : null}
-
-            <ModalSection>
-              <h4>Search</h4>
-              <SearchRow>
-                <Search size={16} />
-                <SearchInput
-                  placeholder="Search reference, account, email..."
-                  value={unmatchedSearch}
-                  onChange={(e) => setUnmatchedSearch(e.target.value)}
-                />
-              </SearchRow>
-              <ActionRow>
-                <ApplyButton onClick={() => loadUnmatchedDeposits(1)} disabled={unmatchedLoading}>
-                  Apply
-                </ApplyButton>
-                <SoftButton onClick={() => loadUnmatchedDeposits(unmatchedPage)} disabled={unmatchedLoading}>
-                  Refresh
-                </SoftButton>
-              </ActionRow>
-            </ModalSection>
-
-            <ModalSection>
-              <h4>Unmatched List</h4>
-              {unmatchedRecords.length ? (
-                unmatchedRecords.map((entry) => (
-                  <LedgerRow key={entry?._id || entry?.reference}>
-                    <LedgerMeta>
-                      <strong>
-                        {naira(entry?.amount)} | {String(entry?.status || "unmatched").toUpperCase()}
-                      </strong>
-                      <small>
-                        {entry?.customerEmail || "No email"} •{" "}
-                        {entry?.accountNumber || "No account"} • {dateFmt(entry?.createdAt)}
-                      </small>
-                      <small>Ref: {entry?.reference || entry?._id}</small>
-                    </LedgerMeta>
-                    <SoftButton onClick={() => openAssign(entry)}>Assign</SoftButton>
-                  </LedgerRow>
-                ))
-              ) : (
-                <p>No unmatched deposits found.</p>
-              )}
-            </ModalSection>
-
-            <Pager>
-              <PagerBtn
-                disabled={unmatchedPage <= 1 || unmatchedLoading}
-                onClick={() => goUnmatchedPage(unmatchedPage - 1)}
-              >
-                Previous
-              </PagerBtn>
-              <PageLabel>
-                Page {unmatchedPage} of {unmatchedPages}
-              </PageLabel>
-              <PagerBtn
-                disabled={unmatchedPage >= unmatchedPages || unmatchedLoading}
-                onClick={() => goUnmatchedPage(unmatchedPage + 1)}
-              >
-                Next
-              </PagerBtn>
-            </Pager>
-          </ModalCard>
-        </ModalOverlay>
-      ) : null}
-
-      {assignOpen ? (
-        <ModalOverlay onClick={() => setAssignOpen(false)}>
-          <ModalCard onClick={(e) => e.stopPropagation()}>
-            <ModalHead>
-              <h3>Assign Deposit</h3>
-              <button onClick={() => setAssignOpen(false)}>
-                <X size={16} />
-              </button>
-            </ModalHead>
-
-            {assignError ? <ErrorBox>{assignError}</ErrorBox> : null}
-            <ModalSection>
-              <h4>Deposit</h4>
-              <p>Amount: {naira(assignTarget?.amount)}</p>
-              <p>Reference: {assignTarget?.reference || assignTarget?._id}</p>
-            </ModalSection>
-
-            <FormGrid>
-              <Field>
-                <label>User Email or ID</label>
-                <input
-                  type="text"
-                  value={assignValue}
-                  onChange={(e) => setAssignValue(e.target.value)}
-                  placeholder="user@example.com or userId"
-                />
-              </Field>
-              <Field>
-                <label>Note (optional)</label>
-                <input
-                  type="text"
-                  value={assignNote}
-                  onChange={(e) => setAssignNote(e.target.value)}
-                  placeholder="Reason or reference"
-                />
-              </Field>
-            </FormGrid>
-
-            <ModalActions>
-              <ApplyButton onClick={submitAssign} disabled={assignLoading}>
-                {assignLoading ? "Assigning..." : "Assign & Credit"}
-              </ApplyButton>
-              <CancelBtn onClick={() => setAssignOpen(false)} disabled={assignLoading}>
-                Cancel
-              </CancelBtn>
-            </ModalActions>
-          </ModalCard>
-        </ModalOverlay>
-      ) : null}
-
-      {emailSettingsOpen ? (
-        <ModalOverlay onClick={() => setEmailSettingsOpen(false)}>
-          <ModalCard onClick={(e) => e.stopPropagation()}>
-            <ModalHead>
-              <h3>Email Settings</h3>
-              <button onClick={() => setEmailSettingsOpen(false)}>
-                <X size={16} />
-              </button>
-            </ModalHead>
-
-            {emailSettingsError ? <ErrorBox>{emailSettingsError}</ErrorBox> : null}
-            {emailSettingsLoading ? <LoadingBox>Loading email settings...</LoadingBox> : null}
-
-            <ModalSection>
-              <h4>Global Controls</h4>
-              <FormGrid>
-                <Field>
-                  <label>Enabled</label>
-                  <select
-                    value={emailSettings?.enabled ? "true" : "false"}
-                    onChange={(e) =>
-                      setEmailSettings((s) => ({ ...(s || {}), enabled: e.target.value === "true" }))
-                    }
-                  >
-                    <option value="true">true</option>
-                    <option value="false">false</option>
-                  </select>
-                </Field>
-                <Field>
-                  <label>Rate Limit / Hour</label>
-                  <input
-                    type="number"
-                    value={emailSettings?.rateLimitPerHour ?? 20}
-                    onChange={(e) =>
-                      setEmailSettings((s) => ({
-                        ...(s || {}),
-                        rateLimitPerHour: Number(e.target.value || 0),
-                      }))
-                    }
-                    placeholder="20"
-                  />
-                </Field>
-              </FormGrid>
-            </ModalSection>
-
-            <ModalSection>
-              <h4>Per-Event Toggles</h4>
-              <FormGrid>
-                {EMAIL_TYPES.map((item) => (
-                  <Field key={item.key}>
-                    <label>{item.label}</label>
-                    <select
-                      value={
-                        emailSettings?.perType?.[item.key] === false ? "false" : "true"
-                      }
-                      onChange={(e) =>
-                        setEmailSettings((s) => ({
-                          ...(s || {}),
-                          perType: {
-                            ...(s?.perType || {}),
-                            [item.key]: e.target.value === "true",
-                          },
-                        }))
-                      }
-                    >
-                      <option value="true">enabled</option>
-                      <option value="false">disabled</option>
-                    </select>
-                  </Field>
-                ))}
-              </FormGrid>
-            </ModalSection>
-
-            <ModalActions>
-              <ApplyButton onClick={saveEmailSettings} disabled={emailSettingsLoading}>
-                {emailSettingsLoading ? "Saving..." : "Save Settings"}
-              </ApplyButton>
-              <CancelBtn onClick={() => setEmailSettingsOpen(false)} disabled={emailSettingsLoading}>
-                Close
-              </CancelBtn>
-            </ModalActions>
           </ModalCard>
         </ModalOverlay>
       ) : null}
