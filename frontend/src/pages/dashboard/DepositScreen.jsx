@@ -1,4 +1,4 @@
-import React, { useState, useContext, useRef, useEffect } from "react";
+import React, { useState, useContext, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
 import {
@@ -15,6 +15,7 @@ import { FEATURE_FLAGS } from "../../constants/featureFlags";
 import { FLUTTERWAVE_PUBLIC_KEY } from "../../constants/flutterwave";
 import {
   getTransactionSecurityStatus,
+  getVirtualAccount,
   getDepositStatus,
   getDepositFeeSettings,
   reconcilePayment,
@@ -31,6 +32,7 @@ const RECONCILE_ATTEMPTS = 3;
 const DepositScreen = () => {
   const navigate = useNavigate();
   const { user, refreshUser, updateUser } = useContext(AuthContext);
+  const useStaticVirtualAccount = FEATURE_FLAGS.USE_STATIC_VIRTUAL_ACCOUNT;
 
   if (FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM) {
     return (
@@ -78,6 +80,11 @@ const DepositScreen = () => {
     maxFee: 0,
   });
 
+  const [virtualAccount, setVirtualAccount] = useState(null);
+  const [virtualLoading, setVirtualLoading] = useState(false);
+  const [virtualError, setVirtualError] = useState("");
+  const [virtualUpdatedAt, setVirtualUpdatedAt] = useState(null);
+
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [toastType, setToastType] = useState("info");
@@ -93,6 +100,17 @@ const DepositScreen = () => {
     setToastType(type);
     setToastVisible(true);
     setTimeout(() => setToastVisible(false), 3500);
+  };
+
+  const handleCopyAccount = async () => {
+    if (!virtualAccount?.accountNumber) return;
+    const text = `${virtualAccount.accountNumber} - ${virtualAccount.accountName || "Biggi Data"} (${virtualAccount.bankName || ""})`;
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast("Account details copied.", "success");
+    } catch {
+      showToast("Unable to copy account details.", "error");
+    }
   };
 
   useEffect(() => {
@@ -119,6 +137,42 @@ const DepositScreen = () => {
       mounted = false;
     };
   }, []);
+
+  const fetchVirtualAccount = useCallback(
+    async (force = false) => {
+      if (!useStaticVirtualAccount) {
+        setVirtualAccount(null);
+        setVirtualError("");
+        return;
+      }
+      setVirtualLoading(true);
+      try {
+        const res = await getVirtualAccount(force ? { refresh: true } : undefined);
+        const account = res?.data?.account || null;
+        if (!account) {
+          throw new Error(res?.data?.message || "Virtual account not available.");
+        }
+        setVirtualAccount(account);
+        setVirtualError("");
+        setVirtualUpdatedAt(Date.now());
+      } catch (error) {
+        setVirtualAccount(null);
+        setVirtualError(
+          error?.response?.data?.message ||
+            error?.message ||
+            "Unable to load virtual account."
+        );
+      } finally {
+        setVirtualLoading(false);
+      }
+    },
+    [useStaticVirtualAccount]
+  );
+
+  useEffect(() => {
+    if (!useStaticVirtualAccount || !user?._id) return;
+    fetchVirtualAccount();
+  }, [useStaticVirtualAccount, user?._id, fetchVirtualAccount]);
 
   const enteredAmount = Number(amount) > 0 ? Number(amount) : 0;
   const computeFee = (value) => {
@@ -362,6 +416,7 @@ const DepositScreen = () => {
   };
 
   const renderStatusBanner = () => {
+    if (useStaticVirtualAccount) return null;
     if (paymentStatus === "idle") return null;
     const config = {
       pending: { text: "Payment processing...", color: "#FF9800", icon: <Clock size={20} /> },
@@ -378,6 +433,7 @@ const DepositScreen = () => {
   };
 
   const renderReconcileButton = () => {
+    if (useStaticVirtualAccount) return null;
     if (paymentStatus !== "pending" || !txRef || !isProcessing) return null;
     return (
       <ReconcileButton onClick={() => attemptReconciliation(txRef)}>
@@ -415,50 +471,126 @@ const DepositScreen = () => {
         </Header>
 
         <MainContent>
-          <Label>Enter Amount to Deposit</Label>
-          <Input
-            type="number"
-            placeholder="N Amount (min N100, max N1,000,000)"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            disabled={isProcessing}
-          />
+          {useStaticVirtualAccount ? (
+            <>
+              <InfoBox>
+                <Info size={18} />
+                <InfoText>
+                  Transfer to the account below. Your wallet will auto-credit once payment confirms.
+                </InfoText>
+              </InfoBox>
 
-          <Breakdown>
-            <BreakdownRow>
-              <BreakdownLabel>Amount:</BreakdownLabel>
-              <BreakdownValue>N{enteredAmount.toLocaleString()}</BreakdownValue>
-            </BreakdownRow>
-            <BreakdownRow>
-              <BreakdownLabel>Service Charge:</BreakdownLabel>
-              <BreakdownValue>N{serviceCharge}</BreakdownValue>
-            </BreakdownRow>
-            <BreakdownRow $total>
-              <TotalLabel>Total:</TotalLabel>
-              <TotalValue>N{totalAmount.toLocaleString()}</TotalValue>
-            </BreakdownRow>
-          </Breakdown>
+              <AccountCard>
+                {virtualLoading ? (
+                  <AccountMuted>Loading virtual account...</AccountMuted>
+                ) : virtualAccount?.accountNumber ? (
+                  <>
+                    <AccountLine>
+                      {virtualAccount.bankName} • {virtualAccount.accountNumber}
+                    </AccountLine>
+                    <AccountMuted>{virtualAccount.accountName}</AccountMuted>
+                    {feeSettings ? (
+                      <AccountMuted>
+                        Service charge:{" "}
+                        {feeSettings.percentFee
+                          ? `${feeSettings.percentFee}%`
+                          : "N0"}{" "}
+                        {feeSettings.flatFee
+                          ? `+ N${Number(feeSettings.flatFee || 0).toLocaleString()}`
+                          : ""}
+                      </AccountMuted>
+                    ) : null}
+                    <AccountMetaRow>
+                      <AccountUpdated>
+                        Updated:{" "}
+                        {virtualUpdatedAt
+                          ? new Date(virtualUpdatedAt).toLocaleString()
+                          : "—"}
+                      </AccountUpdated>
+                      <AccountActionsRow>
+                        <AccountActionButton
+                          type="button"
+                          onClick={handleCopyAccount}
+                          disabled={!virtualAccount?.accountNumber}
+                        >
+                          Copy
+                        </AccountActionButton>
+                        <AccountActionButton
+                          type="button"
+                          onClick={() => fetchVirtualAccount(true)}
+                          disabled={virtualLoading}
+                        >
+                          Refresh
+                        </AccountActionButton>
+                      </AccountActionsRow>
+                    </AccountMetaRow>
+                  </>
+                ) : (
+                  <>
+                    <AccountMuted>
+                      {virtualError || "Virtual account not available yet."}
+                    </AccountMuted>
+                    <AccountActionsRow>
+                      <AccountActionButton
+                        type="button"
+                        onClick={() => fetchVirtualAccount(true)}
+                        disabled={virtualLoading}
+                      >
+                        Refresh
+                      </AccountActionButton>
+                    </AccountActionsRow>
+                  </>
+                )}
+              </AccountCard>
+            </>
+          ) : (
+            <>
+              <Label>Enter Amount to Deposit</Label>
+              <Input
+                type="number"
+                placeholder="N Amount (min N100, max N1,000,000)"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                disabled={isProcessing}
+              />
 
-          {renderReconcileButton()}
+              <Breakdown>
+                <BreakdownRow>
+                  <BreakdownLabel>Amount:</BreakdownLabel>
+                  <BreakdownValue>N{enteredAmount.toLocaleString()}</BreakdownValue>
+                </BreakdownRow>
+                <BreakdownRow>
+                  <BreakdownLabel>Service Charge:</BreakdownLabel>
+                  <BreakdownValue>N{serviceCharge}</BreakdownValue>
+                </BreakdownRow>
+                <BreakdownRow $total>
+                  <TotalLabel>Total:</TotalLabel>
+                  <TotalValue>N{totalAmount.toLocaleString()}</TotalValue>
+                </BreakdownRow>
+              </Breakdown>
 
-          <PrimaryButton onClick={handleStartPayment} disabled={!isValidAmount() || isProcessing}>
-            {isProcessing ? (
-              <ProcessingContainer>
-                <Spinner size={16} />
-                <PayText>Processing...</PayText>
-              </ProcessingContainer>
-            ) : (
-              <PayText>Pay N{totalAmount.toLocaleString()}</PayText>
-            )}
-          </PrimaryButton>
+              {renderReconcileButton()}
 
-          <InfoBox>
-            <Info size={18} />
-            <InfoText>
-              - Payments usually complete within 1-2 minutes{"\n"}- If balance doesn't update, use the
-              reconcile button{"\n"}- Contact support if issues persist
-            </InfoText>
-          </InfoBox>
+              <PrimaryButton onClick={handleStartPayment} disabled={!isValidAmount() || isProcessing}>
+                {isProcessing ? (
+                  <ProcessingContainer>
+                    <Spinner size={16} />
+                    <PayText>Processing...</PayText>
+                  </ProcessingContainer>
+                ) : (
+                  <PayText>Pay N{totalAmount.toLocaleString()}</PayText>
+                )}
+              </PrimaryButton>
+
+              <InfoBox>
+                <Info size={18} />
+                <InfoText>
+                  - Payments usually complete within 1-2 minutes{"\n"}- If balance doesn't update, use the
+                  reconcile button{"\n"}- Contact support if issues persist
+                </InfoText>
+              </InfoBox>
+            </>
+          )}
         </MainContent>
 
         {showConfirm && (
@@ -762,6 +894,69 @@ const InfoText = styled.p`
   margin-left: 8px;
   line-height: 18px;
   white-space: pre-line;
+`;
+
+const AccountCard = styled.div`
+  background-color: #fff;
+  border-radius: 14px;
+  padding: 16px;
+  margin-top: 16px;
+  border: 1px solid #eee;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+`;
+
+const AccountLine = styled.div`
+  font-size: 15px;
+  font-weight: 700;
+  color: #111;
+  margin-bottom: 6px;
+`;
+
+const AccountMuted = styled.div`
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 8px;
+`;
+
+const AccountMetaRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+`;
+
+const AccountUpdated = styled.span`
+  font-size: 11px;
+  color: #888;
+`;
+
+const AccountActionsRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const AccountActionButton = styled.button`
+  background-color: #ff7a00;
+  color: #fff;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  &:hover:not(:disabled) {
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
 `;
 
 const SecondaryButton = styled.button`

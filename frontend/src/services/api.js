@@ -288,8 +288,19 @@ export const disableBiometricAuth = () => api.delete("/auth/biometric");
 // -----------------------------------------------------------
 export const refreshUserBalance = () => api.get("/wallet/balance");
 export const getDepositHistory = () => api.get("/wallet/deposit-history");
-export const getVirtualAccount = (amount) =>
-  api.get("/wallet/virtual-account", amount ? { params: { amount } } : {});
+export const getVirtualAccount = (options = {}) => {
+  const params = {};
+  if (typeof options === "number") {
+    params.amount = options;
+  } else if (options && typeof options === "object") {
+    if (options.amount) params.amount = options.amount;
+    if (options.refresh) params.refresh = "true";
+  }
+  return api.get(
+    "/wallet/virtual-account",
+    Object.keys(params).length ? { params } : {}
+  );
+};
 export const getDepositFeeSettings = () => api.get("/wallet/deposit-fee-settings");
 
 export const verifyFlutterwavePayment = (tx_ref, biometricProof = "", transactionPin = "", amount = 0) =>
