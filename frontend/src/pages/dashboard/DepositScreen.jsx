@@ -72,6 +72,7 @@ const DepositScreen = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [transactionPin, setTransactionPin] = useState("");
   const [pinConfigured, setPinConfigured] = useState(Boolean(user?.transactionPinEnabled));
+  const [staticCredit, setStaticCredit] = useState("");
   const [feeSettings, setFeeSettings] = useState({
     enabled: true,
     flatFee: SERVICE_CHARGE,
@@ -189,6 +190,13 @@ const DepositScreen = () => {
   const serviceCharge = computeFee(enteredAmount);
   const totalAmount = enteredAmount + serviceCharge;
   const isValidAmount = () => enteredAmount >= 100 && enteredAmount <= 1000000;
+
+  const staticCreditValue = Number(staticCredit) > 0 ? Number(staticCredit) : 0;
+  const staticServiceCharge = computeFee(staticCreditValue);
+  const staticSubtotal = staticCreditValue + staticServiceCharge;
+  const flutterwaveFeeRate = 0.02;
+  const staticFlutterwaveFee = staticSubtotal > 0 ? Math.round(staticSubtotal * flutterwaveFeeRate * 100) / 100 : 0;
+  const staticTransferTotal = staticSubtotal + staticFlutterwaveFee;
 
   const stopPolling = () => {
     if (pollTimer.current) {
@@ -479,6 +487,40 @@ const DepositScreen = () => {
                   Transfer to the account below. Your wallet will auto-credit once payment confirms.
                 </InfoText>
               </InfoBox>
+
+              <StaticCalc>
+                <Label>Amount to Credit (Wallet)</Label>
+                <Input
+                  type="number"
+                  placeholder="N Amount (e.g., 100)"
+                  value={staticCredit}
+                  onChange={(e) => setStaticCredit(e.target.value)}
+                  disabled={virtualLoading}
+                />
+                {staticCreditValue > 0 ? (
+                  <StaticBreakdown>
+                    <BreakdownRow>
+                      <BreakdownLabel>Wallet Credit:</BreakdownLabel>
+                      <BreakdownValue>N{staticCreditValue.toLocaleString()}</BreakdownValue>
+                    </BreakdownRow>
+                    <BreakdownRow>
+                      <BreakdownLabel>Service Charge:</BreakdownLabel>
+                      <BreakdownValue>N{staticServiceCharge}</BreakdownValue>
+                    </BreakdownRow>
+                    <BreakdownRow>
+                      <BreakdownLabel>Flutterwave Fee (2%):</BreakdownLabel>
+                      <BreakdownValue>N{staticFlutterwaveFee}</BreakdownValue>
+                    </BreakdownRow>
+                    <BreakdownRow $total>
+                      <TotalLabel>Transfer Amount:</TotalLabel>
+                      <TotalValue>N{staticTransferTotal.toLocaleString()}</TotalValue>
+                    </BreakdownRow>
+                  </StaticBreakdown>
+                ) : null}
+                <InfoText>
+                  Add Flutterwave fee on top so your wallet credits the exact amount.
+                </InfoText>
+              </StaticCalc>
 
               <AccountCard>
                 {virtualLoading ? (
@@ -894,6 +936,23 @@ const InfoText = styled.p`
   margin-left: 8px;
   line-height: 18px;
   white-space: pre-line;
+`;
+
+const StaticCalc = styled.div`
+  background-color: #fff;
+  border-radius: 14px;
+  padding: 16px;
+  border: 1px solid #eee;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+  margin-bottom: 16px;
+`;
+
+const StaticBreakdown = styled.div`
+  background-color: #f9f9f9;
+  border-radius: 12px;
+  padding: 12px;
+  margin: 12px 0;
+  border: 1px solid #eee;
 `;
 
 const AccountCard = styled.div`
