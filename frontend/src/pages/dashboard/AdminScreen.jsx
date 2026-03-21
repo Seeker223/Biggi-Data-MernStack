@@ -1127,6 +1127,26 @@ const AdminScreen = () => {
             <LoadingBox>Loading plans...</LoadingBox>
           ) : (
             <>
+              {profitSummary ? (
+                <>
+                  <SectionTitle>Profit Snapshot</SectionTitle>
+                  <SummaryGrid>
+                    <SummaryCard>
+                      <Wallet size={18} />
+                      <h4>Profit Balance (Flutterwave)</h4>
+                      <strong>{naira(profitSummary.pending?.profit)}</strong>
+                      <small>Pending (unswept): {profitSummary.pending?.count || 0} entries</small>
+                    </SummaryCard>
+                    <SummaryCard>
+                      <Trophy size={18} />
+                      <h4>Total Profit (All Time)</h4>
+                      <strong>{naira(profitSummary.total?.profit)}</strong>
+                      <small>Swept: {naira(profitSummary.swept?.profit)}</small>
+                    </SummaryCard>
+                  </SummaryGrid>
+                </>
+              ) : null}
+
               <SectionTitle>Plans ({plans.length})</SectionTitle>
               <PlansTable>
                 <PlansHead>
@@ -1609,6 +1629,13 @@ const AdminScreen = () => {
                 </p>
               </ModalSection>
             ) : null}
+
+            <ModalSection>
+              <h4>How to View in Flutterwave</h4>
+              <p>1. Open your Flutterwave Dashboard.</p>
+              <p>2. Go to Balances / Available Balance to see your current funds.</p>
+              <p>3. If you run Profit Sweep, check Transfers to see the payout entry.</p>
+            </ModalSection>
 
             {profitSettings ? (
               <>
