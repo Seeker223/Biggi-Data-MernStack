@@ -638,13 +638,20 @@ const AdminScreen = () => {
     try {
       setDepositFeeLoading(true);
       setDepositFeeError("");
-      const base = override || depositFeeSettings || {};
+      const isEventLike = Boolean(override?.preventDefault || override?.currentTarget || override?.nativeEvent);
+      const base = (isEventLike ? null : override) || depositFeeSettings || {};
       const payload = normalizeDepositFeePayload(base);
       await updateAdminDepositFeeSettings(payload);
       if (override) setDepositFeeSettings(payload);
       await loadDepositFees(depositFeePage || 1);
     } catch (err) {
-      setDepositFeeError(err?.response?.data?.message || "Failed to save deposit fee settings.");
+      const status = err?.response?.status;
+      const msg =
+        err?.response?.data?.message ||
+        err?.response?.data?.msg ||
+        err?.message ||
+        "Failed to save deposit fee settings.";
+      setDepositFeeError(status ? `(${status}) ${msg}` : msg);
     } finally {
       setDepositFeeLoading(false);
     }
@@ -1830,7 +1837,7 @@ const AdminScreen = () => {
                   </Field>
                 </FormGrid>
                 <ActionRow>
-                  <ApplyButton onClick={saveDepositFeeSettings} disabled={depositFeeLoading}>
+                  <ApplyButton onClick={() => saveDepositFeeSettings()} disabled={depositFeeLoading}>
                     {depositFeeLoading ? "Saving..." : "Save Settings"}
                   </ApplyButton>
                   <SoftButton onClick={() => loadDepositFees(depositFeePage || 1)} disabled={depositFeeLoading}>

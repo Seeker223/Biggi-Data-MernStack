@@ -590,11 +590,14 @@ export const runAdminProfitSweepNow = (force = false) =>
 // -----------------------------------------------------------
 // ADMIN DEPOSIT FEE SETTINGS + LEDGER
 // -----------------------------------------------------------
-export const getAdminDepositFeeSettings = () => api.get("/admin/deposit-fee/settings");
+export const getAdminDepositFeeSettings = () =>
+  api.get("/admin/deposit-fee/settings", { params: { _ts: Date.now() } });
 export const updateAdminDepositFeeSettings = (payload) =>
-  api.put("/admin/deposit-fee/settings", payload);
+  api.put("/admin/deposit-fee/settings", payload, {
+    headers: { "Cache-Control": "no-cache" },
+  });
 export const getAdminDepositFeeLedger = (params = {}) =>
-  api.get("/admin/deposit-fee/ledger", { params });
+  api.get("/admin/deposit-fee/ledger", { params: { ...params, _ts: Date.now() } });
 export const deleteAdminDepositFeeLedger = (id) =>
   api.delete(`/admin/deposit-fee/ledger/${id}`);
 
