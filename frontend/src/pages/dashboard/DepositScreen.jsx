@@ -34,6 +34,20 @@ const DepositScreen = () => {
   const { user, refreshUser, updateUser } = useContext(AuthContext);
   const useStaticVirtualAccount = FEATURE_FLAGS.USE_STATIC_VIRTUAL_ACCOUNT;
 
+  const normalizeFeeSettings = (input) => {
+    const toNumber = (value) => {
+      const num = Number(value);
+      return Number.isFinite(num) ? num : 0;
+    };
+    return {
+      enabled: Boolean(input?.enabled ?? true),
+      flatFee: toNumber(input?.flatFee ?? SERVICE_CHARGE),
+      percentFee: toNumber(input?.percentFee ?? 0),
+      minFee: toNumber(input?.minFee ?? 0),
+      maxFee: toNumber(input?.maxFee ?? 0),
+    };
+  };
+
   if (FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM) {
     return (
       <PageContainer>
@@ -73,13 +87,15 @@ const DepositScreen = () => {
   const [transactionPin, setTransactionPin] = useState("");
   const [pinConfigured, setPinConfigured] = useState(Boolean(user?.transactionPinEnabled));
   const [staticCredit, setStaticCredit] = useState("");
-  const [feeSettings, setFeeSettings] = useState({
-    enabled: true,
-    flatFee: SERVICE_CHARGE,
-    percentFee: 0,
-    minFee: 0,
-    maxFee: 0,
-  });
+  const [feeSettings, setFeeSettings] = useState(() =>
+    normalizeFeeSettings({
+      enabled: true,
+      flatFee: SERVICE_CHARGE,
+      percentFee: 0,
+      minFee: 0,
+      maxFee: 0,
+    })
+  );
 
   const [virtualAccount, setVirtualAccount] = useState(null);
   const [virtualLoading, setVirtualLoading] = useState(false);
@@ -131,13 +147,24 @@ const DepositScreen = () => {
       .then((res) => {
         if (!mounted) return;
         const settings = res?.data?.settings;
-        if (settings) setFeeSettings(settings);
+        if (settings) setFeeSettings(normalizeFeeSettings(settings));
       })
       .catch(() => {});
     return () => {
       mounted = false;
     };
   }, []);
+
+  const formatAmount = (value) => {
+    const num = Number(value || 0);
+    const hasDecimals = Math.round(num) !== num;
+    return num.toLocaleString(undefined, {
+      minimumFractionDigits: hasDecimals ? 2 : 0,
+      maximumFractionDigits: 2,
+    });
+  };
+
+  const formatNaira = (value) => `N${formatAmount(value)}`;
 
   const fetchVirtualAccount = useCallback(
     async (force = false) => {
@@ -176,23 +203,48 @@ const DepositScreen = () => {
   }, [useStaticVirtualAccount, user?._id, fetchVirtualAccount]);
 
   const enteredAmount = Number(amount) > 0 ? Number(amount) : 0;
-  const computeFee = (value) => {
-    if (!feeSettings?.enabled) return 0;
-    const flat = Number(feeSettings.flatFee || 0);
-    const pct = Number(feeSettings.percentFee || 0);
-    let fee = flat + (pct > 0 ? (value * pct) / 100 : 0);
-    const minFee = Number(feeSettings.minFee || 0);
-    const maxFee = Number(feeSettings.maxFee || 0);
-    if (minFee > 0 && fee < minFee) fee = minFee;
-    if (maxFee > 0 && fee > maxFee) fee = maxFee;
-    return Math.max(0, Math.round(fee));
+  const roundMoney = (value) => Math.round(Number(value || 0) * 100) / 100;
+  const getFeeMeta = (value) => {
+    const settings = normalizeFeeSettings(feeSettings);
+    if (!settings.enabled || value <= 0) {
+      return {
+        baseFee: 0,
+        fee: 0,
+        minApplied: false,
+        maxApplied: false,
+        settings,
+      };
+    }
+    const baseFee = roundMoney(
+      settings.flatFee + (settings.percentFee > 0 ? (value * settings.percentFee) / 100 : 0)
+    );
+    let fee = baseFee;
+    let minApplied = false;
+    let maxApplied = false;
+    if (settings.minFee > 0 && fee < settings.minFee) {
+      fee = settings.minFee;
+      minApplied = true;
+    }
+    if (settings.maxFee > 0 && fee > settings.maxFee) {
+      fee = settings.maxFee;
+      maxApplied = true;
+    }
+    return {
+      baseFee,
+      fee: roundMoney(Math.max(0, fee)),
+      minApplied,
+      maxApplied,
+      settings,
+    };
   };
-  const serviceCharge = computeFee(enteredAmount);
+  const feeMeta = getFeeMeta(enteredAmount);
+  const serviceCharge = feeMeta.fee;
   const totalAmount = enteredAmount + serviceCharge;
   const isValidAmount = () => enteredAmount >= 100 && enteredAmount <= 1000000;
 
   const staticCreditValue = Number(staticCredit) > 0 ? Number(staticCredit) : 0;
-  const staticServiceCharge = computeFee(staticCreditValue);
+  const staticFeeMeta = getFeeMeta(staticCreditValue);
+  const staticServiceCharge = staticFeeMeta.fee;
   const staticSubtotal = staticCreditValue + staticServiceCharge;
   const flutterwaveFeeRate = 0.02;
   const staticFlutterwaveFee = staticSubtotal > 0 ? Math.round(staticSubtotal * flutterwaveFeeRate * 100) / 100 : 0;
@@ -501,19 +553,26 @@ const DepositScreen = () => {
                   <StaticBreakdown>
                     <BreakdownRow>
                       <BreakdownLabel>Wallet Credit:</BreakdownLabel>
-                      <BreakdownValue>N{staticCreditValue.toLocaleString()}</BreakdownValue>
+                      <BreakdownValue>{formatNaira(staticCreditValue)}</BreakdownValue>
                     </BreakdownRow>
                     <BreakdownRow>
-                      <BreakdownLabel>Service Charge:</BreakdownLabel>
-                      <BreakdownValue>N{staticServiceCharge}</BreakdownValue>
+                      <BreakdownLabel>
+                        Service Charge
+                        {staticFeeMeta.minApplied
+                          ? ` (min ${formatNaira(staticFeeMeta.settings.minFee)})`
+                          : staticFeeMeta.maxApplied
+                          ? ` (max ${formatNaira(staticFeeMeta.settings.maxFee)})`
+                          : ""}:
+                      </BreakdownLabel>
+                      <BreakdownValue>{formatNaira(staticServiceCharge)}</BreakdownValue>
                     </BreakdownRow>
                     <BreakdownRow>
                       <BreakdownLabel>Flutterwave Fee (2%):</BreakdownLabel>
-                      <BreakdownValue>N{staticFlutterwaveFee}</BreakdownValue>
+                      <BreakdownValue>{formatNaira(staticFlutterwaveFee)}</BreakdownValue>
                     </BreakdownRow>
                     <BreakdownRow $total>
                       <TotalLabel>Transfer Amount:</TotalLabel>
-                      <TotalValue>N{staticTransferTotal.toLocaleString()}</TotalValue>
+                      <TotalValue>{formatNaira(staticTransferTotal)}</TotalValue>
                     </BreakdownRow>
                   </StaticBreakdown>
                 ) : null}
@@ -528,7 +587,7 @@ const DepositScreen = () => {
                 ) : virtualAccount?.accountNumber ? (
                   <>
                     <AccountLine>
-                      {virtualAccount.bankName} • {virtualAccount.accountNumber}
+                      {virtualAccount.bankName} - {virtualAccount.accountNumber}
                     </AccountLine>
                     <AccountMuted>{virtualAccount.accountName}</AccountMuted>
                     {feeSettings ? (
@@ -542,12 +601,18 @@ const DepositScreen = () => {
                           : ""}
                       </AccountMuted>
                     ) : null}
+                    {feeSettings?.minFee > 0 ? (
+                      <AccountMuted>Min fee: {formatNaira(feeSettings.minFee)}</AccountMuted>
+                    ) : null}
+                    {feeSettings?.maxFee > 0 ? (
+                      <AccountMuted>Max fee: {formatNaira(feeSettings.maxFee)}</AccountMuted>
+                    ) : null}
                     <AccountMetaRow>
                       <AccountUpdated>
                         Updated:{" "}
                         {virtualUpdatedAt
                           ? new Date(virtualUpdatedAt).toLocaleString()
-                          : "—"}
+                          : "-"}
                       </AccountUpdated>
                       <AccountActionsRow>
                         <AccountActionButton
@@ -599,15 +664,15 @@ const DepositScreen = () => {
               <Breakdown>
                 <BreakdownRow>
                   <BreakdownLabel>Amount:</BreakdownLabel>
-                  <BreakdownValue>N{enteredAmount.toLocaleString()}</BreakdownValue>
+                  <BreakdownValue>{formatNaira(enteredAmount)}</BreakdownValue>
                 </BreakdownRow>
                 <BreakdownRow>
                   <BreakdownLabel>Service Charge:</BreakdownLabel>
-                  <BreakdownValue>N{serviceCharge}</BreakdownValue>
+                  <BreakdownValue>{formatNaira(serviceCharge)}</BreakdownValue>
                 </BreakdownRow>
                 <BreakdownRow $total>
                   <TotalLabel>Total:</TotalLabel>
-                  <TotalValue>N{totalAmount.toLocaleString()}</TotalValue>
+                  <TotalValue>{formatNaira(totalAmount)}</TotalValue>
                 </BreakdownRow>
               </Breakdown>
 
@@ -620,7 +685,7 @@ const DepositScreen = () => {
                     <PayText>Processing...</PayText>
                   </ProcessingContainer>
                 ) : (
-                  <PayText>Pay N{totalAmount.toLocaleString()}</PayText>
+                  <PayText>Pay {formatNaira(totalAmount)}</PayText>
                 )}
               </PrimaryButton>
 
@@ -640,18 +705,18 @@ const DepositScreen = () => {
             <ModalContent onClick={(e) => e.stopPropagation()}>
               <ModalTitle>Confirm Payment</ModalTitle>
               <ModalDetails>
-                <ModalDetailRow>
-                  <ModalDetailLabel>Amount:</ModalDetailLabel>
-                  <ModalDetailValue>N{enteredAmount.toLocaleString()}</ModalDetailValue>
-                </ModalDetailRow>
-                <ModalDetailRow>
-                  <ModalDetailLabel>Service Charge:</ModalDetailLabel>
-                  <ModalDetailValue>N{serviceCharge}</ModalDetailValue>
-                </ModalDetailRow>
-                <ModalDetailRow $total>
-                  <ModalDetailLabel>Total:</ModalDetailLabel>
-                  <ModalTotal>N{totalAmount.toLocaleString()}</ModalTotal>
-                </ModalDetailRow>
+              <ModalDetailRow>
+                <ModalDetailLabel>Amount:</ModalDetailLabel>
+                <ModalDetailValue>{formatNaira(enteredAmount)}</ModalDetailValue>
+              </ModalDetailRow>
+              <ModalDetailRow>
+                <ModalDetailLabel>Service Charge:</ModalDetailLabel>
+                <ModalDetailValue>{formatNaira(serviceCharge)}</ModalDetailValue>
+              </ModalDetailRow>
+              <ModalDetailRow $total>
+                <ModalDetailLabel>Total:</ModalDetailLabel>
+                <ModalTotal>{formatNaira(totalAmount)}</ModalTotal>
+              </ModalDetailRow>
               </ModalDetails>
               <ModalButtons>
                 <SecondaryButton onClick={() => setShowConfirm(false)}>Cancel</SecondaryButton>
@@ -1096,3 +1161,5 @@ const ModalButtons = styled.div`
   justify-content: space-between;
   gap: 10px;
 `;
+
+
