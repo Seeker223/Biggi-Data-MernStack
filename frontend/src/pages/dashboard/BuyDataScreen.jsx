@@ -27,6 +27,8 @@ const BuyDataScreen = () => {
   const [errorMsg, setErrorMsg] = useState("");
   const [pinConfigured, setPinConfigured] = useState(Boolean(user?.transactionPinEnabled));
   const [phoneTouched, setPhoneTouched] = useState(false);
+  const PHONE_STORAGE_KEY = "buyDataPhone";
+  const PHONE_TOUCHED_KEY = "buyDataPhoneTouched";
 
   useEffect(() => {
     setPinConfigured(Boolean(user?.transactionPinEnabled));
@@ -46,12 +48,25 @@ const BuyDataScreen = () => {
     }
     if (location.state?.phone && !phoneTouched && !phone) {
       setPhone(String(location.state.phone).replace(/\D/g, "").slice(0, 11));
+      sessionStorage.setItem(
+        PHONE_STORAGE_KEY,
+        String(location.state.phone).replace(/\D/g, "").slice(0, 11)
+      );
     }
   }, [location.state]);
 
   useEffect(() => {
-    if (!phoneTouched && !phone && user?.phoneNumber) {
-      setPhone(String(user.phoneNumber).replace(/\D/g, "").slice(0, 11));
+    const persisted = sessionStorage.getItem(PHONE_STORAGE_KEY);
+    const touchedFlag = sessionStorage.getItem(PHONE_TOUCHED_KEY);
+    if (persisted !== null && !phone) {
+      setPhone(String(persisted));
+      setPhoneTouched(true);
+      return;
+    }
+    if (!phoneTouched && !phone && !touchedFlag && user?.phoneNumber) {
+      const normalized = String(user.phoneNumber).replace(/\D/g, "").slice(0, 11);
+      setPhone(normalized);
+      sessionStorage.setItem(PHONE_STORAGE_KEY, normalized);
     }
   }, [user?.phoneNumber, phone, phoneTouched]);
 
@@ -232,8 +247,11 @@ const BuyDataScreen = () => {
                 value={phone}
                 maxLength={11}
                 onChange={(e) => {
+                  const next = e.target.value.replace(/\D/g, "").slice(0, 11);
                   setPhoneTouched(true);
-                  setPhone(e.target.value.replace(/\D/g, "").slice(0, 11));
+                  sessionStorage.setItem(PHONE_TOUCHED_KEY, "1");
+                  sessionStorage.setItem(PHONE_STORAGE_KEY, next);
+                  setPhone(next);
                 }}
                 disabled={loading}
               />
