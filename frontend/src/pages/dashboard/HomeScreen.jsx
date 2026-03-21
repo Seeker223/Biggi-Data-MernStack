@@ -501,7 +501,7 @@ const HomeScreen = () => {
                               </CopyButton>
                             </AccountLineRow>
                             <AccountMuted>{virtualAccount.accountName}</AccountMuted>
-                            <AccountMuted>Auto-credit after transfer.</AccountMuted>
+                            <AccountMuted>Fees are shown on the Deposit screen before you transfer.</AccountMuted>
                             {depositFeeSettings ? (
                               <AccountMuted>
                                 Service charge:{" "}
