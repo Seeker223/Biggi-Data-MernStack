@@ -620,24 +620,55 @@ const AdminScreen = () => {
     await loadDepositFees(1);
   };
 
-  const saveDepositFeeSettings = async () => {
+  const normalizeDepositFeePayload = (settings) => ({
+    ...(settings || {}),
+    flatFee: Number(settings?.flatFee || 0),
+    percentFee: Number(settings?.percentFee || 0),
+    minFee:
+      settings?.minFee === "" || settings?.minFee === null || settings?.minFee === undefined
+        ? 0
+        : Number(settings?.minFee || 0),
+    maxFee:
+      settings?.maxFee === "" || settings?.maxFee === null || settings?.maxFee === undefined
+        ? 0
+        : Number(settings?.maxFee || 0),
+  });
+
+  const saveDepositFeeSettings = async (override) => {
     try {
       setDepositFeeLoading(true);
       setDepositFeeError("");
-      const payload = {
-        ...(depositFeeSettings || {}),
-        flatFee: Number(depositFeeSettings?.flatFee || 0),
-        percentFee: Number(depositFeeSettings?.percentFee || 0),
-        minFee: depositFeeSettings?.minFee === "" ? null : Number(depositFeeSettings?.minFee || 0),
-        maxFee: depositFeeSettings?.maxFee === "" ? null : Number(depositFeeSettings?.maxFee || 0),
-      };
+      const base = override || depositFeeSettings || {};
+      const payload = normalizeDepositFeePayload(base);
       await updateAdminDepositFeeSettings(payload);
+      if (override) setDepositFeeSettings(payload);
       await loadDepositFees(depositFeePage || 1);
     } catch (err) {
       setDepositFeeError(err?.response?.data?.message || "Failed to save deposit fee settings.");
     } finally {
       setDepositFeeLoading(false);
     }
+  };
+
+  const resetDepositFeeDefaults = () => {
+    const next = normalizeDepositFeePayload({
+      ...(depositFeeSettings || {}),
+      enabled: true,
+      flatFee: 5,
+      percentFee: 0,
+      minFee: 0,
+      maxFee: 0,
+    });
+    return saveDepositFeeSettings(next);
+  };
+
+  const clearDepositFeeMinMax = () => {
+    const next = normalizeDepositFeePayload({
+      ...(depositFeeSettings || {}),
+      minFee: 0,
+      maxFee: 0,
+    });
+    return saveDepositFeeSettings(next);
   };
 
   const deleteDepositFeeEntry = async (entry) => {
@@ -1764,6 +1795,12 @@ const AdminScreen = () => {
                   </ApplyButton>
                   <SoftButton onClick={() => loadDepositFees(depositFeePage || 1)} disabled={depositFeeLoading}>
                     Refresh Ledger
+                  </SoftButton>
+                  <SoftButton onClick={clearDepositFeeMinMax} disabled={depositFeeLoading}>
+                    Clear Min/Max
+                  </SoftButton>
+                  <SoftButton onClick={resetDepositFeeDefaults} disabled={depositFeeLoading}>
+                    Reset Defaults
                   </SoftButton>
                 </ActionRow>
               </>
