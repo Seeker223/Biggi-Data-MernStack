@@ -371,6 +371,9 @@ export const playMonthlyRaffleTicket = ({ month, code, ticketId } = {}) =>
 export const updateMonthlyPurchase = () => 
   api.post("/monthly-game/purchase");
 
+export const getTopPurchasesLeaderboard = () =>
+  api.get("/monthly-game/top-purchases");
+
 // GAME TICKETS
 export const getGameTickets = () => api.get("/game/tickets");
 

@@ -44,6 +44,7 @@ import AboutScreen from './pages/dashboard/AboutScreen';
 import SupportScreen from './pages/dashboard/SupportScreen';
 import AdminScreen from './pages/dashboard/AdminScreen';
 import ReferralScreen from './pages/dashboard/ReferralScreen';
+import TopPurchasersScreen from './pages/dashboard/TopPurchasersScreen';
 
 function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -167,6 +168,9 @@ function App() {
             </Route>
             <Route element={<ProtectedRoute />}>
               <Route path="/referrals" element={<ReferralScreen />} />
+            </Route>
+            <Route element={<ProtectedRoute />}>
+              <Route path="/top-purchases" element={<TopPurchasersScreen />} />
             </Route>
             
             {/* Redirect */}

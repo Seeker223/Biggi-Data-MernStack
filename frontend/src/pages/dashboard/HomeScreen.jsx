@@ -100,6 +100,7 @@ const HomeScreen = () => {
   const [referralWinModalVisible, setReferralWinModalVisible] = useState(false);
   const [referralWinModalData, setReferralWinModalData] = useState({ message: "", amount: null, id: null });
   const [referralGameModalVisible, setReferralGameModalVisible] = useState(false);
+  const [topPurchaseModalVisible, setTopPurchaseModalVisible] = useState(false);
   const [eligibilityError, setEligibilityError] = useState("");
 
   const [isUploading, setIsUploading] = useState(false);
@@ -772,86 +773,161 @@ const HomeScreen = () => {
               </GameCard>
             )}
 
-            {/* MONTHLY GAME */}
-            {(isMerchantRole || !role) && (
-              <MonthlyGameCard $pulse={monthlyEligibility.isEligible}>
+            {/* MONTHLY GAME OR TOP PURCHASES (MERCHANT) */}
+            {isMerchantRole ? (
+              <MonthlyGameCard $pulse={monthlyEligibility.purchases >= 10}>
                 <MonthlyHeader>
                   <TrophyIcon size={24} />
-                  <MonthlyTitle>Monthly Draw</MonthlyTitle>
-                  <RaffleTicketPill aria-label="Monthly raffle tickets">
+                  <MonthlyTitle>Top Purchasers</MonthlyTitle>
+                  <RaffleTicketPill aria-label="Monthly purchase target">
                     <RaffleTicketGlow />
                     <RaffleTicketIcon size={16} />
-                    <RaffleTicketText>Tickets</RaffleTicketText>
+                    <RaffleTicketText>Purchases</RaffleTicketText>
                     <RaffleTicketBadge>
-                      {monthlyEligibility.raffleTicketsUnplayed > 99
-                        ? "99+"
-                        : monthlyEligibility.raffleTicketsUnplayed}
+                      {monthlyEligibility.purchases}
                     </RaffleTicketBadge>
                   </RaffleTicketPill>
-                  {monthlyEligibility.isEligible && (
+                  {monthlyEligibility.purchases >= 10 && (
                     <EligibleBadge>
-                      <EligibleText>
-                        {monthlyEligibility.raffleTicketsUnplayed} TICKET
-                        {monthlyEligibility.raffleTicketsUnplayed === 1 ? "" : "S"}
-                      </EligibleText>
+                      <EligibleText>QUALIFIED</EligibleText>
                     </EligibleBadge>
                   )}
                 </MonthlyHeader>
-                
+
                 <MonthlyPrize>
                   {FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "Prize hidden" : ""}
                 </MonthlyPrize>
-                <MonthlySubtitle>Monthly Jackpot</MonthlySubtitle>
+                <MonthlySubtitle>Top 10 Purchasers This Month</MonthlySubtitle>
                 {eligibilityError ? (
                   <RetryNote role="button" onClick={loadMonthlyEligibility}>
                     {eligibilityError}
                   </RetryNote>
                 ) : null}
-                
-                {/* Monthly Progress */}
+
                 <ProgressContainer>
                   <ProgressLabels>
                     <ProgressText>
-                      {monthlyEligibility.purchases} purchases -{" "}
-                      {monthlyEligibility.raffleTicketsTotal} ticket
-                      {monthlyEligibility.raffleTicketsTotal === 1 ? "" : "s"}
+                      {monthlyEligibility.purchases} of 10 purchases
                     </ProgressText>
                     <ProgressPercent>
-                      {Math.round(monthlyEligibility.progress)}%
+                      {Math.round(Math.min(100, (monthlyEligibility.purchases / 10) * 100))}%
                     </ProgressPercent>
                   </ProgressLabels>
                   <ProgressBar>
-                    <ProgressFill 
-                      $width={monthlyEligibility.progress} 
-                      $color={monthlyEligibility.isEligible ? '#4CAF50' : '#8E2DE2'}
+                    <ProgressFill
+                      $width={Math.min(100, (monthlyEligibility.purchases / 10) * 100)}
+                      $color={monthlyEligibility.purchases >= 10 ? '#4CAF50' : '#8E2DE2'}
                     />
                   </ProgressBar>
                   <DaysLeftText>
                     {monthlyEligibility.daysLeft} days left this month
                   </DaysLeftText>
                 </ProgressContainer>
-                
-                <MonthlyBtn 
-                  onClick={handleMonthlyGameClick}
-                  $eligible={monthlyEligibility.isEligible}
+
+                <MonthlyBtn
+                  onClick={() => {
+                    if (monthlyEligibility.purchases < 10) {
+                      setTopPurchaseModalVisible(true);
+                      return;
+                    }
+                    navigate("/top-purchases");
+                  }}
+                  $eligible={monthlyEligibility.purchases >= 10}
                 >
-                  {monthlyEligibility.isEligible ? (
+                  {monthlyEligibility.purchases >= 10 ? (
                     <>
                       <CheckCircle size={18} />
-                      <MonthlyBtnText>
-                        {monthlyEligibility.raffleTicketsUnplayed > 0
-                          ? "Play Ticket"
-                          : "View Monthly Draw"}
-                      </MonthlyBtnText>
+                      <MonthlyBtnText>View Top 10</MonthlyBtnText>
                     </>
                   ) : (
                     <>
                       <Info size={18} />
-                      <MonthlyBtnText>How to Earn Ticket</MonthlyBtnText>
+                      <MonthlyBtnText>How to Qualify</MonthlyBtnText>
                     </>
                   )}
                 </MonthlyBtn>
               </MonthlyGameCard>
+            ) : (
+              (isPrivateRole || !role) && (
+                <MonthlyGameCard $pulse={monthlyEligibility.isEligible}>
+                  <MonthlyHeader>
+                    <TrophyIcon size={24} />
+                    <MonthlyTitle>Monthly Draw</MonthlyTitle>
+                    <RaffleTicketPill aria-label="Monthly raffle tickets">
+                      <RaffleTicketGlow />
+                      <RaffleTicketIcon size={16} />
+                      <RaffleTicketText>Tickets</RaffleTicketText>
+                      <RaffleTicketBadge>
+                        {monthlyEligibility.raffleTicketsUnplayed > 99
+                          ? "99+"
+                          : monthlyEligibility.raffleTicketsUnplayed}
+                      </RaffleTicketBadge>
+                    </RaffleTicketPill>
+                    {monthlyEligibility.isEligible && (
+                      <EligibleBadge>
+                        <EligibleText>
+                          {monthlyEligibility.raffleTicketsUnplayed} TICKET
+                          {monthlyEligibility.raffleTicketsUnplayed === 1 ? "" : "S"}
+                        </EligibleText>
+                      </EligibleBadge>
+                    )}
+                  </MonthlyHeader>
+                  
+                  <MonthlyPrize>
+                    {FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "Prize hidden" : ""}
+                  </MonthlyPrize>
+                  <MonthlySubtitle>Monthly Jackpot</MonthlySubtitle>
+                  {eligibilityError ? (
+                    <RetryNote role="button" onClick={loadMonthlyEligibility}>
+                      {eligibilityError}
+                    </RetryNote>
+                  ) : null}
+                  
+                  {/* Monthly Progress */}
+                  <ProgressContainer>
+                    <ProgressLabels>
+                      <ProgressText>
+                        {monthlyEligibility.purchases} purchases -{" "}
+                        {monthlyEligibility.raffleTicketsTotal} ticket
+                        {monthlyEligibility.raffleTicketsTotal === 1 ? "" : "s"}
+                      </ProgressText>
+                      <ProgressPercent>
+                        {Math.round(monthlyEligibility.progress)}%
+                      </ProgressPercent>
+                    </ProgressLabels>
+                    <ProgressBar>
+                      <ProgressFill 
+                        $width={monthlyEligibility.progress} 
+                        $color={monthlyEligibility.isEligible ? '#4CAF50' : '#8E2DE2'}
+                      />
+                    </ProgressBar>
+                    <DaysLeftText>
+                      {monthlyEligibility.daysLeft} days left this month
+                    </DaysLeftText>
+                  </ProgressContainer>
+                  
+                  <MonthlyBtn 
+                    onClick={handleMonthlyGameClick}
+                    $eligible={monthlyEligibility.isEligible}
+                  >
+                    {monthlyEligibility.isEligible ? (
+                      <>
+                        <CheckCircle size={18} />
+                        <MonthlyBtnText>
+                          {monthlyEligibility.raffleTicketsUnplayed > 0
+                            ? "Play Ticket"
+                            : "View Monthly Draw"}
+                        </MonthlyBtnText>
+                      </>
+                    ) : (
+                      <>
+                        <Info size={18} />
+                        <MonthlyBtnText>How to Earn Ticket</MonthlyBtnText>
+                      </>
+                    )}
+                  </MonthlyBtn>
+                </MonthlyGameCard>
+              )
             )}
 
             {(isPrivateRole || isMerchantRole || !role) && (
@@ -1061,6 +1137,28 @@ const HomeScreen = () => {
                 <ModalBtnText>View My Referral Code</ModalBtnText>
               </ModalBtn>
               <ModalBtn $secondary onClick={() => setReferralGameModalVisible(false)}>
+                <ModalBtnText>Close</ModalBtnText>
+              </ModalBtn>
+            </ModalBox>
+          </ModalOverlay>
+        )}
+
+        {/* TOP PURCHASES REQUIREMENTS */}
+        {topPurchaseModalVisible && (
+          <ModalOverlay>
+            <ModalBox>
+              <Trophy size={42} color="#FF7A00" />
+              <ModalTitle>Top Purchasers Requirements</ModalTitle>
+              <ModalMsg>
+                To appear on the Top Purchasers board:
+                {"\n"}• Complete at least 10 data purchases this month
+                {"\n"}• Top 10 users are ranked by total purchases
+                {"\n"}• Rankings reset every month
+              </ModalMsg>
+              <ModalBtn onClick={() => navigate("/buy-data")}>
+                <ModalBtnText>Buy Data</ModalBtnText>
+              </ModalBtn>
+              <ModalBtn $secondary onClick={() => setTopPurchaseModalVisible(false)}>
                 <ModalBtnText>Close</ModalBtnText>
               </ModalBtn>
             </ModalBox>
