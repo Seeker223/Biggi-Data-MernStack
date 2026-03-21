@@ -161,11 +161,6 @@ const HomeScreen = () => {
     loadMonthlyEligibility();
   }, [user?._id, user?.dataBundleCount, loadMonthlyEligibility]);
 
-  useEffect(() => {
-    const userRole = String(user?.userRole || "").toLowerCase();
-    if (!user || userRole !== "merchant") return;
-    loadReferralLeaderboard();
-  }, [user?._id, user?.userRole, loadReferralLeaderboard]);
 
   const fetchVirtualAccount = useCallback(async () => {
     if (!FEATURE_FLAGS.USE_STATIC_VIRTUAL_ACCOUNT) {
@@ -334,6 +329,12 @@ const HomeScreen = () => {
       setReferralLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    const userRole = String(user?.userRole || "").toLowerCase();
+    if (!user || userRole !== "merchant") return;
+    loadReferralLeaderboard();
+  }, [user?._id, user?.userRole, loadReferralLeaderboard]);
 
   const handleMonthlyGameClick = () => {
     if (FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM) return;
