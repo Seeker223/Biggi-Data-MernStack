@@ -70,6 +70,15 @@ const BuyDataScreen = () => {
     }
   }, [user?.phoneNumber, phone, phoneTouched]);
 
+  const applyProfilePhone = () => {
+    const normalized = String(user?.phoneNumber || "").replace(/\D/g, "").slice(0, 11);
+    if (!normalized) return;
+    setPhoneTouched(true);
+    sessionStorage.setItem(PHONE_TOUCHED_KEY, "1");
+    sessionStorage.setItem(PHONE_STORAGE_KEY, normalized);
+    setPhone(normalized);
+  };
+
   // Always resolve plan details from backend by plan_id.
   // This avoids any UI "preset" plan object accidentally being used for price/validity.
   useEffect(() => {
@@ -149,6 +158,10 @@ const BuyDataScreen = () => {
 
       setTimeout(() => {
         setSuccessModal(false);
+        sessionStorage.removeItem(PHONE_STORAGE_KEY);
+        sessionStorage.removeItem(PHONE_TOUCHED_KEY);
+        setPhoneTouched(false);
+        setPhone("");
         navigate("/buy-data-success", {
           state: {
             phone,
@@ -255,6 +268,13 @@ const BuyDataScreen = () => {
                 }}
                 disabled={loading}
               />
+              {user?.phoneNumber ? (
+                <HelperRow>
+                  <HelperButton type="button" onClick={applyProfilePhone} disabled={loading}>
+                    Use my profile number
+                  </HelperButton>
+                </HelperRow>
+              ) : null}
             </InputGroup>
 
             <InputGroup>
@@ -431,6 +451,26 @@ const InputGroup = styled.div`
   display: flex;
   flex-direction: column;
   gap: 8px;
+`;
+
+const HelperRow = styled.div`
+  display: flex;
+  justify-content: flex-end;
+`;
+
+const HelperButton = styled.button`
+  background: transparent;
+  border: none;
+  color: #ff7a00;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+
+  &:disabled {
+    color: #aaa;
+    cursor: not-allowed;
+  }
 `;
 
 const Label = styled.label`
