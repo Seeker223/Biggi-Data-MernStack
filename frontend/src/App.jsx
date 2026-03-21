@@ -43,6 +43,7 @@ import PrivacyPolicyScreen from './pages/dashboard/PrivacyPolicyScreen';
 import AboutScreen from './pages/dashboard/AboutScreen';
 import SupportScreen from './pages/dashboard/SupportScreen';
 import AdminScreen from './pages/dashboard/AdminScreen';
+import ReferralScreen from './pages/dashboard/ReferralScreen';
 
 function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -163,6 +164,9 @@ function App() {
             </Route>
             <Route element={<ProtectedRoute />}>
               <Route path="/admin" element={<AdminScreen />} />
+            </Route>
+            <Route element={<ProtectedRoute />}>
+              <Route path="/referrals" element={<ReferralScreen />} />
             </Route>
             
             {/* Redirect */}

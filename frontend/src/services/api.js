@@ -553,6 +553,7 @@ export const purchaseTickets = (quantity) => api.post("/game/tickets/purchase", 
 // -----------------------------------------------------------
 export const getReferralStats = () => api.get("/user/referrals");
 export const generateReferralLink = () => api.post("/user/referrals/generate");
+export const getReferralLeaderboard = () => api.get("/user/referrals/leaderboard");
 
 // -----------------------------------------------------------
 // ADMIN

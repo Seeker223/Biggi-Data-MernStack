@@ -19,6 +19,7 @@ import {
   CheckCircle,
   ChevronRight,
   Wallet,
+  Users,
   LogOut,
   User,
   Copy,
@@ -30,7 +31,13 @@ import FloatingBottomNav from '../../components/FloatingBottomNav';
 import BrandLoader from '../../components/BrandLoader';
 import { AuthContext } from '../../context/AuthContext';
 import { FEATURE_FLAGS } from '../../constants/featureFlags';
-import { getMonthlyEligibility, updateAvatar, getVirtualAccount, getDepositFeeSettings } from '../../services/api';
+import {
+  getMonthlyEligibility,
+  updateAvatar,
+  getVirtualAccount,
+  getDepositFeeSettings,
+  getReferralLeaderboard,
+} from '../../services/api';
 
 const VIRTUAL_ACCOUNT_FALLBACK =
   "We are unable to process your request right now. Please try again shortly. Virtual account not ready yet. Please try again later.";
@@ -92,6 +99,7 @@ const HomeScreen = () => {
   const [referralModalVisible, setReferralModalVisible] = useState(false);
   const [referralWinModalVisible, setReferralWinModalVisible] = useState(false);
   const [referralWinModalData, setReferralWinModalData] = useState({ message: "", amount: null, id: null });
+  const [referralGameModalVisible, setReferralGameModalVisible] = useState(false);
   const [eligibilityError, setEligibilityError] = useState("");
 
   const [isUploading, setIsUploading] = useState(false);
@@ -100,6 +108,10 @@ const HomeScreen = () => {
   const [virtualError, setVirtualError] = useState("");
   const [virtualUpdatedAt, setVirtualUpdatedAt] = useState(null);
   const [depositFeeSettings, setDepositFeeSettings] = useState(null);
+  const [referralCount, setReferralCount] = useState(0);
+  const [referralMonthLabel, setReferralMonthLabel] = useState("");
+  const [referralLoading, setReferralLoading] = useState(false);
+  const [referralError, setReferralError] = useState("");
 
   useEffect(() => {
     refreshUser();
@@ -148,6 +160,12 @@ const HomeScreen = () => {
     if (!user) return;
     loadMonthlyEligibility();
   }, [user?._id, user?.dataBundleCount, loadMonthlyEligibility]);
+
+  useEffect(() => {
+    const userRole = String(user?.userRole || "").toLowerCase();
+    if (!user || userRole !== "merchant") return;
+    loadReferralLeaderboard();
+  }, [user?._id, user?.userRole, loadReferralLeaderboard]);
 
   const fetchVirtualAccount = useCallback(async () => {
     if (!FEATURE_FLAGS.USE_STATIC_VIRTUAL_ACCOUNT) {
@@ -267,6 +285,7 @@ const HomeScreen = () => {
   const isPrivateRole = role === "private";
   const isMerchantRole = role === "merchant";
   const useStaticVirtualAccount = FEATURE_FLAGS.USE_STATIC_VIRTUAL_ACCOUNT;
+  const hasReferralActivity = referralCount > 0;
 
   const goToDeposit = () => navigate('/deposit');
   const goToWithdraw = () => navigate('/withdraw');
@@ -294,6 +313,27 @@ const HomeScreen = () => {
     }
     navigate('/daily-draw');
   };
+
+  const loadReferralLeaderboard = useCallback(async () => {
+    try {
+      setReferralLoading(true);
+      setReferralError("");
+      const res = await getReferralLeaderboard();
+      const payload = res?.data || {};
+      setReferralCount(Number(payload.myCount || 0));
+      if (payload?.month?.start) {
+        const date = new Date(payload.month.start);
+        const label = date.toLocaleString(undefined, { month: "long", year: "numeric" });
+        setReferralMonthLabel(label);
+      } else {
+        setReferralMonthLabel("");
+      }
+    } catch (err) {
+      setReferralError(err?.response?.data?.message || "Unable to load referral status.");
+    } finally {
+      setReferralLoading(false);
+    }
+  }, []);
 
   const handleMonthlyGameClick = () => {
     if (FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM) return;
@@ -665,28 +705,71 @@ const HomeScreen = () => {
               </BundleRight>
             </BundleCard>
 
-            {/* DAILY GAME */}
-            <GameCard>
-              <GamepadIcon size={28} />
-              <GameTitle>Weekly Number Picker Game</GameTitle>
-              <GameSubtitle>
-                <SubtitleRow>
-                  <SubtitleIcon as={Ticket} size={16} />
-                  <span>Uses 1 ticket per play</span>
-                </SubtitleRow>
-                <SubtitleRow>
-                  <SubtitleIcon as={Calendar} size={16} />
-                  <span>Results: month end</span>
-                </SubtitleRow>
-              </GameSubtitle>
-              <PlayBtn 
-                onClick={handleDailyGame} 
-                disabled={FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM}
-                $locked={tickets <= 0}
-              >
-                <PlayText>Play Now</PlayText>
-              </PlayBtn>
-            </GameCard>
+            {/* DAILY GAME OR REFERRAL GAME (MERCHANT) */}
+            {isMerchantRole ? (
+              <GameCard>
+                <GamepadIcon size={28} />
+                <GameTitle>Referral Leaderboard</GameTitle>
+                <GameSubtitle>
+                  <SubtitleRow>
+                    <SubtitleIcon as={Users} size={16} />
+                    <span>
+                      {referralMonthLabel
+                        ? `Ranks for ${referralMonthLabel}`
+                        : "Monthly referral rankings"}
+                    </span>
+                  </SubtitleRow>
+                  <SubtitleRow>
+                    <SubtitleIcon as={Ticket} size={16} />
+                    <span>Refer at least 1 user to unlock</span>
+                  </SubtitleRow>
+                </GameSubtitle>
+                <PlayBtn
+                  onClick={() => {
+                    if (!hasReferralActivity) {
+                      setReferralGameModalVisible(true);
+                      return;
+                    }
+                    navigate("/referrals");
+                  }}
+                  $locked={!hasReferralActivity}
+                >
+                  <PlayText>
+                    {hasReferralActivity ? "View Leaderboard" : "How to Qualify"}
+                  </PlayText>
+                </PlayBtn>
+                {referralError ? (
+                  <RetryNote role="button" onClick={loadReferralLeaderboard}>
+                    {referralError}
+                  </RetryNote>
+                ) : null}
+                {referralLoading ? (
+                  <DaysLeftText>Loading referral status...</DaysLeftText>
+                ) : null}
+              </GameCard>
+            ) : (
+              <GameCard>
+                <GamepadIcon size={28} />
+                <GameTitle>Weekly Number Picker Game</GameTitle>
+                <GameSubtitle>
+                  <SubtitleRow>
+                    <SubtitleIcon as={Ticket} size={16} />
+                    <span>Uses 1 ticket per play</span>
+                  </SubtitleRow>
+                  <SubtitleRow>
+                    <SubtitleIcon as={Calendar} size={16} />
+                    <span>Results: month end</span>
+                  </SubtitleRow>
+                </GameSubtitle>
+                <PlayBtn 
+                  onClick={handleDailyGame} 
+                  disabled={FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM}
+                  $locked={tickets <= 0}
+                >
+                  <PlayText>Play Now</PlayText>
+                </PlayBtn>
+              </GameCard>
+            )}
 
             {/* MONTHLY GAME */}
             {(isMerchantRole || !role) && (
@@ -956,6 +1039,28 @@ const HomeScreen = () => {
               </ModalBtn>
               <ModalBtn $secondary onClick={() => setReferralModalVisible(false)}>
                 <ModalBtnText>Later</ModalBtnText>
+              </ModalBtn>
+            </ModalBox>
+          </ModalOverlay>
+        )}
+
+        {/* REFERRAL GAME REQUIREMENTS */}
+        {referralGameModalVisible && (
+          <ModalOverlay>
+            <ModalBox>
+              <Trophy size={42} color="#FF7A00" />
+              <ModalTitle>Referral Leaderboard Requirements</ModalTitle>
+              <ModalMsg>
+                To participate in the monthly referral leaderboard:
+                {"\n"}• Share your referral code with friends
+                {"\n"}• At least 1 successful referral this month
+                {"\n"}• Rankings reset every month
+              </ModalMsg>
+              <ModalBtn onClick={() => navigate("/profile")}>
+                <ModalBtnText>View My Referral Code</ModalBtnText>
+              </ModalBtn>
+              <ModalBtn $secondary onClick={() => setReferralGameModalVisible(false)}>
+                <ModalBtnText>Close</ModalBtnText>
               </ModalBtn>
             </ModalBox>
           </ModalOverlay>
