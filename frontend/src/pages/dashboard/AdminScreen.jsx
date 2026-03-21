@@ -1597,6 +1597,19 @@ const AdminScreen = () => {
               </ModalSection>
             ) : null}
 
+            {profitSummary ? (
+              <ModalSection>
+                <h4>Profit Balance (Flutterwave)</h4>
+                <p>
+                  Available profit currently sitting in Flutterwave:{" "}
+                  <strong>{naira(profitSummary.pending?.profit)}</strong>
+                </p>
+                <p>
+                  This is the amount that will remain in Flutterwave if Profit Sweep is disabled.
+                </p>
+              </ModalSection>
+            ) : null}
+
             {profitSettings ? (
               <>
                 <ModalSection>
