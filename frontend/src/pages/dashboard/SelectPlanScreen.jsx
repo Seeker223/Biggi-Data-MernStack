@@ -19,6 +19,7 @@ const SelectPlanScreen = () => {
   const location = useLocation();
   const selectedNetwork = location.state?.selectedNetwork || null;
   const returnTo = location.state?.returnTo || "/buy-data";
+  const phone = location.state?.phone || "";
 
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -74,7 +75,7 @@ const SelectPlanScreen = () => {
 
   const onSelectPlan = (plan) => {
     navigate(returnTo, {
-      state: { selectedNetwork, selectedPlan: plan },
+      state: { selectedNetwork, selectedPlan: plan, phone },
       replace: true,
     });
   };
@@ -85,7 +86,7 @@ const SelectPlanScreen = () => {
         <Card>
           <Title>Select Plan</Title>
           <Info>Select a network first.</Info>
-          <BackBtn onClick={() => navigate("/select-network", { state: { returnTo } })}>
+          <BackBtn onClick={() => navigate("/select-network", { state: { returnTo, phone } })}>
             Choose Network
           </BackBtn>
         </Card>

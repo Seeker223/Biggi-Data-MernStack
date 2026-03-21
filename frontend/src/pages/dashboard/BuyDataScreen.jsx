@@ -43,7 +43,16 @@ const BuyDataScreen = () => {
       setPlan(p);
       setPrice(Number(p.amount || p.price || 0));
     }
+    if (location.state?.phone && !phone) {
+      setPhone(String(location.state.phone).replace(/\D/g, "").slice(0, 11));
+    }
   }, [location.state]);
+
+  useEffect(() => {
+    if (!phone && user?.phoneNumber) {
+      setPhone(String(user.phoneNumber).replace(/\D/g, "").slice(0, 11));
+    }
+  }, [user?.phoneNumber, phone]);
 
   // Always resolve plan details from backend by plan_id.
   // This avoids any UI "preset" plan object accidentally being used for price/validity.
@@ -183,7 +192,7 @@ const BuyDataScreen = () => {
 
   const goToSelectNetwork = () => {
     navigate("/select-network", {
-      state: { returnTo: "/buy-data", selectedNetwork: network },
+      state: { returnTo: "/buy-data", selectedNetwork: network, phone },
     });
   };
 
@@ -194,6 +203,7 @@ const BuyDataScreen = () => {
         selectedNetwork: network,
         networkCode,
         returnTo: "/buy-data",
+        phone,
       },
     });
   };

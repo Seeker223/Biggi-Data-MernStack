@@ -60,6 +60,7 @@ const SelectNetworkScreen = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const returnTo = location.state?.returnTo || "/buy-data";
+  const phone = location.state?.phone || "";
 
   const onSelect = (selectedNetwork) => {
     navigate("/select-plan", {
@@ -70,6 +71,7 @@ const SelectNetworkScreen = () => {
           network: selectedNetwork.label,
         },
         returnTo,
+        phone,
       },
     });
   };
