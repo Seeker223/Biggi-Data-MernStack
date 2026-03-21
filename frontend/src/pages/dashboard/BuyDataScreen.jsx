@@ -26,6 +26,7 @@ const BuyDataScreen = () => {
   const [successModal, setSuccessModal] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [pinConfigured, setPinConfigured] = useState(Boolean(user?.transactionPinEnabled));
+  const [phoneTouched, setPhoneTouched] = useState(false);
 
   useEffect(() => {
     setPinConfigured(Boolean(user?.transactionPinEnabled));
@@ -43,16 +44,16 @@ const BuyDataScreen = () => {
       setPlan(p);
       setPrice(Number(p.amount || p.price || 0));
     }
-    if (location.state?.phone && !phone) {
+    if (location.state?.phone && !phoneTouched && !phone) {
       setPhone(String(location.state.phone).replace(/\D/g, "").slice(0, 11));
     }
   }, [location.state]);
 
   useEffect(() => {
-    if (!phone && user?.phoneNumber) {
+    if (!phoneTouched && !phone && user?.phoneNumber) {
       setPhone(String(user.phoneNumber).replace(/\D/g, "").slice(0, 11));
     }
-  }, [user?.phoneNumber, phone]);
+  }, [user?.phoneNumber, phone, phoneTouched]);
 
   // Always resolve plan details from backend by plan_id.
   // This avoids any UI "preset" plan object accidentally being used for price/validity.
@@ -230,7 +231,10 @@ const BuyDataScreen = () => {
                 placeholder="08012345678"
                 value={phone}
                 maxLength={11}
-                onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 11))}
+                onChange={(e) => {
+                  setPhoneTouched(true);
+                  setPhone(e.target.value.replace(/\D/g, "").slice(0, 11));
+                }}
                 disabled={loading}
               />
             </InputGroup>
