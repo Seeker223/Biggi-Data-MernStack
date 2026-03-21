@@ -14,6 +14,7 @@ const TopPurchasersScreen = () => {
   const [monthLabel, setMonthLabel] = useState("");
   const [myPurchases, setMyPurchases] = useState(0);
   const [threshold, setThreshold] = useState(10);
+  const [myRank, setMyRank] = useState(null);
 
   const username = user?.username || "User";
 
@@ -27,6 +28,7 @@ const TopPurchasersScreen = () => {
       setLeaderboard(rows);
       setMyPurchases(Number(payload.myPurchases || 0));
       setThreshold(Number(payload.threshold || 10));
+      setMyRank(payload.myRank ?? null);
       if (payload?.month) {
         const date = new Date(`${payload.month}-01T00:00:00`);
         const label = date.toLocaleString(undefined, { month: "long", year: "numeric" });
@@ -72,12 +74,31 @@ const TopPurchasersScreen = () => {
           <HeroMeta>
             Monthly purchases: <strong>{myPurchases}</strong>
           </HeroMeta>
-          <HeroMeta>Need {threshold}+ purchases to qualify.</HeroMeta>
+          <HeroMeta>
+            {myRank ? `Current rank: #${myRank}` : `Need ${threshold}+ purchases to qualify.`}
+          </HeroMeta>
         </HeroLeft>
         <HeroIconWrap>
           <Trophy size={26} />
         </HeroIconWrap>
       </HeroCard>
+
+      <ProgressCard>
+        <ProgressRow>
+          <ProgressLabel>Progress to qualify</ProgressLabel>
+          <ProgressValue>
+            {Math.min(myPurchases, threshold)}/{threshold}
+          </ProgressValue>
+        </ProgressRow>
+        <ProgressTrack>
+          <ProgressFill $width={(Math.min(myPurchases, threshold) / threshold) * 100} />
+        </ProgressTrack>
+        <ProgressHint>
+          {myPurchases >= threshold
+            ? "You are qualified for the Top Purchasers leaderboard."
+            : `Complete ${Math.max(0, threshold - myPurchases)} more purchase(s) this month to qualify.`}
+        </ProgressHint>
+      </ProgressCard>
 
       {error ? <ErrorBox>{error}</ErrorBox> : null}
 
@@ -240,6 +261,55 @@ const EmptyState = styled.div`
     font-size: 12px;
     color: #999;
   }
+`;
+
+const ProgressCard = styled.div`
+  background: #141414;
+  border: 1px solid #232323;
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 16px;
+  display: grid;
+  gap: 8px;
+`;
+
+const ProgressRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #ddd;
+  font-weight: 600;
+`;
+
+const ProgressLabel = styled.span`
+  color: #bbb;
+`;
+
+const ProgressValue = styled.span`
+  color: #ffb26b;
+  font-weight: 800;
+`;
+
+const ProgressTrack = styled.div`
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: #252525;
+  overflow: hidden;
+`;
+
+const ProgressFill = styled.div`
+  height: 100%;
+  border-radius: inherit;
+  width: ${({ $width }) => Math.max(0, Math.min(100, Number($width || 0)))}%;
+  background: linear-gradient(90deg, #ff7a00, #ff4d00);
+  transition: width 0.3s ease;
+`;
+
+const ProgressHint = styled.span`
+  font-size: 12px;
+  color: #9a9a9a;
 `;
 
 const List = styled.div`
