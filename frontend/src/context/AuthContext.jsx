@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useState, useEffect, useCallback, useRef } from "react";
 import api from "../utils/api";
 
 export const AuthContext = createContext();
@@ -55,6 +55,7 @@ export const AuthProvider = ({ children }) => {
   );
   const [loading, setLoading] = useState(true);
   const [notificationCount, setNotificationCount] = useState(0);
+  const refreshInFlightRef = useRef(false);
 
   const setNotificationCountForUser = useCallback((userLike) => {
     const total = Number(userLike?.notifications || 0);
@@ -223,14 +224,42 @@ export const AuthProvider = ({ children }) => {
 
   const refreshUser = useCallback(async () => {
     if (!token) return;
+    if (refreshInFlightRef.current) return;
     try {
+      refreshInFlightRef.current = true;
       const res = await api.get("/auth/me");
       setUser(res.data.user);
       setNotificationCountForUser(res.data.user);
     } catch (error) {
       console.error("Refresh user error:", error);
+    } finally {
+      refreshInFlightRef.current = false;
     }
   }, [token, setNotificationCountForUser]);
+
+  // Auto-refresh wallet/user balance in the background
+  useEffect(() => {
+    if (!token) return undefined;
+    const intervalMs = 20000;
+    const intervalId = setInterval(() => {
+      refreshUser();
+    }, intervalMs);
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        refreshUser();
+      }
+    };
+
+    window.addEventListener("focus", refreshUser);
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener("focus", refreshUser);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [token, refreshUser]);
 
   const markNotificationsAsSeen = async () => {
     try {
