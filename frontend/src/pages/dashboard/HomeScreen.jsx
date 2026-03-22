@@ -183,6 +183,10 @@ const HomeScreen = () => {
     }
   }, []);
 
+  const handleRefreshAccount = useCallback(async () => {
+    await Promise.allSettled([fetchVirtualAccount(), refreshUser()]);
+  }, [fetchVirtualAccount, refreshUser]);
+
   useEffect(() => {
     if (!user || !FEATURE_FLAGS.USE_STATIC_VIRTUAL_ACCOUNT) return;
     fetchVirtualAccount();
@@ -564,7 +568,7 @@ const HomeScreen = () => {
                               </AccountUpdated>
                               <RefreshButton
                                 type="button"
-                                onClick={fetchVirtualAccount}
+                                onClick={handleRefreshAccount}
                                 disabled={virtualLoading}
                                 aria-label="Refresh virtual account"
                               >
@@ -586,7 +590,7 @@ const HomeScreen = () => {
                               </AccountUpdated>
                               <RefreshButton
                                 type="button"
-                                onClick={fetchVirtualAccount}
+                                onClick={handleRefreshAccount}
                                 disabled={virtualLoading}
                                 aria-label="Refresh virtual account"
                               >
