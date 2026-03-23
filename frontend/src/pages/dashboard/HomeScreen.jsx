@@ -547,18 +547,8 @@ const HomeScreen = () => {
                               </CopyButton>
                             </AccountLineRow>
                             <AccountMuted>{virtualAccount.accountName}</AccountMuted>
-                            <AccountMuted>Fees are shown on the Deposit screen before you transfer.</AccountMuted>
-                            {depositFeeSettings ? (
-                              <AccountMuted>
-                                Service charge:{" "}
-                                {depositFeeSettings.percentFee
-                                  ? `${depositFeeSettings.percentFee}%`
-                                  : "N0"}{" "}
-                                {depositFeeSettings.flatFee
-                                  ? `+ N${Number(depositFeeSettings.flatFee || 0).toLocaleString()}`
-                                  : ""}
-                              </AccountMuted>
-                            ) : null}
+                            
+                            <AccountMuted>Service charge: N50</AccountMuted>
                             <AccountMetaRow>
                               <AccountUpdated>
                                 Updated:{" "}
