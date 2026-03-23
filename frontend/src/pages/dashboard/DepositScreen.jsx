@@ -86,7 +86,6 @@ const DepositScreen = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [transactionPin, setTransactionPin] = useState("");
   const [pinConfigured, setPinConfigured] = useState(Boolean(user?.transactionPinEnabled));
-  const [staticCredit, setStaticCredit] = useState("");
   const [feeSettings, setFeeSettings] = useState(() =>
     normalizeFeeSettings({
       enabled: true,
@@ -105,6 +104,7 @@ const DepositScreen = () => {
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [toastType, setToastType] = useState("info");
+  const [showFeeDetails, setShowFeeDetails] = useState(false);
 
   const pollTimer = useRef(null);
   const pollCount = useRef(0);
@@ -242,13 +242,6 @@ const DepositScreen = () => {
   const totalAmount = enteredAmount + serviceCharge;
   const isValidAmount = () => enteredAmount >= 100 && enteredAmount <= 1000000;
 
-  const staticCreditValue = Number(staticCredit) > 0 ? Number(staticCredit) : 0;
-  const staticFeeMeta = getFeeMeta(staticCreditValue);
-  const staticServiceCharge = staticFeeMeta.fee;
-  const staticSubtotal = staticCreditValue + staticServiceCharge;
-  const flutterwaveFeeRate = 0.02;
-  const staticFlutterwaveFee = staticSubtotal > 0 ? Math.round(staticSubtotal * flutterwaveFeeRate * 100) / 100 : 0;
-  const staticTransferTotal = staticSubtotal + staticFlutterwaveFee;
 
   const stopPolling = () => {
     if (pollTimer.current) {
@@ -540,46 +533,13 @@ const DepositScreen = () => {
                 </InfoText>
               </InfoBox>
 
-              <StaticCalc>
-                <Label>Amount to Credit (Wallet)</Label>
-                <Input
-                  type="number"
-                  placeholder="N Amount (e.g., 100)"
-                  value={staticCredit}
-                  onChange={(e) => setStaticCredit(e.target.value)}
-                  disabled={virtualLoading}
-                />
-                {staticCreditValue > 0 ? (
-                  <StaticBreakdown>
-                    <BreakdownRow>
-                      <BreakdownLabel>Wallet Credit:</BreakdownLabel>
-                      <BreakdownValue>{formatNaira(staticCreditValue)}</BreakdownValue>
-                    </BreakdownRow>
-                    <BreakdownRow>
-                      <BreakdownLabel>
-                        Service Charge
-                        {staticFeeMeta.minApplied
-                          ? ` (min ${formatNaira(staticFeeMeta.settings.minFee)})`
-                          : staticFeeMeta.maxApplied
-                          ? ` (max ${formatNaira(staticFeeMeta.settings.maxFee)})`
-                          : ""}:
-                      </BreakdownLabel>
-                      <BreakdownValue>{formatNaira(staticServiceCharge)}</BreakdownValue>
-                    </BreakdownRow>
-                    <BreakdownRow>
-                      <BreakdownLabel>Flutterwave Fee (2%):</BreakdownLabel>
-                      <BreakdownValue>{formatNaira(staticFlutterwaveFee)}</BreakdownValue>
-                    </BreakdownRow>
-                    <BreakdownRow $total>
-                      <TotalLabel>Transfer Amount:</TotalLabel>
-                      <TotalValue>{formatNaira(staticTransferTotal)}</TotalValue>
-                    </BreakdownRow>
-                  </StaticBreakdown>
-                ) : null}
-                <InfoText>
-                  Add Flutterwave fee on top so your wallet credits the exact amount.
-                </InfoText>
-              </StaticCalc>
+              <DepositDetails>
+                <DetailTitle>Deposit Details</DetailTitle>
+                <DetailText>
+                  Transfer any amount to your static virtual account below. Your wallet will auto-credit
+                  once payment confirms.
+                </DetailText>
+              </DepositDetails>
 
               <AccountCard>
                 {virtualLoading ? (
@@ -590,23 +550,6 @@ const DepositScreen = () => {
                       {virtualAccount.bankName} - {virtualAccount.accountNumber}
                     </AccountLine>
                     <AccountMuted>{virtualAccount.accountName}</AccountMuted>
-                    {feeSettings ? (
-                      <AccountMuted>
-                        Service charge:{" "}
-                        {feeSettings.percentFee
-                          ? `${feeSettings.percentFee}%`
-                          : "N0"}{" "}
-                        {feeSettings.flatFee
-                          ? `+ N${Number(feeSettings.flatFee || 0).toLocaleString()}`
-                          : ""}
-                      </AccountMuted>
-                    ) : null}
-                    {feeSettings?.minFee > 0 ? (
-                      <AccountMuted>Min fee: {formatNaira(feeSettings.minFee)}</AccountMuted>
-                    ) : null}
-                    {feeSettings?.maxFee > 0 ? (
-                      <AccountMuted>Max fee: {formatNaira(feeSettings.maxFee)}</AccountMuted>
-                    ) : null}
                     <AccountMetaRow>
                       <AccountUpdated>
                         Updated:{" "}
@@ -622,13 +565,6 @@ const DepositScreen = () => {
                         >
                           Copy
                         </AccountActionButton>
-                        <AccountActionButton
-                          type="button"
-                          onClick={() => fetchVirtualAccount(true)}
-                          disabled={virtualLoading}
-                        >
-                          Refresh
-                        </AccountActionButton>
                       </AccountActionsRow>
                     </AccountMetaRow>
                   </>
@@ -637,15 +573,6 @@ const DepositScreen = () => {
                     <AccountMuted>
                       {virtualError || "Virtual account not available yet."}
                     </AccountMuted>
-                    <AccountActionsRow>
-                      <AccountActionButton
-                        type="button"
-                        onClick={() => fetchVirtualAccount(true)}
-                        disabled={virtualLoading}
-                      >
-                        Refresh
-                      </AccountActionButton>
-                    </AccountActionsRow>
                   </>
                 )}
               </AccountCard>
@@ -661,20 +588,32 @@ const DepositScreen = () => {
                 disabled={isProcessing}
               />
 
-              <Breakdown>
-                <BreakdownRow>
-                  <BreakdownLabel>Amount:</BreakdownLabel>
-                  <BreakdownValue>{formatNaira(enteredAmount)}</BreakdownValue>
-                </BreakdownRow>
-                <BreakdownRow>
-                  <BreakdownLabel>Service Charge:</BreakdownLabel>
-                  <BreakdownValue>{formatNaira(serviceCharge)}</BreakdownValue>
-                </BreakdownRow>
-                <BreakdownRow $total>
-                  <TotalLabel>Total:</TotalLabel>
-                  <TotalValue>{formatNaira(totalAmount)}</TotalValue>
-                </BreakdownRow>
-              </Breakdown>
+              <SummaryRow>
+                <SummaryLabel>Total to Pay</SummaryLabel>
+                <SummaryValue>{formatNaira(totalAmount)}</SummaryValue>
+              </SummaryRow>
+              <BreakdownToggle
+                type="button"
+                onClick={() => setShowFeeDetails((prev) => !prev)}
+              >
+                {showFeeDetails ? "Hide fee breakdown" : "View fee breakdown"}
+              </BreakdownToggle>
+              {showFeeDetails ? (
+                <Breakdown>
+                  <BreakdownRow>
+                    <BreakdownLabel>Amount:</BreakdownLabel>
+                    <BreakdownValue>{formatNaira(enteredAmount)}</BreakdownValue>
+                  </BreakdownRow>
+                  <BreakdownRow>
+                    <BreakdownLabel>Service Charge:</BreakdownLabel>
+                    <BreakdownValue>{formatNaira(serviceCharge)}</BreakdownValue>
+                  </BreakdownRow>
+                  <BreakdownRow $total>
+                    <TotalLabel>Total:</TotalLabel>
+                    <TotalValue>{formatNaira(totalAmount)}</TotalValue>
+                  </BreakdownRow>
+                </Breakdown>
+              ) : null}
 
               {renderReconcileButton()}
 
@@ -905,6 +844,40 @@ const Breakdown = styled.div`
   border: 1px solid #eee;
 `;
 
+const SummaryRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff6ee;
+  border: 1px solid #ffd8b0;
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+`;
+
+const SummaryLabel = styled.span`
+  font-size: 13px;
+  font-weight: 600;
+  color: #7a4a1a;
+`;
+
+const SummaryValue = styled.span`
+  font-size: 16px;
+  font-weight: 700;
+  color: #ff7a00;
+`;
+
+const BreakdownToggle = styled.button`
+  border: none;
+  background: transparent;
+  color: #ff7a00;
+  font-weight: 600;
+  font-size: 12px;
+  padding: 0;
+  cursor: pointer;
+  margin-bottom: 16px;
+`;
+
 const BreakdownRow = styled.div`
   display: flex;
   justify-content: space-between;
@@ -1003,7 +976,7 @@ const InfoText = styled.p`
   white-space: pre-line;
 `;
 
-const StaticCalc = styled.div`
+const DepositDetails = styled.div`
   background-color: #fff;
   border-radius: 14px;
   padding: 16px;
@@ -1012,12 +985,18 @@ const StaticCalc = styled.div`
   margin-bottom: 16px;
 `;
 
-const StaticBreakdown = styled.div`
-  background-color: #f9f9f9;
-  border-radius: 12px;
-  padding: 12px;
-  margin: 12px 0;
-  border: 1px solid #eee;
+const DetailTitle = styled.h3`
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1a1a;
+`;
+
+const DetailText = styled.p`
+  margin: 0;
+  font-size: 13px;
+  color: #555;
+  line-height: 1.5;
 `;
 
 const AccountCard = styled.div`
