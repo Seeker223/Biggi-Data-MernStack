@@ -56,10 +56,36 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [notificationCount, setNotificationCount] = useState(0);
   const refreshInFlightRef = useRef(false);
+  const lastBalanceRef = useRef(null);
+  const balanceInitRef = useRef(false);
+  const [balanceUpdate, setBalanceUpdate] = useState(null);
 
   const setNotificationCountForUser = useCallback((userLike) => {
     const total = Number(userLike?.notifications || 0);
     setNotificationCount(total > 9 ? 9 : total);
+  }, []);
+
+  const trackBalanceChange = useCallback((userLike) => {
+    const nextBalance = Number(userLike?.mainBalance ?? userLike?.main_balance ?? 0);
+    if (!balanceInitRef.current) {
+      balanceInitRef.current = true;
+      lastBalanceRef.current = nextBalance;
+      return;
+    }
+    if (lastBalanceRef.current === null) {
+      lastBalanceRef.current = nextBalance;
+      return;
+    }
+    if (nextBalance !== lastBalanceRef.current) {
+      const previous = lastBalanceRef.current;
+      lastBalanceRef.current = nextBalance;
+      setBalanceUpdate({
+        previousBalance: previous,
+        newBalance: nextBalance,
+        delta: nextBalance - previous,
+        updatedAt: new Date().toISOString(),
+      });
+    }
   }, []);
 
   // Initialize auth
@@ -90,6 +116,7 @@ export const AuthProvider = ({ children }) => {
             });
           }
           setNotificationCountForUser(res.data.user);
+          trackBalanceChange(res.data.user);
         } catch (error) {
           console.error("Auth init error:", error);
           const status = Number(error?.response?.status || 0);
@@ -230,12 +257,13 @@ export const AuthProvider = ({ children }) => {
       const res = await api.get("/auth/me");
       setUser(res.data.user);
       setNotificationCountForUser(res.data.user);
+      trackBalanceChange(res.data.user);
     } catch (error) {
       console.error("Refresh user error:", error);
     } finally {
       refreshInFlightRef.current = false;
     }
-  }, [token, setNotificationCountForUser]);
+  }, [token, setNotificationCountForUser, trackBalanceChange]);
 
   // Auto-refresh wallet/user balance in the background
   useEffect(() => {
@@ -282,9 +310,12 @@ export const AuthProvider = ({ children }) => {
       if (!prev) return prev;
       const merged = { ...prev, ...partialUser };
       setNotificationCountForUser(merged);
+      trackBalanceChange(merged);
       return merged;
     });
   };
+
+  const clearBalanceUpdate = () => setBalanceUpdate(null);
 
   return (
     <AuthContext.Provider
@@ -301,6 +332,8 @@ export const AuthProvider = ({ children }) => {
         refreshUser,
         setUser,
         updateUser,
+        balanceUpdate,
+        clearBalanceUpdate,
         markNotificationsAsSeen,
         incrementNotificationCount,
       }}
