@@ -98,18 +98,22 @@ const TopRandomScreen = () => {
             <Value>{month}</Value>
           </Row>
           <Row>
-            <Label>Prize per Winner</Label>
-            <Value>₦{Number(status?.prizeAmount || 10000).toLocaleString()}</Value>
-          </Row>
-          <Row>
             <Label>Winners</Label>
             <Value>
-              {Number(status?.winnersCount || 0)}/{Number(status?.maxWinners || 10)}
+              {Number(status?.winnersCount || 0)}/{Number(status?.maxWinners || 30)}
             </Value>
           </Row>
           <Row>
             <Label>Your Purchases This Month</Label>
             <Value>{Number(myStatus?.purchasesCount || 0)}</Value>
+          </Row>
+          <Row>
+            <Label>Minimum Purchases</Label>
+            <Value>{Number(status?.required || 25)}</Value>
+          </Row>
+          <Row>
+            <Label>Data Left to Qualify</Label>
+            <Value>{Number(status?.remaining || 0)}</Value>
           </Row>
           <Row>
             <Label>Status</Label>
@@ -123,6 +127,18 @@ const TopRandomScreen = () => {
                 : "Not Eligible Yet"}
             </Value>
           </Row>
+          <ProgressWrap>
+            <ProgressLabelRow>
+              <ProgressLabel>Progress to 25 purchases</ProgressLabel>
+              <ProgressValue>{Math.round(Number(status?.progress || 0))}%</ProgressValue>
+            </ProgressLabelRow>
+            <ProgressTrack>
+              <ProgressFill $width={Number(status?.progress || 0)} />
+            </ProgressTrack>
+            <ProgressNote>
+              {Number(status?.remaining || 0)} data left to complete the task.
+            </ProgressNote>
+          </ProgressWrap>
 
           <ActionRow>
             <PrimaryButton
@@ -141,7 +157,7 @@ const TopRandomScreen = () => {
           {loading && <Muted>Loading...</Muted>}
           {!loading && !status?.drawReady && (
             <Muted>
-              Draw is processed at the end of the month. Winners are selected from users who bought data this month.
+              Draw runs at month end. You need at least {Number(status?.required || 25)} purchases to be eligible.
             </Muted>
           )}
         </Card>
@@ -281,6 +297,50 @@ const ErrorText = styled.p`
   margin: 10px 0 0;
   color: #dc2626;
   font-size: 13px;
+`;
+
+const ProgressWrap = styled.div`
+  margin-top: 8px;
+  display: grid;
+  gap: 6px;
+`;
+
+const ProgressLabelRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #666;
+  font-weight: 600;
+`;
+
+const ProgressLabel = styled.span`
+  color: #666;
+`;
+
+const ProgressValue = styled.span`
+  color: #ff7a00;
+  font-weight: 700;
+`;
+
+const ProgressTrack = styled.div`
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: #eee;
+  overflow: hidden;
+`;
+
+const ProgressFill = styled.div`
+  height: 100%;
+  width: ${({ $width }) => Math.max(0, Math.min(100, Number($width || 0)))}%;
+  background: linear-gradient(90deg, #ff7a00, #ff4d00);
+  transition: width 0.3s ease;
+`;
+
+const ProgressNote = styled.span`
+  font-size: 12px;
+  color: #666;
 `;
 
 const Muted = styled.p`

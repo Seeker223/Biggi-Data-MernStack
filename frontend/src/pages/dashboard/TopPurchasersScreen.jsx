@@ -13,7 +13,7 @@ const TopPurchasersScreen = () => {
   const [leaderboard, setLeaderboard] = useState([]);
   const [monthLabel, setMonthLabel] = useState("");
   const [myPurchases, setMyPurchases] = useState(0);
-  const [threshold, setThreshold] = useState(10);
+  const [limit, setLimit] = useState(10);
   const [myRank, setMyRank] = useState(null);
 
   const username = user?.username || "User";
@@ -27,7 +27,7 @@ const TopPurchasersScreen = () => {
       const rows = Array.isArray(payload.leaderboard) ? payload.leaderboard : [];
       setLeaderboard(rows);
       setMyPurchases(Number(payload.myPurchases || 0));
-      setThreshold(Number(payload.threshold || 10));
+      setLimit(Number(payload.limit || 10));
       setMyRank(payload.myRank ?? null);
       if (payload?.month) {
         const date = new Date(`${payload.month}-01T00:00:00`);
@@ -49,8 +49,8 @@ const TopPurchasersScreen = () => {
 
   const emptyState = !loading && leaderboard.length === 0;
   const headerSubtitle = useMemo(() => {
-    if (monthLabel) return `Top purchasers for ${monthLabel}`;
-    return "Top purchasers this month";
+    if (monthLabel) return `Top sellers for ${monthLabel}`;
+    return "Top sellers this month";
   }, [monthLabel]);
 
   return (
@@ -60,7 +60,7 @@ const TopPurchasersScreen = () => {
           <ChevronLeft size={22} />
         </BackButton>
         <HeaderText>
-          <Title>Top Purchases</Title>
+          <Title>Top Sellers</Title>
           <Subtitle>{headerSubtitle}</Subtitle>
         </HeaderText>
         <RefreshButton onClick={loadLeaderboard} disabled={loading}>
@@ -75,7 +75,7 @@ const TopPurchasersScreen = () => {
             Monthly purchases: <strong>{myPurchases}</strong>
           </HeroMeta>
           <HeroMeta>
-            {myRank ? `Current rank: #${myRank}` : `Need ${threshold}+ purchases to qualify.`}
+            {myRank ? `Current rank: #${myRank}` : "Make sales to get ranked this month."}
           </HeroMeta>
         </HeroLeft>
         <HeroIconWrap>
@@ -85,18 +85,11 @@ const TopPurchasersScreen = () => {
 
       <ProgressCard>
         <ProgressRow>
-          <ProgressLabel>Progress to qualify</ProgressLabel>
-          <ProgressValue>
-            {Math.min(myPurchases, threshold)}/{threshold}
-          </ProgressValue>
+          <ProgressLabel>Leaderboard Size</ProgressLabel>
+          <ProgressValue>Top {limit}</ProgressValue>
         </ProgressRow>
-        <ProgressTrack>
-          <ProgressFill $width={(Math.min(myPurchases, threshold) / threshold) * 100} />
-        </ProgressTrack>
         <ProgressHint>
-          {myPurchases >= threshold
-            ? "You are qualified for the Top Purchasers leaderboard."
-            : `Complete ${Math.max(0, threshold - myPurchases)} more purchase(s) this month to qualify.`}
+          Rankings update live based on total purchases this month.
         </ProgressHint>
       </ProgressCard>
 
@@ -107,8 +100,8 @@ const TopPurchasersScreen = () => {
       ) : emptyState ? (
         <EmptyState>
           <ShoppingCart size={26} />
-          <p>No qualified users yet this month.</p>
-          <span>Make {threshold}+ data purchases to appear here.</span>
+          <p>No sales recorded yet this month.</p>
+          <span>Complete a data sale to appear here.</span>
         </EmptyState>
       ) : (
         <List>
@@ -120,7 +113,7 @@ const TopPurchasersScreen = () => {
                 <UserName>{entry.username || "User"}</UserName>
                 <UserMeta>{entry.state || "Nigeria"}</UserMeta>
               </UserInfo>
-              <CountPill>{entry.purchasesCount} purchases</CountPill>
+              <CountPill>{entry.purchasesCount} sales</CountPill>
             </Row>
           ))}
         </List>

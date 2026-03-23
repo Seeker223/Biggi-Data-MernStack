@@ -101,6 +101,7 @@ const HomeScreen = () => {
   const [referralWinModalData, setReferralWinModalData] = useState({ message: "", amount: null, id: null });
   const [referralGameModalVisible, setReferralGameModalVisible] = useState(false);
   const [topPurchaseModalVisible, setTopPurchaseModalVisible] = useState(false);
+  const [topRandomModalVisible, setTopRandomModalVisible] = useState(false);
   const [eligibilityError, setEligibilityError] = useState("");
 
   const [isUploading, setIsUploading] = useState(false);
@@ -279,11 +280,14 @@ const HomeScreen = () => {
   const mainBalance = Number(user.mainBalance || 0);
   const rewardBalance = Number(user.rewardBalance || 0);
   const tickets = Number(user.tickets || 0);
+  const merchantTopRandomRequired = 25;
+  const merchantTopRandomRemaining = Math.max(0, merchantTopRandomRequired - monthlyEligibility.purchases);
   const dataBundleCount = Number(user.dataBundleCount || 0);
   const totalSavings = Number(user.totalSavings || 0);
   const role = String(user?.userRole || "").toLowerCase();
   const isPrivateRole = role === "private";
   const isMerchantRole = role === "merchant";
+  const hasPurchasedData = dataBundleCount > 0;
   const useStaticVirtualAccount = FEATURE_FLAGS.USE_STATIC_VIRTUAL_ACCOUNT;
   const hasReferralActivity = referralCount > 0;
 
@@ -348,7 +352,7 @@ const HomeScreen = () => {
 
   const handleTopRandomGameClick = () => {
     if (FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM) return;
-    if (tickets <= 0) {
+    if (!isMerchantRole && tickets <= 0) {
       setTicketModalMessage("You need at least 1 ticket to access Top Random Monthly Picks.");
       setTicketModalVisible(true);
       return;
@@ -640,17 +644,19 @@ const HomeScreen = () => {
               </StatsContainer>
 
               {/* TICKETS */}
-              <TicketInfoBlock>
-                <TicketText>
-                  Available Tickets: <TicketCount>{tickets}</TicketCount>
-                </TicketText>
-                <InfoText>
-                  Buy Any Bundle to Unlock Weekly Game
-                  {isMerchantRole
-                    ? " + Monthly Raffle Tickets"
-                    : " + Top Random Picks"}
-                </InfoText>
-              </TicketInfoBlock>
+              {!isMerchantRole && (
+                <TicketInfoBlock>
+                  <TicketText>
+                    Available Tickets: <TicketCount>{tickets}</TicketCount>
+                  </TicketText>
+                  <InfoText>
+                    Buy Any Bundle to Unlock Weekly Game
+                    {isMerchantRole
+                      ? " + Monthly Raffle Tickets"
+                      : " + Top Random Picks"}
+                  </InfoText>
+                </TicketInfoBlock>
+              )}
             </MosaicRight>
           </MosaicTop>
 
@@ -667,38 +673,40 @@ const HomeScreen = () => {
                 </SmallBtn>
               </BundleLeft>
               <DividerVertical />
-              <BundleRight>
-                <TicketIconsRow>
-                  <TicketIconContainer aria-label="Weekly game tickets">
-                    <TicketGlow />
-                    <TicketIcon size={26} />
-                    <TicketBadge>
-                      <TicketBadgeText>{tickets}</TicketBadgeText>
-                    </TicketBadge>
-                  </TicketIconContainer>
+              {!isMerchantRole && (
+                <BundleRight>
+                  <TicketIconsRow>
+                    <TicketIconContainer aria-label="Weekly game tickets">
+                      <TicketGlow />
+                      <TicketIcon size={26} />
+                      <TicketBadge>
+                        <TicketBadgeText>{tickets}</TicketBadgeText>
+                      </TicketBadge>
+                    </TicketIconContainer>
 
-                  <SpecialTicketIconContainer aria-label="Monthly raffle tickets">
-                    <SpecialTicketGlow />
-                    <LottieWrap aria-hidden="true">
-                      <Lottie
-                        animationData={specialTicketAnim}
-                        loop
-                        autoplay
-                        style={{ width: 40, height: 40 }}
-                      />
-                    </LottieWrap>
-                    <SpecialTicketIcon size={22} />
-                    <SpecialTicketBadge>
-                      <SpecialTicketBadgeText>
-                        {monthlyEligibility.raffleTicketsUnplayed > 99
-                          ? "99+"
-                          : monthlyEligibility.raffleTicketsUnplayed}
-                      </SpecialTicketBadgeText>
-                    </SpecialTicketBadge>
-                  </SpecialTicketIconContainer>
-                </TicketIconsRow>
-                <BundleDesc>Use tickets for Weekly Draw. Earn raffle tickets for Monthly Draw.</BundleDesc>
-              </BundleRight>
+                    <SpecialTicketIconContainer aria-label="Monthly raffle tickets">
+                      <SpecialTicketGlow />
+                      <LottieWrap aria-hidden="true">
+                        <Lottie
+                          animationData={specialTicketAnim}
+                          loop
+                          autoplay
+                          style={{ width: 40, height: 40 }}
+                        />
+                      </LottieWrap>
+                      <SpecialTicketIcon size={22} />
+                      <SpecialTicketBadge>
+                        <SpecialTicketBadgeText>
+                          {monthlyEligibility.raffleTicketsUnplayed > 99
+                            ? "99+"
+                            : monthlyEligibility.raffleTicketsUnplayed}
+                        </SpecialTicketBadgeText>
+                      </SpecialTicketBadge>
+                    </SpecialTicketIconContainer>
+                  </TicketIconsRow>
+                  <BundleDesc>Use tickets for Weekly Draw. Earn raffle tickets for Monthly Draw.</BundleDesc>
+                </BundleRight>
+              )}
             </BundleCard>
 
             {/* DAILY GAME OR REFERRAL GAME (MERCHANT) */}
@@ -722,13 +730,17 @@ const HomeScreen = () => {
                 </GameSubtitle>
                 <PlayBtn
                   onClick={() => {
+                    if (!hasPurchasedData) {
+                      setReferralGameModalVisible(true);
+                      return;
+                    }
                     if (!hasReferralActivity) {
                       setReferralGameModalVisible(true);
                       return;
                     }
                     navigate("/referrals");
                   }}
-                  $locked={!hasReferralActivity}
+                  $locked={!hasPurchasedData || !hasReferralActivity}
                 >
                   <PlayText>
                     {hasReferralActivity ? "View Leaderboard" : "How to Qualify"}
@@ -769,29 +781,16 @@ const HomeScreen = () => {
 
             {/* MONTHLY GAME OR TOP PURCHASES (MERCHANT) */}
             {isMerchantRole ? (
-              <MonthlyGameCard $pulse={monthlyEligibility.purchases >= 10}>
+              <MonthlyGameCard $pulse={monthlyEligibility.purchases > 0}>
                 <MonthlyHeader>
                   <TrophyIcon size={24} />
-                  <MonthlyTitle>Top Purchasers</MonthlyTitle>
-                  <RaffleTicketPill aria-label="Monthly purchase target">
-                    <RaffleTicketGlow />
-                    <RaffleTicketIcon size={16} />
-                    <RaffleTicketText>Purchases</RaffleTicketText>
-                    <RaffleTicketBadge>
-                      {monthlyEligibility.purchases}
-                    </RaffleTicketBadge>
-                  </RaffleTicketPill>
-                  {monthlyEligibility.purchases >= 10 && (
-                    <EligibleBadge>
-                      <EligibleText>QUALIFIED</EligibleText>
-                    </EligibleBadge>
-                  )}
+                  <MonthlyTitle>Top Sellers</MonthlyTitle>
                 </MonthlyHeader>
 
                 <MonthlyPrize>
                   {FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM ? "Prize hidden" : ""}
                 </MonthlyPrize>
-                <MonthlySubtitle>Top 10 Purchasers This Month</MonthlySubtitle>
+                <MonthlySubtitle>Top 10 performers by data sales this month</MonthlySubtitle>
                 {eligibilityError ? (
                   <RetryNote role="button" onClick={loadMonthlyEligibility}>
                     {eligibilityError}
@@ -801,16 +800,14 @@ const HomeScreen = () => {
                 <ProgressContainer>
                   <ProgressLabels>
                     <ProgressText>
-                      {monthlyEligibility.purchases} of 10 purchases
+                      Your sales this month: {monthlyEligibility.purchases}
                     </ProgressText>
-                    <ProgressPercent>
-                      {Math.round(Math.min(100, (monthlyEligibility.purchases / 10) * 100))}%
-                    </ProgressPercent>
+                    <ProgressPercent>Live ranking</ProgressPercent>
                   </ProgressLabels>
                   <ProgressBar>
                     <ProgressFill
                       $width={Math.min(100, (monthlyEligibility.purchases / 10) * 100)}
-                      $color={monthlyEligibility.purchases >= 10 ? '#4CAF50' : '#8E2DE2'}
+                      $color={monthlyEligibility.purchases > 0 ? '#4CAF50' : '#8E2DE2'}
                     />
                   </ProgressBar>
                   <DaysLeftText>
@@ -820,25 +817,16 @@ const HomeScreen = () => {
 
                 <MonthlyBtn
                   onClick={() => {
-                    if (monthlyEligibility.purchases < 10) {
+                    if (!hasPurchasedData) {
                       setTopPurchaseModalVisible(true);
                       return;
                     }
                     navigate("/top-purchases");
                   }}
-                  $eligible={monthlyEligibility.purchases >= 10}
+                  $eligible
                 >
-                  {monthlyEligibility.purchases >= 10 ? (
-                    <>
-                      <CheckCircle size={18} />
-                      <MonthlyBtnText>View Top 10</MonthlyBtnText>
-                    </>
-                  ) : (
-                    <>
-                      <Info size={18} />
-                      <MonthlyBtnText>How to Qualify</MonthlyBtnText>
-                    </>
-                  )}
+                  <CheckCircle size={18} />
+                  <MonthlyBtnText>View Top 10</MonthlyBtnText>
                 </MonthlyBtn>
               </MonthlyGameCard>
             ) : (
@@ -930,12 +918,30 @@ const HomeScreen = () => {
                   <TopRandomIconWrap>
                     <Shuffle size={20} />
                   </TopRandomIconWrap>
-                  <TopRandomTitle>Top Random Monthly Picks</TopRandomTitle>
+                  <TopRandomTitle>
+                    {isMerchantRole ? "Merchant Top Random Picks" : "Top Random Monthly Picks"}
+                  </TopRandomTitle>
                 </TopRandomHeader>
                 <TopRandomDesc>
-                  10 random users who bought data this month win rewards.
+                  {isMerchantRole
+                    ? "30 random users who purchase at least 25 data this month."
+                    : "10 random users who bought data this month win rewards."}
                 </TopRandomDesc>
-                <TopRandomBtn onClick={handleTopRandomGameClick} $locked={tickets <= 0}>
+                {isMerchantRole ? (
+                  <DaysLeftText>
+                    Data left to qualify: {merchantTopRandomRemaining}
+                  </DaysLeftText>
+                ) : null}
+                <TopRandomBtn
+                  onClick={() => {
+                    if (!hasPurchasedData) {
+                      setTopRandomModalVisible(true);
+                      return;
+                    }
+                    handleTopRandomGameClick();
+                  }}
+                  $locked={!hasPurchasedData || (!isMerchantRole && tickets <= 0)}
+                >
                   <Trophy size={18} />
                   <TopRandomBtnText>Open Top Random Picks</TopRandomBtnText>
                 </TopRandomBtn>
@@ -967,7 +973,7 @@ const HomeScreen = () => {
         )}
 
         {/* TICKETS MODAL */}
-        {ticketModalVisible && (
+        {!isMerchantRole && ticketModalVisible && (
           <ModalOverlay>
             <ModalBox>
               <AlertCircle size={42} color="#FF7A00" />
@@ -1125,6 +1131,7 @@ const HomeScreen = () => {
                 To participate in the monthly referral leaderboard:
                 {"\n"}• Share your referral code with friends
                 {"\n"}• At least 1 successful referral this month
+                {"\n"}• Make at least 1 data purchase this month
                 {"\n"}• Rankings reset every month
               </ModalMsg>
               <ModalBtn onClick={() => navigate("/profile")}>
@@ -1144,8 +1151,8 @@ const HomeScreen = () => {
               <Trophy size={42} color="#FF7A00" />
               <ModalTitle>Top Purchasers Requirements</ModalTitle>
               <ModalMsg>
-                To appear on the Top Purchasers board:
-                {"\n"}• Complete at least 10 data purchases this month
+                To appear on the Top Sellers board:
+                {"\n"}• Make at least 1 data purchase this month
                 {"\n"}• Top 10 users are ranked by total purchases
                 {"\n"}• Rankings reset every month
               </ModalMsg>
@@ -1153,6 +1160,30 @@ const HomeScreen = () => {
                 <ModalBtnText>Buy Data</ModalBtnText>
               </ModalBtn>
               <ModalBtn $secondary onClick={() => setTopPurchaseModalVisible(false)}>
+                <ModalBtnText>Close</ModalBtnText>
+              </ModalBtn>
+            </ModalBox>
+          </ModalOverlay>
+        )}
+
+        {/* TOP RANDOM REQUIREMENTS */}
+        {topRandomModalVisible && (
+          <ModalOverlay>
+            <ModalBox>
+              <Shuffle size={42} color="#FF7A00" />
+              <ModalTitle>Top Random Picks Requirements</ModalTitle>
+              <ModalMsg>
+                To participate in Top Random Monthly Picks:
+                {"\n"}• Make at least 1 data purchase this month
+                {isMerchantRole
+                  ? "\n• Merchants need 25+ purchases to qualify"
+                  : ""}
+                {"\n"}• Winners are selected at month end
+              </ModalMsg>
+              <ModalBtn onClick={() => navigate("/buy-data")}>
+                <ModalBtnText>Buy Data</ModalBtnText>
+              </ModalBtn>
+              <ModalBtn $secondary onClick={() => setTopRandomModalVisible(false)}>
                 <ModalBtnText>Close</ModalBtnText>
               </ModalBtn>
             </ModalBox>
