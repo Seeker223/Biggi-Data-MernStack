@@ -12,9 +12,9 @@ const FloatingBottomNav = () => {
     { icon: Home, label: 'Home', path: '/' },
     { 
       icon: Ticket, 
-      label: 'Draws', 
-      path: '/daily-draw',
-      disabled: FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM
+      label: 'Buy Data', 
+      path: '/buy-data',
+      disabled: false
     },
     { icon: Wallet, label: 'Wallet', path: '/wallet' },
     { icon: User, label: 'Profile', path: '/profile' },

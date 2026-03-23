@@ -131,6 +131,11 @@ const AdminScreen = () => {
   const [depositFeePages, setDepositFeePages] = useState(1);
   const [depositFeeLoading, setDepositFeeLoading] = useState(false);
   const [depositFeeError, setDepositFeeError] = useState("");
+  const [openReferral, setOpenReferral] = useState(null);
+  const [referralSearch, setReferralSearch] = useState("");
+  const [referralShowAll, setReferralShowAll] = useState(() => ({}));
+  const [referralPage, setReferralPage] = useState(1);
+  const referralPageSize = 5;
 
   const isAdmin = useMemo(() => String(user?.role || "").toLowerCase() === "admin", [user?.role]);
   const myUserId = useMemo(() => String(user?.id || user?._id || ""), [user?.id, user?._id]);
@@ -726,6 +731,30 @@ const AdminScreen = () => {
   const users = data?.users || [];
   const topBuyers = data?.rankings?.topBuyers || [];
   const topWinners = data?.rankings?.topGameWinners || [];
+  const referralLeaderboard = data?.rankings?.referralLeaderboard || [];
+  const filteredReferralLeaderboard = referralLeaderboard.filter((entry) => {
+    const query = String(referralSearch || "").trim().toLowerCase();
+    if (!query) return true;
+    const referrer = entry?.referrer || {};
+    const haystack = [
+      referrer?.username,
+      referrer?.email,
+      entry?.referralCode,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    return haystack.includes(query);
+  });
+  const referralTotalPages = Math.max(
+    1,
+    Math.ceil(filteredReferralLeaderboard.length / referralPageSize)
+  );
+  const referralPageSafe = Math.min(Math.max(1, referralPage), referralTotalPages);
+  const pagedReferrals = filteredReferralLeaderboard.slice(
+    (referralPageSafe - 1) * referralPageSize,
+    referralPageSafe * referralPageSize
+  );
   const stateBreakdown = data?.stateBreakdown || [];
   const pagination = data?.pagination || { page: 1, totalPages: 1 };
   const userTotal = Number(summary.usersCount || 0);
@@ -978,6 +1007,105 @@ const AdminScreen = () => {
                 </MetricLine>
               </ChartCard>
             </VisualGrid>
+
+            <SectionTitle>Top Referrals</SectionTitle>
+            <ReferralSearchRow>
+              <ReferralSearchInput
+                value={referralSearch}
+                onChange={(e) => setReferralSearch(e.target.value)}
+                placeholder="Search by username, email, or referral code..."
+              />
+            </ReferralSearchRow>
+            <ReferralCard>
+              {pagedReferrals.length ? (
+                pagedReferrals.map((entry) => {
+                  const referrer = entry?.referrer;
+                  const isOpen = String(openReferral || "") === String(entry?.referralCode || "");
+                  const refCode = String(entry?.referralCode || "");
+                  const showAll = Boolean(referralShowAll?.[refCode]);
+                  const referrals = Array.isArray(entry?.referrals) ? entry.referrals : [];
+                  const visibleReferrals = showAll ? referrals : referrals.slice(0, 10);
+                  return (
+                    <ReferralRow key={`ref-${entry?.referralCode || entry?.rank}`}>
+                      <ReferralHeader
+                        type="button"
+                        onClick={() =>
+                          setOpenReferral(isOpen ? null : String(entry?.referralCode || ""))
+                        }
+                      >
+                        <div>
+                          <strong>
+                            #{entry?.rank}{" "}
+                            {referrer?.username || referrer?.email || entry?.referralCode || "Unknown"}
+                          </strong>
+                          <ReferralMeta>
+                            Code: {entry?.referralCode || "N/A"} •{" "}
+                            {entry?.referralsTotal || 0} referrals
+                          </ReferralMeta>
+                        </div>
+                        <ReferralBadge $open={isOpen}>{isOpen ? "Hide" : "View"}</ReferralBadge>
+                      </ReferralHeader>
+
+                      {isOpen ? (
+                        <ReferralDetails>
+                          {referrals.length ? (
+                            <ReferralList>
+                              {visibleReferrals.map((ref) => (
+                                <ReferralItem key={`ref-user-${ref?._id}`}>
+                                  <div>
+                                    <strong>{ref?.username || ref?.email || "User"}</strong>
+                                    <ReferralItemMeta>{ref?.email || "—"}</ReferralItemMeta>
+                                  </div>
+                                  <ReferralItemMeta>{dateFmt(ref?.createdAt)}</ReferralItemMeta>
+                                </ReferralItem>
+                              ))}
+                              {referrals.length > 10 ? (
+                                <ReferralToggle
+                                  type="button"
+                                  onClick={() =>
+                                    setReferralShowAll((prev) => ({
+                                      ...(prev || {}),
+                                      [refCode]: !showAll,
+                                    }))
+                                  }
+                                >
+                                  {showAll ? "Show fewer" : `Show all (${referrals.length})`}
+                                </ReferralToggle>
+                              ) : null}
+                            </ReferralList>
+                          ) : (
+                            <UserMeta>No referrals found for this code.</UserMeta>
+                          )}
+                        </ReferralDetails>
+                      ) : null}
+                    </ReferralRow>
+                  );
+                })
+              ) : (
+                <UserMeta>No referral leaderboard data yet.</UserMeta>
+              )}
+            </ReferralCard>
+            {filteredReferralLeaderboard.length > referralPageSize ? (
+              <ReferralPager>
+                <PagerBtn
+                  disabled={referralPageSafe <= 1}
+                  onClick={() => setReferralPage((p) => Math.max(1, p - 1))}
+                >
+                  Previous
+                </PagerBtn>
+                <PageLabel>
+                  Page {referralPageSafe} of {referralTotalPages}
+                </PageLabel>
+                <PagerBtn
+                  disabled={referralPageSafe >= referralTotalPages}
+                  onClick={() =>
+                    setReferralPage((p) => Math.min(referralTotalPages, p + 1))
+                  }
+                >
+                  Next
+                </PagerBtn>
+              </ReferralPager>
+            ) : null}
 
             <SectionTitle>Top Buyer Ranks (Top 100)</SectionTitle>
             <RankList>
@@ -2342,6 +2470,106 @@ const RankItem = styled.div`
   &:last-child {
     border-bottom: none;
   }
+`;
+
+const ReferralCard = styled.div`
+  background: #fff;
+  border: 1px solid #ececec;
+  border-radius: 14px;
+  padding: 6px;
+`;
+
+const ReferralSearchRow = styled.div`
+  margin: 0 0 8px;
+  display: flex;
+`;
+
+const ReferralSearchInput = styled.input`
+  width: 100%;
+  border: 1px solid #ececec;
+  border-radius: 10px;
+  height: 38px;
+  padding: 0 12px;
+  font-size: 13px;
+`;
+
+const ReferralRow = styled.div`
+  border-bottom: 1px solid #f1f1f1;
+  &:last-child {
+    border-bottom: none;
+  }
+`;
+
+const ReferralHeader = styled.button`
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 12px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+  cursor: pointer;
+`;
+
+const ReferralMeta = styled.div`
+  margin-top: 4px;
+  font-size: 12px;
+  color: #666;
+`;
+
+const ReferralBadge = styled.span`
+  background: ${(p) => (p.$open ? "#111" : "#ff7a00")};
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: 999px;
+`;
+
+const ReferralDetails = styled.div`
+  padding: 0 12px 12px;
+`;
+
+const ReferralList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+const ReferralItem = styled.div`
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid #f0f0f0;
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: #fafafa;
+  font-size: 13px;
+`;
+
+const ReferralToggle = styled.button`
+  align-self: flex-start;
+  border: none;
+  background: transparent;
+  color: #ff7a00;
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0;
+`;
+
+const ReferralItemMeta = styled.div`
+  font-size: 12px;
+  color: #777;
+`;
+
+const ReferralPager = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 10px 4px 0;
+  gap: 8px;
 `;
 
 const UsersWrap = styled.div`
