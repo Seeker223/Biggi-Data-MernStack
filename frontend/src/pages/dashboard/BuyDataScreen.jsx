@@ -30,6 +30,14 @@ const BuyDataScreen = () => {
   const PHONE_STORAGE_KEY = "buyDataPhone";
   const PHONE_TOUCHED_KEY = "buyDataPhoneTouched";
 
+  const normalizePhone = (value) => {
+    const digits = String(value || "").replace(/\D/g, "");
+    if (digits.startsWith("234") && digits.length >= 13) {
+      return `0${digits.slice(digits.length - 10)}`.slice(0, 11);
+    }
+    return digits.slice(0, 11);
+  };
+
   useEffect(() => {
     setPinConfigured(Boolean(user?.transactionPinEnabled));
   }, [user?.transactionPinEnabled]);
@@ -47,10 +55,10 @@ const BuyDataScreen = () => {
       setPrice(Number(p.amount || p.price || 0));
     }
     if (location.state?.phone && !phoneTouched && !phone) {
-      setPhone(String(location.state.phone).replace(/\D/g, "").slice(0, 11));
+      setPhone(normalizePhone(location.state.phone));
       sessionStorage.setItem(
         PHONE_STORAGE_KEY,
-        String(location.state.phone).replace(/\D/g, "").slice(0, 11)
+        normalizePhone(location.state.phone)
       );
     }
   }, [location.state]);
@@ -59,24 +67,25 @@ const BuyDataScreen = () => {
     const persisted = sessionStorage.getItem(PHONE_STORAGE_KEY);
     const touchedFlag = sessionStorage.getItem(PHONE_TOUCHED_KEY);
     if (persisted !== null && !phone) {
-      setPhone(String(persisted));
+      setPhone(normalizePhone(persisted));
       setPhoneTouched(true);
       return;
     }
     if (!phoneTouched && !phone && !touchedFlag && user?.phoneNumber) {
-      const normalized = String(user.phoneNumber).replace(/\D/g, "").slice(0, 11);
+      const normalized = normalizePhone(user.phoneNumber);
       setPhone(normalized);
       sessionStorage.setItem(PHONE_STORAGE_KEY, normalized);
     }
   }, [user?.phoneNumber, phone, phoneTouched]);
 
   const applyProfilePhone = () => {
-    const normalized = String(user?.phoneNumber || "").replace(/\D/g, "").slice(0, 11);
+    const normalized = normalizePhone(user?.phoneNumber || "");
     if (!normalized) return;
     setPhoneTouched(true);
     sessionStorage.setItem(PHONE_TOUCHED_KEY, "1");
     sessionStorage.setItem(PHONE_STORAGE_KEY, normalized);
     setPhone(normalized);
+    setErrorMsg("");
   };
 
   // Always resolve plan details from backend by plan_id.
@@ -115,6 +124,8 @@ const BuyDataScreen = () => {
     if (!price || price <= 0) return "Invalid plan price";
     return null;
   };
+
+  const isFormValid = !validate();
 
   const handlePay = async () => {
     const err = validate();
@@ -260,11 +271,12 @@ const BuyDataScreen = () => {
                 value={phone}
                 maxLength={11}
                 onChange={(e) => {
-                  const next = e.target.value.replace(/\D/g, "").slice(0, 11);
+                  const next = normalizePhone(e.target.value);
                   setPhoneTouched(true);
                   sessionStorage.setItem(PHONE_TOUCHED_KEY, "1");
                   sessionStorage.setItem(PHONE_STORAGE_KEY, next);
                   setPhone(next);
+                  setErrorMsg("");
                 }}
                 disabled={loading}
               />
@@ -306,7 +318,7 @@ const BuyDataScreen = () => {
 
             {errorMsg && <ErrorMsg>{errorMsg}</ErrorMsg>}
 
-            <PayButton onClick={handlePay} disabled={loading}>
+            <PayButton onClick={handlePay} disabled={loading || !isFormValid}>
               {loading ? (
                 <LoadingContainer>
                   <Spinner />
