@@ -158,6 +158,7 @@ export const AuthProvider = ({ children }) => {
       setUser(userData);
       api.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
       setNotificationCountForUser(userData);
+      trackBalanceChange(userData);
       
       return { success: true };
     } catch (error) {
@@ -192,6 +193,7 @@ export const AuthProvider = ({ children }) => {
       setUser(userData);
       api.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
       setNotificationCountForUser(userData);
+      trackBalanceChange(userData);
       return { success: true };
     } catch (error) {
       return {
@@ -229,6 +231,7 @@ export const AuthProvider = ({ children }) => {
       setUser(createdUser);
       api.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
       setNotificationCountForUser(createdUser);
+      trackBalanceChange(createdUser);
       
       return { success: true };
     } catch (error) {
