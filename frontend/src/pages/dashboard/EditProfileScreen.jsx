@@ -163,18 +163,18 @@ export default function EditProfileScreen() {
               disabled={Boolean(user?.referredByCode)}
             />
 
-            <Label>BVN (11 digits)</Label>
+            <Label>BVN (optional)</Label>
             <Input
               value={bvn}
               onChange={(e) => setBvn(e.target.value.replace(/\D/g, "").slice(0, 11))}
-              placeholder="Required for virtual account deposits"
+              placeholder="Optional"
             />
 
             <Label>NIN (11 digits)</Label>
             <Input
               value={nin}
               onChange={(e) => setNin(e.target.value.replace(/\D/g, "").slice(0, 11))}
-              placeholder="Optional if BVN provided"
+              placeholder="Required for static virtual account"
             />
 
             <PrimaryBtn type="button" onClick={submitProfile} disabled={loading}>
