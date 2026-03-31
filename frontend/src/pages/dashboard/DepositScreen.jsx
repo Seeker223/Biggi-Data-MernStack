@@ -18,6 +18,7 @@ import {
   getVirtualAccount,
   getDepositStatus,
   getDepositFeeSettings,
+  getDepositHistory,
   reconcilePayment,
   setTransactionPin,
   verifyTransactionPin,
@@ -100,6 +101,7 @@ const DepositScreen = () => {
   const [virtualLoading, setVirtualLoading] = useState(false);
   const [virtualError, setVirtualError] = useState("");
   const [virtualUpdatedAt, setVirtualUpdatedAt] = useState(null);
+  const [lastDeposit, setLastDeposit] = useState(null);
 
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
@@ -148,6 +150,20 @@ const DepositScreen = () => {
         if (!mounted) return;
         const settings = res?.data?.settings;
         if (settings) setFeeSettings(normalizeFeeSettings(settings));
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    getDepositHistory()
+      .then((res) => {
+        if (!mounted) return;
+        const deposits = res?.data?.deposits || [];
+        setLastDeposit(deposits?.[0] || null);
       })
       .catch(() => {});
     return () => {
@@ -313,7 +329,11 @@ const DepositScreen = () => {
         if (status === "successful") {
           stopPolling();
           setPaymentStatus("success");
-          showToast("Wallet credited successfully!", "success");
+          if (res?.data?.alreadyCredited) {
+            showToast("Payment already credited earlier.", "info");
+          } else {
+            showToast("Wallet credited successfully!", "success");
+          }
           setAmount("");
           await refreshUser();
           return;
@@ -539,6 +559,12 @@ const DepositScreen = () => {
                   Transfer any amount to your static virtual account below. Your wallet will auto-credit
                   once payment confirms.
                 </DetailText>
+                {lastDeposit ? (
+                  <DetailText>
+                    Last deposit: {formatNaira(lastDeposit.amount)} on{" "}
+                    {new Date(lastDeposit.createdAt).toLocaleString()}
+                  </DetailText>
+                ) : null}
               </DepositDetails>
 
               <AccountCard>
@@ -613,6 +639,12 @@ const DepositScreen = () => {
                     <TotalValue>{formatNaira(totalAmount)}</TotalValue>
                   </BreakdownRow>
                 </Breakdown>
+              ) : null}
+              {lastDeposit ? (
+                <LastDepositCard>
+                  Last deposit: {formatNaira(lastDeposit.amount)} on{" "}
+                  {new Date(lastDeposit.createdAt).toLocaleString()}
+                </LastDepositCard>
               ) : null}
 
               {renderReconcileButton()}
@@ -983,6 +1015,16 @@ const DepositDetails = styled.div`
   border: 1px solid #eee;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
   margin-bottom: 16px;
+`;
+
+const LastDepositCard = styled.div`
+  margin-top: 12px;
+  background: #fff;
+  border: 1px solid #f0f0f0;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 12px;
+  color: #555;
 `;
 
 const DetailTitle = styled.h3`
