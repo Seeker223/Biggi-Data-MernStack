@@ -20,7 +20,6 @@ export default function EditProfileScreen() {
   const [email, setEmail] = useState("");
   const [stateValue, setStateValue] = useState("");
   const [referralInvite, setReferralInvite] = useState("");
-  const [bvn, setBvn] = useState("");
   const [nin, setNin] = useState("");
 
   useEffect(() => {
@@ -31,7 +30,6 @@ export default function EditProfileScreen() {
     setAvatarPreview(user.photo || "");
     setStateValue(user.state || "");
     setReferralInvite(user.referredByCode || "");
-    setBvn(user.bvn || "");
     setNin(user.nin || "");
   }, [user]);
 
@@ -78,7 +76,6 @@ export default function EditProfileScreen() {
         email,
         state: stateValue,
         referredByCode: referralInvite,
-        bvn,
         nin,
       });
 
@@ -161,13 +158,6 @@ export default function EditProfileScreen() {
               onChange={(e) => setReferralInvite(e.target.value)}
               placeholder={user?.referredByCode ? "Referral code already set" : "Enter referral code"}
               disabled={Boolean(user?.referredByCode)}
-            />
-
-            <Label>BVN (optional)</Label>
-            <Input
-              value={bvn}
-              onChange={(e) => setBvn(e.target.value.replace(/\D/g, "").slice(0, 11))}
-              placeholder="Optional"
             />
 
             <Label>NIN (11 digits)</Label>

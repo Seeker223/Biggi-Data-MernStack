@@ -143,7 +143,6 @@ const ProfileScreen = () => {
           <Name>{user.username || "User"}</Name>
           <IdText>ID: {String(user._id || "").slice(-8)}</IdText>
           <IdText>Referral Code: {user.referralCode || "-"}</IdText>
-          <IdText>BVN: {maskId(user.bvn)}</IdText>
           <IdText>NIN: {maskId(user.nin)}</IdText>
           {user.referralCode && (
             <ReferralRow>
