@@ -290,8 +290,11 @@ const HomeScreen = () => {
   const hasPurchasedData = dataBundleCount > 0;
   const useStaticVirtualAccount = FEATURE_FLAGS.USE_STATIC_VIRTUAL_ACCOUNT;
   const hasReferralActivity = referralCount > 0;
+  const needsNinForStaticAccount =
+    useStaticVirtualAccount && !virtualAccount?.accountNumber && !user?.nin;
 
   const goToDeposit = () => navigate('/deposit');
+  const goToEditProfile = () => navigate('/edit-profile');
   const goToWithdraw = () => navigate('/withdraw');
   const goToBundle = () => navigate('/buy-data');
   const goToRedeem = () => navigate('/redeem');
@@ -598,10 +601,10 @@ const HomeScreen = () => {
                   </div>
                   <ActionButtons>
                     <ActionBtn
-                      onClick={goToDeposit}
+                      onClick={needsNinForStaticAccount ? goToEditProfile : goToDeposit}
                       disabled={FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM}
                     >
-                      <ActionText>Deposit</ActionText>
+                      <ActionText>{needsNinForStaticAccount ? "Add NIN" : "Deposit"}</ActionText>
                     </ActionBtn>
                     {!FEATURE_FLAGS.DISABLE_WITHDRAWALS ? (
                       <ActionBtn
