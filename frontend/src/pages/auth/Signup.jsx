@@ -15,6 +15,7 @@ const Signup = () => {
     phoneNumber: '',
     birthDate: '',
     state: '',
+    nin: '',
     referralCode: '',
     password: '',
     confirmPassword: '',
@@ -37,7 +38,7 @@ const Signup = () => {
 
   const handleRegister = async (e) => {
     e.preventDefault();
-    const { username, email, password, phoneNumber, birthDate, confirmPassword, state, referralCode } = form;
+    const { username, email, password, phoneNumber, birthDate, confirmPassword, state, referralCode, nin } = form;
 
     if (!username || !email || !password || !confirmPassword) {
       showModal('Please fill all required fields.', 'error');
@@ -57,6 +58,12 @@ const Signup = () => {
     const birthDateRegex = /^\d{2}-\d{2}-\d{2}$/;
     if (!birthDateRegex.test(birthDate)) {
       showModal('Date of Birth must be in DD-MM-YY format.', 'error');
+      return;
+    }
+
+    const ninDigits = String(nin || "").replace(/\D/g, "");
+    if (ninDigits.length !== 11) {
+      showModal('Please enter a valid 11-digit NIN.', 'error');
       return;
     }
 
@@ -85,6 +92,7 @@ const Signup = () => {
         phoneNumber,
         birthDate,
         state,
+        nin: ninDigits,
         referralCode: referralCode.trim(),
       });
       
@@ -224,6 +232,19 @@ const Signup = () => {
                   </option>
                 ))}
               </SelectInput>
+            </InputWrapper>
+
+            {/* NIN */}
+            <InputWrapper>
+              <Label>NIN *</Label>
+              <TextInput
+                type="text"
+                placeholder="11-digit NIN"
+                value={form.nin}
+                onChange={(e) => setForm({ ...form, nin: e.target.value })}
+                maxLength={11}
+                inputMode="numeric"
+              />
             </InputWrapper>
 
             {/* Referral Code */}
