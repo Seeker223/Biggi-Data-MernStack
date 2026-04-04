@@ -27,6 +27,7 @@ const Signup = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [modalType, setModalType] = useState('success');
   const [modalMessage, setModalMessage] = useState('');
+  const [errorToast, setErrorToast] = useState('');
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -84,6 +85,7 @@ const Signup = () => {
     }
 
     setLoading(true);
+    setErrorToast('');
     try {
       const res = await register({
         username,
@@ -114,11 +116,15 @@ const Signup = () => {
           navigate('/');
         }, 1500);
       } else {
-        showModal(res.error || 'Registration failed. Please try again.', 'error');
+        const msg = res.error || 'Registration failed. Please try again.';
+        showModal(msg, 'error');
+        setErrorToast(msg);
       }
     } catch (error) {
       console.error('Registration error:', error);
-      showModal('An unexpected error occurred. Please try again.', 'error');
+      const msg = error?.response?.data?.error || 'An unexpected error occurred. Please try again.';
+      showModal(msg, 'error');
+      setErrorToast(msg);
     } finally {
       setLoading(false);
     }
@@ -161,6 +167,11 @@ const Signup = () => {
   return (
     <PageContainer>
       <ContentContainer>
+        {errorToast && (
+          <Toast role="alert">
+            <ToastText>{errorToast}</ToastText>
+          </Toast>
+        )}
         {/* Header */}
         <HeaderContainer>
           <HeaderText>Create Account</HeaderText>
@@ -707,6 +718,24 @@ const FooterLink = styled(Link)`
   @media (max-width: 480px) {
     font-size: 13px;
   }
+`;
+
+const Toast = styled.div`
+  width: 100%;
+  max-width: 520px;
+  background: #fff4f4;
+  border: 1px solid #f4b4b4;
+  color: #b91c1c;
+  padding: 10px 14px;
+  border-radius: 10px;
+  margin: 0 auto 12px;
+  box-shadow: 0 6px 16px rgba(185, 28, 28, 0.12);
+`;
+
+const ToastText = styled.p`
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
 `;
 
 // Modal Styles
