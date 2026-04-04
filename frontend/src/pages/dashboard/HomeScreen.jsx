@@ -321,6 +321,16 @@ const HomeScreen = () => {
     navigate('/daily-draw');
   };
 
+  const handleWeeklyCardGame = () => {
+    if (FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM) return;
+    if (tickets <= 0) {
+      setTicketModalMessage("You need at least 1 ticket to play the Weekly Card Game.");
+      setTicketModalVisible(true);
+      return;
+    }
+    navigate('/daily-draw');
+  };
+
   const loadReferralLeaderboard = useCallback(async () => {
     try {
       setReferralLoading(true);
@@ -714,50 +724,78 @@ const HomeScreen = () => {
 
             {/* DAILY GAME OR REFERRAL GAME (MERCHANT) */}
             {isMerchantRole ? (
-              <GameCard>
-                <GamepadIcon size={28} />
-                <GameTitle>Referral Leaderboard</GameTitle>
-                <GameSubtitle>
-                  <SubtitleRow>
-                    <SubtitleIcon as={Users} size={16} />
-                    <span>
-                      {referralMonthLabel
-                        ? `Ranks for ${referralMonthLabel}`
-                        : "Monthly referral rankings"}
-                    </span>
-                  </SubtitleRow>
-                  <SubtitleRow>
-                    <SubtitleIcon as={Ticket} size={16} />
-                    <span>Refer at least 1 user to unlock</span>
-                  </SubtitleRow>
-                </GameSubtitle>
-                <PlayBtn
-                  onClick={() => {
-                    if (!hasPurchasedData) {
-                      setReferralGameModalVisible(true);
-                      return;
-                    }
-                    if (!hasReferralActivity) {
-                      setReferralGameModalVisible(true);
-                      return;
-                    }
-                    navigate("/referrals");
-                  }}
-                  $locked={!hasPurchasedData || !hasReferralActivity}
-                >
-                  <PlayText>
-                    {hasReferralActivity ? "View Leaderboard" : "How to Qualify"}
-                  </PlayText>
-                </PlayBtn>
-                {referralError ? (
-                  <RetryNote role="button" onClick={loadReferralLeaderboard}>
-                    {referralError}
-                  </RetryNote>
-                ) : null}
-                {referralLoading ? (
-                  <DaysLeftText>Loading referral status...</DaysLeftText>
-                ) : null}
-              </GameCard>
+              <>
+                <GameCard>
+                  <GamepadIcon size={28} />
+                  <GameTitle>Referral Leaderboard</GameTitle>
+                  <GameSubtitle>
+                    <SubtitleRow>
+                      <SubtitleIcon as={Users} size={16} />
+                      <span>
+                        {referralMonthLabel
+                          ? `Ranks for ${referralMonthLabel}`
+                          : "Monthly referral rankings"}
+                      </span>
+                    </SubtitleRow>
+                    <SubtitleRow>
+                      <SubtitleIcon as={Ticket} size={16} />
+                      <span>Refer at least 1 user to unlock</span>
+                    </SubtitleRow>
+                  </GameSubtitle>
+                  <PlayBtn
+                    onClick={() => {
+                      if (!hasPurchasedData) {
+                        setReferralGameModalVisible(true);
+                        return;
+                      }
+                      if (!hasReferralActivity) {
+                        setReferralGameModalVisible(true);
+                        return;
+                      }
+                      navigate("/referrals");
+                    }}
+                    $locked={!hasPurchasedData || !hasReferralActivity}
+                  >
+                    <PlayText>
+                      {hasReferralActivity ? "View Leaderboard" : "How to Qualify"}
+                    </PlayText>
+                  </PlayBtn>
+                  {referralError ? (
+                    <RetryNote role="button" onClick={loadReferralLeaderboard}>
+                      {referralError}
+                    </RetryNote>
+                  ) : null}
+                  {referralLoading ? (
+                    <DaysLeftText>Loading referral status...</DaysLeftText>
+                  ) : null}
+                </GameCard>
+
+                <GameCard>
+                  <GamepadIcon size={28} />
+                  <GameTitle>Weekly Card Game</GameTitle>
+                  <GameSubtitle>
+                    <SubtitleRow>
+                      <SubtitleIcon as={Ticket} size={16} />
+                      <span>Uses 1 ticket per play</span>
+                    </SubtitleRow>
+                    <SubtitleRow>
+                      <SubtitleIcon as={Calendar} size={16} />
+                      <span>Results: month end</span>
+                    </SubtitleRow>
+                    <SubtitleRow>
+                      <SubtitleIcon as={Ticket} size={16} />
+                      <span>Tickets available: {tickets}</span>
+                    </SubtitleRow>
+                  </GameSubtitle>
+                  <PlayBtn
+                    onClick={handleWeeklyCardGame}
+                    disabled={FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM}
+                    $locked={tickets <= 0}
+                  >
+                    <PlayText>Play Now</PlayText>
+                  </PlayBtn>
+                </GameCard>
+              </>
             ) : (
               <GameCard>
                 <GamepadIcon size={28} />
@@ -976,7 +1014,7 @@ const HomeScreen = () => {
         )}
 
         {/* TICKETS MODAL */}
-        {!isMerchantRole && ticketModalVisible && (
+        {ticketModalVisible && (
           <ModalOverlay>
             <ModalBox>
               <AlertCircle size={42} color="#FF7A00" />
