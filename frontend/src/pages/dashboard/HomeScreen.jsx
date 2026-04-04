@@ -282,6 +282,9 @@ const HomeScreen = () => {
   const tickets = Number(user.tickets || 0);
   const merchantTopRandomRequired = 25;
   const merchantTopRandomRemaining = Math.max(0, merchantTopRandomRequired - monthlyEligibility.purchases);
+  const merchantWeeklyRequired = 7;
+  const weeklyPurchases = Number(user?.currentWeekPurchases || 0);
+  const merchantWeeklyRemaining = Math.max(0, merchantWeeklyRequired - weeklyPurchases);
   const dataBundleCount = Number(user.dataBundleCount || 0);
   const totalSavings = Number(user.totalSavings || 0);
   const role = String(user?.userRole || "").toLowerCase();
@@ -773,20 +776,29 @@ const HomeScreen = () => {
                 <GameCard>
                   <GamepadIcon size={28} />
                   <GameTitle>Weekly Card Game</GameTitle>
-                  <GameSubtitle>
-                    <SubtitleRow>
-                      <SubtitleIcon as={Ticket} size={16} />
-                      <span>Uses 1 ticket per play</span>
-                    </SubtitleRow>
-                    <SubtitleRow>
-                      <SubtitleIcon as={Calendar} size={16} />
-                      <span>Results: month end</span>
-                    </SubtitleRow>
-                    <SubtitleRow>
-                      <SubtitleIcon as={Ticket} size={16} />
-                      <span>Tickets available: {tickets}</span>
-                    </SubtitleRow>
-                  </GameSubtitle>
+                <GameSubtitle>
+                  <SubtitleRow>
+                    <SubtitleIcon as={Ticket} size={16} />
+                    <span>Uses 1 ticket per play</span>
+                  </SubtitleRow>
+                  <SubtitleRow>
+                    <SubtitleIcon as={Calendar} size={16} />
+                    <span>Results: week end</span>
+                  </SubtitleRow>
+                  <SubtitleRow>
+                    <SubtitleIcon as={Ticket} size={16} />
+                    <span>Tickets available: {tickets}</span>
+                  </SubtitleRow>
+                  <SubtitleRow>
+                    <SubtitleIcon as={Ticket} size={16} />
+                    <span>
+                      Earn 1 ticket per 7 purchases{" "}
+                      {merchantWeeklyRemaining > 0
+                        ? `• ${merchantWeeklyRemaining} to next ticket`
+                        : "• Ticket ready"}
+                    </span>
+                  </SubtitleRow>
+                </GameSubtitle>
                   <PlayBtn
                     onClick={handleWeeklyCardGame}
                     disabled={FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM}

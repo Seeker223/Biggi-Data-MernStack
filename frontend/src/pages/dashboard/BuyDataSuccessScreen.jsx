@@ -1,4 +1,4 @@
-import React, { useContext, useMemo } from "react";
+import React, { useContext, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { FEATURE_FLAGS } from "../../constants/featureFlags";
@@ -9,6 +9,8 @@ const BuyDataSuccessScreen = () => {
   const navigate = useNavigate();
   const { state } = useLocation();
   const { user } = useContext(AuthContext);
+  const isMerchantRole = String(user?.userRole || "").toLowerCase() === "merchant";
+  const [showWeeklyModal, setShowWeeklyModal] = useState(isMerchantRole);
 
   const phone = state?.phone || "";
   const network = state?.network || "";
@@ -25,6 +27,17 @@ const BuyDataSuccessScreen = () => {
     const progressPct = purchases === 0 ? 0 : mod * 20; // progress toward the NEXT ticket
     return { purchases, ticketsEarned, nextIn, qualifyIn, progressPct };
   }, [user?.currentMonthPurchases]);
+
+  const weeklyCardProgress = useMemo(() => {
+    const purchases = Math.max(0, Number(user?.currentWeekPurchases || 0));
+    const required = 7;
+    const ticketsEarned = Math.floor(purchases / required);
+    const mod = purchases % required;
+    const nextIn = purchases === 0 ? required : mod === 0 ? required : required - mod;
+    const qualifyIn = purchases >= required ? 0 : required - purchases;
+    const progressPct = purchases === 0 ? 0 : Math.round((mod / required) * 100);
+    return { purchases, ticketsEarned, nextIn, qualifyIn, progressPct };
+  }, [user?.currentWeekPurchases]);
 
   return (
     <Wrap>
@@ -70,6 +83,37 @@ const BuyDataSuccessScreen = () => {
           Play Weekly Game
         </Btn>
       </Card>
+      {isMerchantRole && showWeeklyModal && (
+        <Overlay>
+          <ModalCard>
+            <ModalTitle>Weekly Card Game</ModalTitle>
+            <ModalText>
+              Congratulations! You stand a chance to predict and win our weekly reward.
+            </ModalText>
+            <ModalText>
+              Purchases this week: <strong>{weeklyCardProgress.purchases}</strong>
+            </ModalText>
+            {weeklyCardProgress.qualifyIn > 0 ? (
+              <ModalText>
+                Buy <strong>{weeklyCardProgress.qualifyIn}</strong> more purchase
+                {weeklyCardProgress.qualifyIn === 1 ? "" : "s"} to earn 1 weekly card ticket.
+              </ModalText>
+            ) : (
+              <ModalText>
+                You have earned <strong>{weeklyCardProgress.ticketsEarned}</strong> ticket
+                {weeklyCardProgress.ticketsEarned === 1 ? "" : "s"}. Next ticket in{" "}
+                <strong>{weeklyCardProgress.nextIn}</strong> purchase
+                {weeklyCardProgress.nextIn === 1 ? "" : "s"}.
+              </ModalText>
+            )}
+            <ModalProgress aria-label="Weekly card progress">
+              <ModalProgressFill $pct={Math.min(100, weeklyCardProgress.progressPct)} />
+            </ModalProgress>
+            <ModalNote>Every 7 data purchases this week gives 1 weekly game ticket.</ModalNote>
+            <ModalBtn onClick={() => setShowWeeklyModal(false)}>Continue</ModalBtn>
+          </ModalCard>
+        </Overlay>
+      )}
     </Wrap>
   );
 };
@@ -181,4 +225,67 @@ const Btn = styled.button`
     opacity: 0.6;
     cursor: not-allowed;
   }
+`;
+
+const Overlay = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: grid;
+  place-items: center;
+  z-index: 50;
+`;
+
+const ModalCard = styled.div`
+  width: min(92vw, 420px);
+  background: #fff;
+  border-radius: 18px;
+  padding: 22px;
+  text-align: center;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+`;
+
+const ModalTitle = styled.h2`
+  margin: 0 0 10px;
+  font-size: 20px;
+`;
+
+const ModalText = styled.p`
+  margin: 6px 0;
+  color: #333;
+  font-size: 14px;
+  line-height: 1.35;
+  strong {
+    color: #ff7a00;
+  }
+`;
+
+const ModalProgress = styled.div`
+  margin: 12px 0 8px;
+  height: 8px;
+  background: #ffe8d4;
+  border-radius: 999px;
+  overflow: hidden;
+`;
+
+const ModalProgressFill = styled.div`
+  height: 100%;
+  width: ${({ $pct }) => `${Number($pct || 0)}%`};
+  background: linear-gradient(90deg, #ff7a00 0%, #111 100%);
+`;
+
+const ModalNote = styled.p`
+  margin: 0 0 14px;
+  font-size: 12px;
+  color: #666;
+`;
+
+const ModalBtn = styled.button`
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 18px;
+  background: #111;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
 `;
