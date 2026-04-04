@@ -355,6 +355,9 @@ export const getDailyResult = () => api.get("/game/daily/result");
 
 export const getDailyGameHistory = () => api.get("/game/daily/history");
 
+export const getMerchantWeeklyWinners = (week) =>
+  api.get("/daily-game/merchant-winners", week ? { params: { week } } : {});
+
 // MONTHLY GAMES
 export const getMonthlyEligibility = () => 
   api.get("/monthly-game/eligibility");

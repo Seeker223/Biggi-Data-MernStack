@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useMemo, useState } from "react";
+import React, { useCallback, useContext, useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { ArrowLeft, History, RefreshCcw, Ticket, Trophy } from "lucide-react";
@@ -6,11 +6,21 @@ import { AuthContext } from "../../context/AuthContext";
 import { FEATURE_FLAGS } from "../../constants/featureFlags";
 import BrandLoader from "../../components/BrandLoader";
 import { toLetters } from "../../utils/drawLetters";
+import { getMerchantWeeklyWinners } from "../../services/api";
 
 const DailyHistoryScreen = () => {
   const navigate = useNavigate();
   const { user, refreshUser, loading } = useContext(AuthContext);
   const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState("history");
+  const [winners, setWinners] = useState([]);
+  const [winnersLoading, setWinnersLoading] = useState(false);
+  const [winnersError, setWinnersError] = useState("");
+  const [winnersMeta, setWinnersMeta] = useState({
+    week: "",
+    revealReady: false,
+    revealAt: "",
+  });
 
   const history = useMemo(() => {
     const items = Array.isArray(user?.dailyNumberDraw) ? user.dailyNumberDraw : [];
@@ -41,6 +51,42 @@ const DailyHistoryScreen = () => {
     navigate("/daily-draw");
   };
 
+  const isMerchantRole = String(user?.userRole || "").toLowerCase() === "merchant";
+
+  const loadWinners = useCallback(() => {
+    let mounted = true;
+    setWinnersLoading(true);
+    setWinnersError("");
+    getMerchantWeeklyWinners()
+      .then((res) => {
+        if (!mounted) return;
+        const payload = res?.data || {};
+        setWinners(Array.isArray(payload.winners) ? payload.winners : []);
+        setWinnersMeta({
+          week: payload.week || "",
+          revealReady: Boolean(payload.revealReady),
+          revealAt: payload.revealAt || "",
+        });
+      })
+      .catch((err) => {
+        if (!mounted) return;
+        setWinnersError(err?.response?.data?.message || "Unable to load weekly winners.");
+      })
+      .finally(() => {
+        if (!mounted) return;
+        setWinnersLoading(false);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isMerchantRole || activeTab !== "winners") return;
+    const cleanup = loadWinners();
+    return cleanup;
+  }, [activeTab, isMerchantRole, loadWinners]);
+
   if (loading) {
     return (
       <Page>
@@ -56,16 +102,41 @@ const DailyHistoryScreen = () => {
           <IconButton onClick={() => navigate(-1)} aria-label="Go back">
             <ArrowLeft size={20} />
           </IconButton>
-          <Title>Weekly Plays History</Title>
+          <Title>{activeTab === "winners" ? "Weekly Winners" : "Weekly Plays History"}</Title>
           <IconButton onClick={onRefresh} aria-label="Refresh">
             <RefreshCcw size={18} />
           </IconButton>
         </Header>
 
+        {isMerchantRole && (
+          <Tabs>
+            <TabButton
+              type="button"
+              $active={activeTab === "history"}
+              onClick={() => setActiveTab("history")}
+            >
+              My Plays
+            </TabButton>
+            <TabButton
+              type="button"
+              $active={activeTab === "winners"}
+              onClick={() => setActiveTab("winners")}
+            >
+              Weekly Winners
+            </TabButton>
+          </Tabs>
+        )}
+
         <Summary>
-          <SummaryText>
-            Total plays: <strong>{history.length}</strong>
-          </SummaryText>
+          {activeTab === "winners" ? (
+            <SummaryText>
+              Winners this week: <strong>{winners.length}</strong>
+            </SummaryText>
+          ) : (
+            <SummaryText>
+              Total plays: <strong>{history.length}</strong>
+            </SummaryText>
+          )}
           <Primary onClick={playAgain} disabled={(user?.tickets || 0) <= 0}>
             Play Now ({user?.tickets || 0} tickets)
           </Primary>
@@ -73,7 +144,85 @@ const DailyHistoryScreen = () => {
 
         {refreshing && <SmallText>Refreshing...</SmallText>}
 
-        {history.length === 0 ? (
+        {activeTab === "winners" ? (
+          winnersLoading ? (
+            <SmallText>Loading weekly winners...</SmallText>
+          ) : winnersError ? (
+            <EmptyCard>
+              <History size={32} />
+              <h3>Unable to load winners</h3>
+              <p>{winnersError}</p>
+              <Primary onClick={loadWinners}>Try Again</Primary>
+            </EmptyCard>
+          ) : !winnersMeta.revealReady ? (
+            <EmptyCard>
+              <Trophy size={32} />
+              <h3>Results not yet released</h3>
+              <p>
+                Weekly winners will be revealed{" "}
+                {winnersMeta.revealAt
+                  ? `on ${new Date(winnersMeta.revealAt).toLocaleDateString()}`
+                  : "at week end"}
+                .
+              </p>
+            </EmptyCard>
+          ) : winners.length === 0 ? (
+            <EmptyCard>
+              <Trophy size={32} />
+              <h3>No winners yet</h3>
+              <p>Keep playing to appear on the weekly winners list.</p>
+            </EmptyCard>
+          ) : (
+            <List>
+              {winners.map((item, idx) => {
+                const picked = toLetters(item.numbers);
+                const result = toLetters(item.result);
+                const matched = result.length
+                  ? picked.filter((n) => result.includes(n)).length
+                  : 0;
+                const dateStr = item.createdAt
+                  ? new Date(item.createdAt).toLocaleString()
+                  : "Unknown date";
+
+                return (
+                  <Card key={item.gameId || `${dateStr}-${idx}`} $winner>
+                    <Left>
+                      <Trophy size={24} color="#a16207" />
+                    </Left>
+                    <Middle>
+                      <CardTitle>{item.username || "Winner"}</CardTitle>
+                      <DateText>{dateStr}</DateText>
+                      <Row>
+                        <Label>Picked:</Label>
+                        <NumberWrap>
+                          {picked.map((n) => (
+                            <Bubble key={`w-p-${item.gameId || idx}-${n}`} $match>
+                              {n}
+                            </Bubble>
+                          ))}
+                        </NumberWrap>
+                      </Row>
+                      <Row>
+                        <Label>Draw:</Label>
+                        <NumberWrap>
+                          {result.map((n) => (
+                            <ResultBubble key={`w-r-${item.gameId || idx}-${n}`}>{n}</ResultBubble>
+                          ))}
+                        </NumberWrap>
+                        <MatchText>
+                          {matched}/{picked.length} matched
+                        </MatchText>
+                      </Row>
+                    </Middle>
+                    <Right>
+                      <WinBadge>WIN</WinBadge>
+                    </Right>
+                  </Card>
+                );
+              })}
+            </List>
+          )
+        ) : history.length === 0 ? (
           <EmptyCard>
             <History size={32} />
             <h3>No plays yet</h3>
@@ -192,6 +341,24 @@ const IconButton = styled.button`
   cursor: pointer;
   color: #ff7a00;
   background: #fff;
+`;
+
+const Tabs = styled.div`
+  display: flex;
+  gap: 10px;
+  padding: 0 16px 10px;
+`;
+
+const TabButton = styled.button`
+  flex: 1;
+  border: 0;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  background: ${(p) => (p.$active ? "#ff8c00" : "#f1f1f1")};
+  color: ${(p) => (p.$active ? "#fff" : "#333")};
 `;
 
 const Summary = styled.div`
