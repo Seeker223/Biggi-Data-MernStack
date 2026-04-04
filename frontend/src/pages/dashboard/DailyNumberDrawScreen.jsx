@@ -460,30 +460,46 @@ const PromoGridWrap = styled.div`
   justify-content: center;
   gap: 18px;
   margin-bottom: 16px;
+  flex-wrap: wrap;
+
+  @media (max-width: 420px) {
+    gap: 10px;
+  }
 `;
 
 const PromoGridGroup = styled.div`
   display: grid;
-  grid-template-columns: repeat(3, minmax(48px, 1fr));
+  grid-template-columns: repeat(3, minmax(40px, 1fr));
   gap: 6px;
   padding: 4px;
   border-radius: 12px;
   background: ${(p) => (p.$winner ? "rgba(241, 182, 122, 0.2)" : "transparent")};
   box-shadow: ${(p) =>
     p.$winner ? "0 0 0 1px rgba(241, 182, 122, 0.45)" : "none"};
+
+  @media (max-width: 420px) {
+    grid-template-columns: repeat(3, minmax(34px, 1fr));
+    gap: 4px;
+    padding: 3px;
+  }
 `;
 
 const PromoGridBox = styled.div`
-  height: 48px;
+  height: 44px;
   border-radius: 10px;
   background: #ffffff;
   color: ${(p) => (p.$winner ? "#9a3412" : "#111")};
   display: grid;
   place-items: center;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   text-transform: lowercase;
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+
+  @media (max-width: 420px) {
+    height: 36px;
+    font-size: 11px;
+  }
 `;
 
 const PromoHint = styled.p`
