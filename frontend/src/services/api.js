@@ -462,14 +462,14 @@ export const getWeeklyWinners = (month) =>
 export const claimMonthlyReward = (month) =>
   api.post("/monthly-game/claim", { month });
 
-export const getTopRandomMonthlyStatus = (month) =>
-  api.get("/top-random-monthly/status", month ? { params: { month } } : {});
+export const getTopRandomMonthlyStatus = (week) =>
+  api.get("/top-random-monthly/status", week ? { params: { week } } : {});
 
-export const getTopRandomMonthlyWinners = (month) =>
-  api.get("/top-random-monthly/winners", month ? { params: { month } } : {});
+export const getTopRandomMonthlyWinners = (week) =>
+  api.get("/top-random-monthly/winners", week ? { params: { week } } : {});
 
-export const claimTopRandomMonthlyReward = (month) =>
-  api.post("/top-random-monthly/claim", month ? { month } : {});
+export const claimTopRandomMonthlyReward = (week) =>
+  api.post("/top-random-monthly/claim", week ? { week } : {});
 
 // -----------------------------------------------------------
 // NOTIFICATIONS

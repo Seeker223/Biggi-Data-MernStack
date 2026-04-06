@@ -280,11 +280,11 @@ const HomeScreen = () => {
   const mainBalance = Number(user.mainBalance || 0);
   const rewardBalance = Number(user.rewardBalance || 0);
   const tickets = Number(user.tickets || 0);
-  const merchantTopRandomRequired = 25;
-  const merchantTopRandomRemaining = Math.max(0, merchantTopRandomRequired - monthlyEligibility.purchases);
-  const merchantWeeklyRequired = 7;
-  const weeklyPurchases = Number(user?.currentWeekPurchases || 0);
-  const merchantWeeklyRemaining = Math.max(0, merchantWeeklyRequired - weeklyPurchases);
+  const merchantTopRandomRequired = 7;
+  const merchantTopRandomPurchases = Number(user?.currentWeekPurchases || 0);
+  const merchantTopRandomRemaining = Math.max(0, merchantTopRandomRequired - merchantTopRandomPurchases);
+  const merchantWeeklyRequired = 25;
+  const merchantWeeklyRemaining = Math.max(0, merchantWeeklyRequired - monthlyEligibility.purchases);
   const dataBundleCount = Number(user.dataBundleCount || 0);
   const totalSavings = Number(user.totalSavings || 0);
   const role = String(user?.userRole || "").toLowerCase();
@@ -369,7 +369,7 @@ const HomeScreen = () => {
   const handleTopRandomGameClick = () => {
     if (FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM) return;
     if (!isMerchantRole && tickets <= 0) {
-      setTicketModalMessage("You need at least 1 ticket to access Top Random Monthly Picks.");
+      setTicketModalMessage("You need at least 1 ticket to access Top Random Weekly Picks.");
       setTicketModalVisible(true);
       return;
     }
@@ -768,45 +768,38 @@ const HomeScreen = () => {
                       {referralError}
                     </RetryNote>
                   ) : null}
-                  {referralLoading ? (
-                    <DaysLeftText>Loading referral status...</DaysLeftText>
-                  ) : null}
+                {referralLoading ? (
+                  <DaysLeftText>Loading referral status...</DaysLeftText>
+                ) : null}
                 </GameCard>
 
-                <GameCard>
-                  <GamepadIcon size={28} />
-                  <GameTitle>Weekly Card Game</GameTitle>
-                <GameSubtitle>
-                  <SubtitleRow>
-                    <SubtitleIcon as={Ticket} size={16} />
-                    <span>Uses 1 ticket per play</span>
-                  </SubtitleRow>
-                  <SubtitleRow>
-                    <SubtitleIcon as={Calendar} size={16} />
-                    <span>Results: week end</span>
-                  </SubtitleRow>
-                  <SubtitleRow>
-                    <SubtitleIcon as={Ticket} size={16} />
-                    <span>Tickets available: {tickets}</span>
-                  </SubtitleRow>
-                  <SubtitleRow>
-                    <SubtitleIcon as={Ticket} size={16} />
-                    <span>
-                      Earn 1 ticket per 7 purchases{" "}
-                      {merchantWeeklyRemaining > 0
-                        ? `• ${merchantWeeklyRemaining} to next ticket`
-                        : "• Ticket ready"}
-                    </span>
-                  </SubtitleRow>
-                </GameSubtitle>
-                  <PlayBtn
-                    onClick={handleWeeklyCardGame}
-                    disabled={FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM}
-                    $locked={tickets <= 0}
+                <TopRandomCard>
+                  <TopRandomHeader>
+                    <TopRandomIconWrap>
+                      <Shuffle size={20} />
+                    </TopRandomIconWrap>
+                    <TopRandomTitle>Top Random Weekly Picks</TopRandomTitle>
+                  </TopRandomHeader>
+                  <TopRandomDesc>
+                    10 random users who purchase at least 7 data this week.
+                  </TopRandomDesc>
+                  <DaysLeftText>
+                    Data left to qualify: {merchantTopRandomRemaining}
+                  </DaysLeftText>
+                  <TopRandomBtn
+                    onClick={() => {
+                      if (!hasPurchasedData) {
+                        setTopRandomModalVisible(true);
+                        return;
+                      }
+                      handleTopRandomGameClick();
+                    }}
+                    $locked={!hasPurchasedData}
                   >
-                    <PlayText>Play Now</PlayText>
-                  </PlayBtn>
-                </GameCard>
+                    <Trophy size={18} />
+                    <TopRandomBtnText>Open Top Random Picks</TopRandomBtnText>
+                  </TopRandomBtn>
+                </TopRandomCard>
               </>
             ) : (
               <GameCard>
@@ -965,40 +958,68 @@ const HomeScreen = () => {
               )
             )}
 
-            {(isPrivateRole || isMerchantRole || !role) && (
-              <TopRandomCard>
-                <TopRandomHeader>
-                  <TopRandomIconWrap>
-                    <Shuffle size={20} />
-                  </TopRandomIconWrap>
-                  <TopRandomTitle>
-                    {isMerchantRole ? "Merchant Top Random Picks" : "Top Random Monthly Picks"}
-                  </TopRandomTitle>
-                </TopRandomHeader>
-                <TopRandomDesc>
-                  {isMerchantRole
-                    ? "30 random users who purchase at least 25 data this month."
-                    : "10 random users who bought data this month win rewards."}
-                </TopRandomDesc>
-                {isMerchantRole ? (
-                  <DaysLeftText>
-                    Data left to qualify: {merchantTopRandomRemaining}
-                  </DaysLeftText>
-                ) : null}
-                <TopRandomBtn
-                  onClick={() => {
-                    if (!hasPurchasedData) {
-                      setTopRandomModalVisible(true);
-                      return;
-                    }
-                    handleTopRandomGameClick();
-                  }}
-                  $locked={!hasPurchasedData || (!isMerchantRole && tickets <= 0)}
+            {isMerchantRole ? (
+              <GameCard>
+                <GamepadIcon size={28} />
+                <GameTitle>Monthly Card Game</GameTitle>
+                <GameSubtitle>
+                  <SubtitleRow>
+                    <SubtitleIcon as={Ticket} size={16} />
+                    <span>Uses 1 ticket per play</span>
+                  </SubtitleRow>
+                  <SubtitleRow>
+                    <SubtitleIcon as={Calendar} size={16} />
+                    <span>Results: month end</span>
+                  </SubtitleRow>
+                  <SubtitleRow>
+                    <SubtitleIcon as={Ticket} size={16} />
+                    <span>Tickets available: {tickets}</span>
+                  </SubtitleRow>
+                  <SubtitleRow>
+                    <SubtitleIcon as={Ticket} size={16} />
+                    <span>
+                      Earn 1 ticket per 25 purchases{" "}
+                      {merchantWeeklyRemaining > 0
+                        ? `• ${merchantWeeklyRemaining} to next ticket`
+                        : "• Ticket ready"}
+                    </span>
+                  </SubtitleRow>
+                </GameSubtitle>
+                <PlayBtn
+                  onClick={handleWeeklyCardGame}
+                  disabled={FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM}
+                  $locked={tickets <= 0}
                 >
-                  <Trophy size={18} />
-                  <TopRandomBtnText>Open Top Random Picks</TopRandomBtnText>
-                </TopRandomBtn>
-              </TopRandomCard>
+                  <PlayText>Play Now</PlayText>
+                </PlayBtn>
+              </GameCard>
+            ) : (
+              (isPrivateRole || !role) && (
+                <TopRandomCard>
+                  <TopRandomHeader>
+                    <TopRandomIconWrap>
+                      <Shuffle size={20} />
+                    </TopRandomIconWrap>
+                  <TopRandomTitle>Top Random Weekly Picks</TopRandomTitle>
+                  </TopRandomHeader>
+                  <TopRandomDesc>
+                    10 random users who bought data this week win rewards.
+                  </TopRandomDesc>
+                  <TopRandomBtn
+                    onClick={() => {
+                      if (!hasPurchasedData) {
+                        setTopRandomModalVisible(true);
+                        return;
+                      }
+                      handleTopRandomGameClick();
+                    }}
+                    $locked={!hasPurchasedData || tickets <= 0}
+                  >
+                    <Trophy size={18} />
+                    <TopRandomBtnText>Open Top Random Picks</TopRandomBtnText>
+                  </TopRandomBtn>
+                </TopRandomCard>
+              )
             )}
           </ContentSection>
         </ScrollContainer>
@@ -1226,12 +1247,12 @@ const HomeScreen = () => {
               <Shuffle size={42} color="#FF7A00" />
               <ModalTitle>Top Random Picks Requirements</ModalTitle>
               <ModalMsg>
-                To participate in Top Random Monthly Picks:
-                {"\n"}• Make at least 1 data purchase this month
+                To participate in Top Random Weekly Picks:
+                {"\n"}• Make at least 1 data purchase this week
                 {isMerchantRole
-                  ? "\n• Merchants need 25+ purchases to qualify"
+                  ? "\n• Merchants need 7+ purchases to qualify"
                   : ""}
-                {"\n"}• Winners are selected at month end
+                {"\n"}• Winners are selected at week end
               </ModalMsg>
               <ModalBtn onClick={() => navigate("/buy-data")}>
                 <ModalBtnText>Buy Data</ModalBtnText>

@@ -29,15 +29,15 @@ const BuyDataSuccessScreen = () => {
   }, [user?.currentMonthPurchases]);
 
   const weeklyCardProgress = useMemo(() => {
-    const purchases = Math.max(0, Number(user?.currentWeekPurchases || 0));
-    const required = 7;
+    const purchases = Math.max(0, Number(user?.currentMonthPurchases || 0));
+    const required = 25;
     const ticketsEarned = Math.floor(purchases / required);
     const mod = purchases % required;
     const nextIn = purchases === 0 ? required : mod === 0 ? required : required - mod;
     const qualifyIn = purchases >= required ? 0 : required - purchases;
     const progressPct = purchases === 0 ? 0 : Math.round((mod / required) * 100);
     return { purchases, ticketsEarned, nextIn, qualifyIn, progressPct };
-  }, [user?.currentWeekPurchases]);
+  }, [user?.currentMonthPurchases]);
 
   return (
     <Wrap>
@@ -80,7 +80,7 @@ const BuyDataSuccessScreen = () => {
           onClick={() => navigate("/daily-draw")}
           disabled={FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM}
         >
-          Play Weekly Game
+          {isMerchantRole ? "Play Monthly Game" : "Play Weekly Game"}
         </Btn>
       </Card>
       {isMerchantRole && showWeeklyModal && (
@@ -91,7 +91,7 @@ const BuyDataSuccessScreen = () => {
               Congratulations! You stand a chance to predict and win our weekly reward.
             </ModalText>
             <ModalText>
-              Purchases this week: <strong>{weeklyCardProgress.purchases}</strong>
+              Purchases this month: <strong>{weeklyCardProgress.purchases}</strong>
             </ModalText>
             {weeklyCardProgress.qualifyIn > 0 ? (
               <ModalText>
@@ -109,7 +109,7 @@ const BuyDataSuccessScreen = () => {
             <ModalProgress aria-label="Weekly card progress">
               <ModalProgressFill $pct={Math.min(100, weeklyCardProgress.progressPct)} />
             </ModalProgress>
-            <ModalNote>Every 7 data purchases this week gives 1 weekly game ticket.</ModalNote>
+            <ModalNote>Every 25 data purchases this month gives 1 monthly game ticket.</ModalNote>
             <ModalBtn onClick={() => setShowWeeklyModal(false)}>Continue</ModalBtn>
           </ModalCard>
         </Overlay>

@@ -176,7 +176,7 @@ const DailyNumberDrawScreen = () => {
         <HeaderIcon onClick={() => navigate(-1)} aria-label="Go back">
           <ArrowLeft size={22} />
         </HeaderIcon>
-        <HeaderTitle>{isMerchantRole ? "Weekly Card Game" : "Weekly Number Draw"}</HeaderTitle>
+        <HeaderTitle>{isMerchantRole ? "Monthly Card Game" : "Weekly Number Draw"}</HeaderTitle>
         <HeaderIcon onClick={() => navigate("/daily-history")} aria-label="Open history">
           <History size={22} />
           {historyCount > 0 && <HistoryBadge>{historyCount}</HistoryBadge>}
@@ -212,7 +212,7 @@ const DailyNumberDrawScreen = () => {
               ))}
             </PromoGridWrap>
             {promoGridLoading ? (
-              <PromoHint>Loading weekly card...</PromoHint>
+              <PromoHint>Loading monthly card...</PromoHint>
             ) : promoGridError ? (
               <PromoHint role="button" onClick={() => setPromoGridError("")}>
                 {promoGridError}
@@ -220,10 +220,10 @@ const DailyNumberDrawScreen = () => {
             ) : (
               <PromoHint>
                 {promoRevealReady
-                  ? "Winning set revealed for this week."
+                  ? "Winning set revealed for this month."
                   : promoRevealAt
                   ? `Reveal on ${new Date(promoRevealAt).toLocaleDateString()}`
-                  : "Reveal at week end"}
+                  : "Reveal at month end"}
               </PromoHint>
             )}
 

@@ -11,9 +11,17 @@ import { AuthContext } from "../../context/AuthContext";
 import { FEATURE_FLAGS } from "../../constants/featureFlags";
 import showAlert from "../../utils/alert";
 
-const getCurrentMonth = () => {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+const getCurrentWeekKey = () => {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7));
+  const week1 = new Date(d.getFullYear(), 0, 4);
+  const weekNo =
+    1 +
+    Math.round(
+      ((d - week1) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7
+    );
+  return `${d.getFullYear()}-W${String(weekNo).padStart(2, "0")}`;
 };
 
 const TopRandomScreen = () => {
@@ -25,24 +33,26 @@ const TopRandomScreen = () => {
   const [error, setError] = useState("");
   const [status, setStatus] = useState(null);
   const [winners, setWinners] = useState([]);
-  const month = useMemo(() => getCurrentMonth(), []);
+  const [weekKey, setWeekKey] = useState(getCurrentWeekKey());
 
   const loadData = async () => {
     setLoading(true);
     setError("");
     try {
       const [statusRes, winnersRes] = await Promise.all([
-        getTopRandomMonthlyStatus(month),
-        getTopRandomMonthlyWinners(month),
+        getTopRandomMonthlyStatus(),
+        getTopRandomMonthlyWinners(),
       ]);
 
-      setStatus(statusRes?.data || null);
+      const statusPayload = statusRes?.data || null;
+      setStatus(statusPayload);
+      if (statusPayload?.week) setWeekKey(statusPayload.week);
       setWinners(Array.isArray(winnersRes?.data?.winners) ? winnersRes.data.winners : []);
     } catch (err) {
       setError(
         err?.response?.data?.message ||
           err?.message ||
-          "Failed to load Top Random Monthly Picks"
+          "Failed to load Top Random Weekly Picks"
       );
     } finally {
       setLoading(false);
@@ -51,7 +61,7 @@ const TopRandomScreen = () => {
 
   useEffect(() => {
     loadData();
-  }, [month]);
+  }, []);
 
   const handleClaim = async () => {
     if (FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM) {
@@ -61,7 +71,7 @@ const TopRandomScreen = () => {
     setClaiming(true);
     setError("");
     try {
-      await claimTopRandomMonthlyReward(month);
+      await claimTopRandomMonthlyReward(weekKey);
       await refreshUser?.();
       await loadData();
       showAlert("Success", "Reward claimed successfully and added to redeem balance.");
@@ -86,7 +96,7 @@ const TopRandomScreen = () => {
           <IconButton onClick={() => navigate(-1)} aria-label="Back">
             <ArrowLeft size={20} />
           </IconButton>
-          <Title>Top Random Monthly Picks</Title>
+      <Title>Top Random Weekly Picks</Title>
           <IconButton onClick={loadData} aria-label="Refresh">
             <RefreshCw size={18} />
           </IconButton>
@@ -94,22 +104,22 @@ const TopRandomScreen = () => {
 
         <Card>
           <Row>
-            <Label>Month</Label>
-            <Value>{month}</Value>
+            <Label>Week</Label>
+            <Value>{weekKey}</Value>
           </Row>
           <Row>
             <Label>Winners</Label>
             <Value>
-              {Number(status?.winnersCount || 0)}/{Number(status?.maxWinners || 30)}
+              {Number(status?.winnersCount || 0)}/{Number(status?.maxWinners || 10)}
             </Value>
           </Row>
           <Row>
-            <Label>Your Purchases This Month</Label>
+            <Label>Your Purchases This Week</Label>
             <Value>{Number(myStatus?.purchasesCount || 0)}</Value>
           </Row>
           <Row>
             <Label>Minimum Purchases</Label>
-            <Value>{Number(status?.required || 25)}</Value>
+            <Value>{Number(status?.required || 7)}</Value>
           </Row>
           <Row>
             <Label>Data Left to Qualify</Label>
@@ -122,14 +132,14 @@ const TopRandomScreen = () => {
                 ? myStatus?.claimed
                   ? "Winner (Claimed)"
                   : "Winner (Unclaimed)"
-                : myStatus?.hasBoughtForMonth
+                : myStatus?.hasBoughtForWeek
                 ? "Eligible Buyer"
                 : "Not Eligible Yet"}
             </Value>
           </Row>
           <ProgressWrap>
             <ProgressLabelRow>
-              <ProgressLabel>Progress to 25 purchases</ProgressLabel>
+              <ProgressLabel>Progress to 7 purchases</ProgressLabel>
               <ProgressValue>{Math.round(Number(status?.progress || 0))}%</ProgressValue>
             </ProgressLabelRow>
             <ProgressTrack>
@@ -157,19 +167,19 @@ const TopRandomScreen = () => {
           {loading && <Muted>Loading...</Muted>}
           {!loading && !status?.drawReady && (
             <Muted>
-              Draw runs at month end. You need at least {Number(status?.required || 25)} purchases to be eligible.
+              Draw runs at week end. You need at least {Number(status?.required || 7)} purchases to be eligible.
             </Muted>
           )}
         </Card>
 
         <Card>
-          <SectionTitle>Monthly Winners</SectionTitle>
+          <SectionTitle>Weekly Winners</SectionTitle>
           {winners.length === 0 ? (
-            <Muted>No winners published yet for {month}.</Muted>
+            <Muted>No winners published yet for {weekKey}.</Muted>
           ) : (
             <List>
               {winners.map((winner) => (
-                <WinnerRow key={`${winner.userId}-${winner.month}`}>
+                <WinnerRow key={`${winner.userId}-${winner.week}`}>
                   <Avatar src={winner.photo || DEFAULT_AVATAR} alt={winner.username} />
                   <WinnerInfo>
                     <WinnerName>{winner.username}</WinnerName>

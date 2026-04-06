@@ -102,7 +102,7 @@ const DailyHistoryScreen = () => {
           <IconButton onClick={() => navigate(-1)} aria-label="Go back">
             <ArrowLeft size={20} />
           </IconButton>
-          <Title>{activeTab === "winners" ? "Weekly Winners" : "Weekly Plays History"}</Title>
+          <Title>{activeTab === "winners" ? "Monthly Winners" : "Weekly Plays History"}</Title>
           <IconButton onClick={onRefresh} aria-label="Refresh">
             <RefreshCcw size={18} />
           </IconButton>
@@ -122,7 +122,7 @@ const DailyHistoryScreen = () => {
               $active={activeTab === "winners"}
               onClick={() => setActiveTab("winners")}
             >
-              Weekly Winners
+              Monthly Winners
             </TabButton>
           </Tabs>
         )}
@@ -130,7 +130,7 @@ const DailyHistoryScreen = () => {
         <Summary>
           {activeTab === "winners" ? (
             <SummaryText>
-              Winners this week: <strong>{winners.length}</strong>
+              Winners this month: <strong>{winners.length}</strong>
             </SummaryText>
           ) : (
             <SummaryText>
@@ -146,7 +146,7 @@ const DailyHistoryScreen = () => {
 
         {activeTab === "winners" ? (
           winnersLoading ? (
-            <SmallText>Loading weekly winners...</SmallText>
+            <SmallText>Loading monthly winners...</SmallText>
           ) : winnersError ? (
             <EmptyCard>
               <History size={32} />
@@ -159,10 +159,10 @@ const DailyHistoryScreen = () => {
               <Trophy size={32} />
               <h3>Results not yet released</h3>
               <p>
-                Weekly winners will be revealed{" "}
+                Monthly winners will be revealed{" "}
                 {winnersMeta.revealAt
                   ? `on ${new Date(winnersMeta.revealAt).toLocaleDateString()}`
-                  : "at week end"}
+                  : "at month end"}
                 .
               </p>
             </EmptyCard>
@@ -170,7 +170,7 @@ const DailyHistoryScreen = () => {
             <EmptyCard>
               <Trophy size={32} />
               <h3>No winners yet</h3>
-              <p>Keep playing to appear on the weekly winners list.</p>
+              <p>Keep playing to appear on the monthly winners list.</p>
             </EmptyCard>
           ) : (
             <List>
