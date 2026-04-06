@@ -1215,7 +1215,11 @@ const AdminScreen = () => {
                   <UserMeta>{entry.personal?.email}</UserMeta>
                   <UserMeta>State: {entry.personal?.state || "-"}</UserMeta>
                   <UserMeta>
-                    Balances: {naira(entry.balances?.mainBalance)} main / {naira(entry.balances?.rewardBalance)} reward
+                    Balances: {naira(entry.balances?.mainBalance)} main (prev{" "}
+                    {Number.isFinite(Number(entry.balances?.previousMainBalance))
+                      ? naira(entry.balances?.previousMainBalance)
+                      : "—"}
+                    ) / {naira(entry.balances?.rewardBalance)} reward
                   </UserMeta>
                   <UserMeta>
                     BuyData: {entry.balances?.dataBundleCount || 0} | Tickets: {entry.balances?.tickets || 0}
@@ -1367,6 +1371,14 @@ const AdminScreen = () => {
                 <span>Main Balance</span>
                 <strong>{naira(selectedUser.balances?.mainBalance)}</strong>
               </MetricLine>
+              <MetricLine>
+                <span>Previous Main</span>
+                <strong>
+                  {Number.isFinite(Number(selectedUser.balances?.previousMainBalance))
+                    ? naira(selectedUser.balances?.previousMainBalance)
+                    : "—"}
+                </strong>
+              </MetricLine>
               <ProgressTrack>
                 <ProgressFill
                   $width={Math.max(
@@ -1460,6 +1472,12 @@ const AdminScreen = () => {
             <ModalSection>
               <h4>Balances</h4>
               <p>Main: {naira(selectedUser.balances?.mainBalance)}</p>
+              <p>
+                Previous Main:{" "}
+                {Number.isFinite(Number(selectedUser.balances?.previousMainBalance))
+                  ? naira(selectedUser.balances?.previousMainBalance)
+                  : "—"}
+              </p>
               <p>Reward: {naira(selectedUser.balances?.rewardBalance)}</p>
               <p>Total: {naira(selectedUser.balances?.totalBalance)}</p>
               <p>Total Deposits: {naira(selectedUser.balances?.totalDeposits)}</p>
