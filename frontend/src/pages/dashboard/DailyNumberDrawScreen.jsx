@@ -33,7 +33,10 @@ const DailyNumberDrawScreen = () => {
   const tickets = Number(user?.tickets || 0);
   const historyCount = Array.isArray(user?.dailyNumberDraw) ? user.dailyNumberDraw.length : 0;
   const letters = useMemo(() => DRAW_LETTERS, []);
-  const isMerchantRole = String(user?.userRole || "").toLowerCase() === "merchant";
+  const role = String(user?.userRole || "").toLowerCase();
+  const isMerchantRole = role === "merchant";
+  const isPrivateRole = role === "private";
+  const isMonthlyCardRole = isMerchantRole || isPrivateRole;
 
   const showToast = (message) => {
     setToast(message);
@@ -121,7 +124,7 @@ const DailyNumberDrawScreen = () => {
   const displayPromoGridLetters = promoGridLetters.length ? promoGridLetters : fallbackPromoLetters;
 
   useEffect(() => {
-    if (!isMerchantRole) return;
+    if (!isMonthlyCardRole) return;
     let mounted = true;
     setPromoGridLoading(true);
     setPromoGridError("");
@@ -153,7 +156,7 @@ const DailyNumberDrawScreen = () => {
     return () => {
       mounted = false;
     };
-  }, [isMerchantRole]);
+  }, [isMonthlyCardRole]);
 
   if (FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM) {
     return (
@@ -176,14 +179,14 @@ const DailyNumberDrawScreen = () => {
         <HeaderIcon onClick={() => navigate(-1)} aria-label="Go back">
           <ArrowLeft size={22} />
         </HeaderIcon>
-        <HeaderTitle>{isMerchantRole ? "Monthly Card Game" : "Weekly Number Draw"}</HeaderTitle>
+        <HeaderTitle>{isMonthlyCardRole ? "Monthly Card Game" : "Weekly Number Draw"}</HeaderTitle>
         <HeaderIcon onClick={() => navigate("/daily-history")} aria-label="Open history">
           <History size={22} />
           {historyCount > 0 && <HistoryBadge>{historyCount}</HistoryBadge>}
         </HeaderIcon>
       </Header>
 
-      {isMerchantRole ? (
+      {isMonthlyCardRole ? (
         <PromoBody>
           <PromoCard>
             <PromoBrand>BIGGI DATA BUNDLE SERVICES</PromoBrand>

@@ -9,8 +9,11 @@ const BuyDataSuccessScreen = () => {
   const navigate = useNavigate();
   const { state } = useLocation();
   const { user } = useContext(AuthContext);
-  const isMerchantRole = String(user?.userRole || "").toLowerCase() === "merchant";
-  const [showWeeklyModal, setShowWeeklyModal] = useState(isMerchantRole);
+  const role = String(user?.userRole || "").toLowerCase();
+  const isMerchantRole = role === "merchant";
+  const isPrivateRole = role === "private";
+  const showMonthlyCard = isMerchantRole || isPrivateRole;
+  const [showWeeklyModal, setShowWeeklyModal] = useState(showMonthlyCard);
 
   const phone = state?.phone || "";
   const network = state?.network || "";
@@ -30,14 +33,14 @@ const BuyDataSuccessScreen = () => {
 
   const weeklyCardProgress = useMemo(() => {
     const purchases = Math.max(0, Number(user?.currentMonthPurchases || 0));
-    const required = 25;
+    const required = isMerchantRole ? 25 : 5;
     const ticketsEarned = Math.floor(purchases / required);
     const mod = purchases % required;
     const nextIn = purchases === 0 ? required : mod === 0 ? required : required - mod;
     const qualifyIn = purchases >= required ? 0 : required - purchases;
     const progressPct = purchases === 0 ? 0 : Math.round((mod / required) * 100);
     return { purchases, ticketsEarned, nextIn, qualifyIn, progressPct };
-  }, [user?.currentMonthPurchases]);
+  }, [user?.currentMonthPurchases, isMerchantRole]);
 
   return (
     <Wrap>
@@ -83,12 +86,12 @@ const BuyDataSuccessScreen = () => {
           {isMerchantRole ? "Play Monthly Game" : "Play Weekly Game"}
         </Btn>
       </Card>
-      {isMerchantRole && showWeeklyModal && (
+      {showMonthlyCard && showWeeklyModal && (
         <Overlay>
           <ModalCard>
-            <ModalTitle>Weekly Card Game</ModalTitle>
+            <ModalTitle>Monthly Card Game</ModalTitle>
             <ModalText>
-              Congratulations! You stand a chance to predict and win our weekly reward.
+              Congratulations! You stand a chance to predict and win our monthly reward.
             </ModalText>
             <ModalText>
               Purchases this month: <strong>{weeklyCardProgress.purchases}</strong>
@@ -96,7 +99,7 @@ const BuyDataSuccessScreen = () => {
             {weeklyCardProgress.qualifyIn > 0 ? (
               <ModalText>
                 Buy <strong>{weeklyCardProgress.qualifyIn}</strong> more purchase
-                {weeklyCardProgress.qualifyIn === 1 ? "" : "s"} to earn 1 weekly card ticket.
+                {weeklyCardProgress.qualifyIn === 1 ? "" : "s"} to earn 1 monthly card ticket.
               </ModalText>
             ) : (
               <ModalText>
@@ -109,7 +112,9 @@ const BuyDataSuccessScreen = () => {
             <ModalProgress aria-label="Weekly card progress">
               <ModalProgressFill $pct={Math.min(100, weeklyCardProgress.progressPct)} />
             </ModalProgress>
-            <ModalNote>Every 25 data purchases this month gives 1 monthly game ticket.</ModalNote>
+            <ModalNote>
+              Every {isMerchantRole ? 25 : 5} data purchases this month gives 1 monthly game ticket.
+            </ModalNote>
             <ModalBtn onClick={() => setShowWeeklyModal(false)}>Continue</ModalBtn>
           </ModalCard>
         </Overlay>

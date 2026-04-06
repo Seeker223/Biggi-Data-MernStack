@@ -285,6 +285,8 @@ const HomeScreen = () => {
   const merchantTopRandomRemaining = Math.max(0, merchantTopRandomRequired - merchantTopRandomPurchases);
   const merchantWeeklyRequired = 25;
   const merchantWeeklyRemaining = Math.max(0, merchantWeeklyRequired - monthlyEligibility.purchases);
+  const privateCardRequired = 5;
+  const privateCardRemaining = Math.max(0, privateCardRequired - monthlyEligibility.purchases);
   const dataBundleCount = Number(user.dataBundleCount || 0);
   const totalSavings = Number(user.totalSavings || 0);
   const role = String(user?.userRole || "").toLowerCase();
@@ -327,7 +329,7 @@ const HomeScreen = () => {
   const handleWeeklyCardGame = () => {
     if (FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM) return;
     if (tickets <= 0) {
-      setTicketModalMessage("You need at least 1 ticket to play the Weekly Card Game.");
+      setTicketModalMessage("You need at least 1 ticket to play the Monthly Card Game.");
       setTicketModalVisible(true);
       return;
     }
@@ -802,27 +804,42 @@ const HomeScreen = () => {
                 </TopRandomCard>
               </>
             ) : (
-              <GameCard>
-                <GamepadIcon size={28} />
-                <GameTitle>Weekly Number Picker Game</GameTitle>
-                <GameSubtitle>
-                  <SubtitleRow>
-                    <SubtitleIcon as={Ticket} size={16} />
-                    <span>Uses 1 ticket per play</span>
-                  </SubtitleRow>
-                  <SubtitleRow>
-                    <SubtitleIcon as={Calendar} size={16} />
-                    <span>Results: month end</span>
-                  </SubtitleRow>
-                </GameSubtitle>
-                <PlayBtn 
-                  onClick={handleDailyGame} 
-                  disabled={FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM}
-                  $locked={tickets <= 0}
-                >
-                  <PlayText>Play Now</PlayText>
-                </PlayBtn>
-              </GameCard>
+              (isPrivateRole || !role) && (
+                <GameCard>
+                  <GamepadIcon size={28} />
+                  <GameTitle>Monthly Card Game</GameTitle>
+                  <GameSubtitle>
+                    <SubtitleRow>
+                      <SubtitleIcon as={Ticket} size={16} />
+                      <span>Uses 1 ticket per play</span>
+                    </SubtitleRow>
+                    <SubtitleRow>
+                      <SubtitleIcon as={Calendar} size={16} />
+                      <span>Results: month end</span>
+                    </SubtitleRow>
+                    <SubtitleRow>
+                      <SubtitleIcon as={Ticket} size={16} />
+                      <span>Tickets available: {tickets}</span>
+                    </SubtitleRow>
+                    <SubtitleRow>
+                      <SubtitleIcon as={Ticket} size={16} />
+                      <span>
+                        Earn 1 ticket per 5 purchases{" "}
+                        {privateCardRemaining > 0
+                          ? `• ${privateCardRemaining} to next ticket`
+                          : "• Ticket ready"}
+                      </span>
+                    </SubtitleRow>
+                  </GameSubtitle>
+                  <PlayBtn
+                    onClick={handleWeeklyCardGame}
+                    disabled={FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM}
+                    $locked={tickets <= 0}
+                  >
+                    <PlayText>Play Now</PlayText>
+                  </PlayBtn>
+                </GameCard>
+              )
             )}
 
             {/* MONTHLY GAME OR TOP PURCHASES (MERCHANT) */}
