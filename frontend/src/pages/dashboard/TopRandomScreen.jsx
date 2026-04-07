@@ -158,9 +158,7 @@ const TopRandomScreen = () => {
               <Gift size={16} />
               {claiming ? "Claiming..." : canClaim ? "Claim ₦10,000" : "No Reward To Claim"}
             </PrimaryButton>
-            <SecondaryButton onClick={() => navigate("/redeem")}>
-              Go to Redeem
-            </SecondaryButton>
+            {/* Redeem disabled/hidden */}
           </ActionRow>
 
           {error && <ErrorText>{error}</ErrorText>}

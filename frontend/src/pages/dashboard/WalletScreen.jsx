@@ -23,7 +23,7 @@ const WalletScreen = () => {
           {!FEATURE_FLAGS.DISABLE_WITHDRAWALS ? (
             <PrimaryButton onClick={() => navigate("/withdraw")}>Withdraw Funds</PrimaryButton>
           ) : null}
-          <PrimaryButton onClick={() => navigate("/redeem")}>Redeem Rewards</PrimaryButton>
+          {/* Redeem disabled/hidden */}
         </Card>
       </Container>
     </Page>

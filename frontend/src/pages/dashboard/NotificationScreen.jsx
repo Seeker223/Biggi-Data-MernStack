@@ -23,6 +23,7 @@ const NotificationScreen = () => {
   const [withdrawHistory, setWithdrawHistory] = useState([]);
   const [backendNotifications, setBackendNotifications] = useState([]);
   const [referrals, setReferrals] = useState([]);
+  const [depositDetail, setDepositDetail] = useState(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -78,6 +79,7 @@ const NotificationScreen = () => {
       amount: Number(d?.amount || 0),
       createdAt: d?.createdAt || new Date().toISOString(),
       status: d?.status || "pending",
+      raw: d,
     }));
 
     const withdrawals = withdrawHistory.map((w) => ({
@@ -243,7 +245,13 @@ const NotificationScreen = () => {
         ) : (
           <List>
             {filteredItems.map((item) => (
-              <Card key={item.id}>
+              <Card
+                key={item.id}
+                $clickable={item.type === "deposits"}
+                onClick={() => {
+                  if (item.type === "deposits") setDepositDetail(item.raw || null);
+                }}
+              >
                 <IconWrap>{iconFor(item)}</IconWrap>
                 <CardContent>
                   <CardTop>
@@ -260,6 +268,59 @@ const NotificationScreen = () => {
           </List>
         )}
       </Container>
+
+      {depositDetail ? (
+        <ModalOverlay onClick={() => setDepositDetail(null)}>
+          <ModalCard onClick={(e) => e.stopPropagation()}>
+            <ModalTitle>Deposit Details</ModalTitle>
+            <DetailRow>
+              <DetailLabel>Status</DetailLabel>
+              <DetailValue>{depositDetail?.status || "pending"}</DetailValue>
+            </DetailRow>
+            <DetailRow>
+              <DetailLabel>Amount Credited</DetailLabel>
+              <DetailValue>₦{Number(depositDetail?.amount || 0).toLocaleString()}</DetailValue>
+            </DetailRow>
+            <DetailRow>
+              <DetailLabel>Service Charge</DetailLabel>
+              <DetailValue>₦{Number(depositDetail?.serviceCharge || 0).toLocaleString()}</DetailValue>
+            </DetailRow>
+            <DetailRow>
+              <DetailLabel>Total Paid</DetailLabel>
+              <DetailValue>₦{Number(depositDetail?.totalAmount || 0).toLocaleString()}</DetailValue>
+            </DetailRow>
+            <DetailRow>
+              <DetailLabel>Reference</DetailLabel>
+              <DetailValue>{depositDetail?.reference || "—"}</DetailValue>
+            </DetailRow>
+            <DetailRow>
+              <DetailLabel>Channel</DetailLabel>
+              <DetailValue>{depositDetail?.channel || "flutterwave"}</DetailValue>
+            </DetailRow>
+            <DetailRow>
+              <DetailLabel>Transaction ID</DetailLabel>
+              <DetailValue>{depositDetail?.flutterwaveTransactionId || "—"}</DetailValue>
+            </DetailRow>
+            <DetailRow>
+              <DetailLabel>Created</DetailLabel>
+              <DetailValue>
+                {depositDetail?.createdAt
+                  ? new Date(depositDetail.createdAt).toLocaleString()
+                  : "—"}
+              </DetailValue>
+            </DetailRow>
+            <DetailRow>
+              <DetailLabel>Updated</DetailLabel>
+              <DetailValue>
+                {depositDetail?.updatedAt
+                  ? new Date(depositDetail.updatedAt).toLocaleString()
+                  : "—"}
+              </DetailValue>
+            </DetailRow>
+            <CloseBtn onClick={() => setDepositDetail(null)}>Close</CloseBtn>
+          </ModalCard>
+        </ModalOverlay>
+      ) : null}
     </Page>
   );
 };
@@ -407,6 +468,7 @@ const Card = styled.div`
   border-radius: 14px;
   padding: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  cursor: ${(p) => (p.$clickable ? "pointer" : "default")};
 `;
 
 const IconWrap = styled.div`
@@ -460,5 +522,62 @@ const Empty = styled.div`
   place-items: center;
   color: #666;
   font-weight: 600;
+`;
+
+const ModalOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: grid;
+  place-items: center;
+  z-index: 1200;
+  padding: 16px;
+`;
+
+const ModalCard = styled.div`
+  background: #fff;
+  width: 100%;
+  max-width: 420px;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2);
+`;
+
+const ModalTitle = styled.h2`
+  margin: 0 0 12px 0;
+  font-size: 18px;
+  color: #111;
+`;
+
+const DetailRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid #f2f2f2;
+`;
+
+const DetailLabel = styled.span`
+  color: #666;
+  font-size: 13px;
+`;
+
+const DetailValue = styled.span`
+  color: #111;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: right;
+`;
+
+const CloseBtn = styled.button`
+  margin-top: 14px;
+  width: 100%;
+  border: none;
+  border-radius: 10px;
+  padding: 12px;
+  background: #ff7a00;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
 `;
 

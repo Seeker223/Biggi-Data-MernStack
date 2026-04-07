@@ -302,7 +302,6 @@ const HomeScreen = () => {
   const goToEditProfile = () => navigate('/edit-profile');
   const goToWithdraw = () => navigate('/withdraw');
   const goToBundle = () => navigate('/buy-data');
-  const goToRedeem = () => navigate('/redeem');
   const goToTopRandom = () => navigate('/top-random');
   const goToDraws = () => {
     if (FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM) return;
@@ -637,12 +636,7 @@ const HomeScreen = () => {
                     <BalanceLabel>Redeem Balance</BalanceLabel>
                     <Balance>N{rewardBalance.toLocaleString()}</Balance>
                   </div>
-                  <RedeemBtn
-                    onClick={goToRedeem}
-                    disabled={FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM}
-                  >
-                    <ActionText>Redeem</ActionText>
-                  </RedeemBtn>
+                  {/* Redeem disabled/hidden */}
                 </BalanceRow>
               </WalletCard>
             </MosaicLeft>
