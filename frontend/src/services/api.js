@@ -566,7 +566,10 @@ export const getReferralLeaderboard = () => api.get("/user/referrals/leaderboard
 // -----------------------------------------------------------
 // ADMIN
 // -----------------------------------------------------------
-export const getAdminDashboard = (params = {}) => api.get("/admin/dashboard", { params });
+export const getAdminDashboard = (params = {}, config = {}) => {
+  const { timeout = 30000, ...rest } = config || {};
+  return api.get("/admin/dashboard", { params, timeout, ...rest });
+};
 export const getAdminUsers = (params = {}) => api.get("/admin/users", { params });
 export const getAdminUserById = (id) => api.get(`/admin/users/${id}`);
 export const createAdminUser = (payload) => api.post("/admin/users", payload);

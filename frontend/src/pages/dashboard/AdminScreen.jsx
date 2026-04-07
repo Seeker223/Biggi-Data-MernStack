@@ -21,6 +21,7 @@ import {
   createAdminUser,
   deleteAdminUser,
   getAdminDashboard,
+  getAdminUsers,
   updateAdminUser,
   adminSyncProviderCatalog,
   adminResetProviderCatalog,
@@ -78,10 +79,22 @@ const AdminScreen = () => {
   const [verified, setVerified] = useState("");
   const [userAge, setUserAge] = useState("new");
   const [stateFilter, setStateFilter] = useState("");
+  const [appliedFilters, setAppliedFilters] = useState({
+    search: "",
+    role: "",
+    userRole: "",
+    verified: "",
+    userAge: "new",
+    stateFilter: "",
+  });
   const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [data, setData] = useState(null);
+  const [usersLoading, setUsersLoading] = useState(true);
+  const [usersError, setUsersError] = useState("");
+  const [usersData, setUsersData] = useState({ users: [], pagination: { page: 1, totalPages: 1 } });
+  const [insightsLoading, setInsightsLoading] = useState(false);
+  const [insightsError, setInsightsError] = useState("");
+  const [insightsLoaded, setInsightsLoaded] = useState(false);
+  const [insightsData, setInsightsData] = useState({ summary: {}, rankings: {}, stateBreakdown: [] });
   const [selectedUser, setSelectedUser] = useState(null);
   const [formMode, setFormMode] = useState("create");
   const [formOpen, setFormOpen] = useState(false);
@@ -143,35 +156,70 @@ const AdminScreen = () => {
   useEffect(() => {
     // Avoid accidental bulk actions across filter/page changes.
     setSelectedUserIds(new Set());
-  }, [page, search, role, userRole, verified, userAge, stateFilter, section]);
+  }, [page, appliedFilters, section]);
 
-  const loadData = useCallback(async () => {
+  const loadUsers = useCallback(async () => {
     try {
-      setLoading(true);
-      setError("");
-      const res = await getAdminDashboard({
+      setUsersLoading(true);
+      setUsersError("");
+      const res = await getAdminUsers({
         page,
         limit: 20,
-        historyLimit: 8,
-        search: search.trim() || undefined,
-        role: role || undefined,
-        userRole: userRole || undefined,
-        verified: verified || undefined,
-        userAge: userAge || undefined,
-        state: stateFilter || undefined,
+        search: appliedFilters.search?.trim() || undefined,
+        role: appliedFilters.role || undefined,
+        userRole: appliedFilters.userRole || undefined,
+        verified: appliedFilters.verified || undefined,
+        userAge: appliedFilters.userAge || undefined,
+        state: appliedFilters.stateFilter || undefined,
       });
-      setData(res?.data || null);
+      const payload = res?.data || {};
+      setUsersData({
+        users: Array.isArray(payload.users) ? payload.users : [],
+        pagination: payload.pagination || { page, totalPages: 1 },
+      });
     } catch (err) {
-      setError(err?.response?.data?.message || "Failed to load admin dashboard.");
+      setUsersError(err?.response?.data?.message || "Failed to load users list.");
     } finally {
-      setLoading(false);
+      setUsersLoading(false);
     }
-  }, [page, role, search, userRole, verified, userAge, stateFilter]);
+  }, [page, appliedFilters]);
+
+  const loadInsights = useCallback(async () => {
+    try {
+      setInsightsLoading(true);
+      setInsightsError("");
+      const res = await getAdminDashboard({
+        historyLimit: 8,
+        search: appliedFilters.search?.trim() || undefined,
+        role: appliedFilters.role || undefined,
+        userRole: appliedFilters.userRole || undefined,
+        verified: appliedFilters.verified || undefined,
+        userAge: appliedFilters.userAge || undefined,
+        state: appliedFilters.stateFilter || undefined,
+      });
+      const payload = res?.data || {};
+      setInsightsData({
+        summary: payload.summary || {},
+        rankings: payload.rankings || {},
+        stateBreakdown: payload.stateBreakdown || [],
+      });
+      setInsightsLoaded(true);
+    } catch (err) {
+      setInsightsError(err?.response?.data?.message || "Insights are taking too long to load.");
+    } finally {
+      setInsightsLoading(false);
+    }
+  }, [appliedFilters]);
 
   useEffect(() => {
     if (!isAdmin) return;
-    if (section === "users") loadData();
-  }, [isAdmin, loadData, section]);
+    if (section === "users") loadUsers();
+  }, [isAdmin, loadUsers, section]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    if (section === "users") loadInsights();
+  }, [isAdmin, loadInsights, section]);
 
   const loadPlans = useCallback(async () => {
     try {
@@ -311,7 +359,7 @@ const AdminScreen = () => {
 
       setFormOpen(false);
       resetForm();
-      await loadData();
+      await loadUsers();
     } catch (err) {
       setFormError(err?.response?.data?.message || "Failed to save user.");
     } finally {
@@ -336,9 +384,9 @@ const AdminScreen = () => {
         next.delete(entry.id);
         return next;
       });
-      await loadData();
+      await loadUsers();
     } catch (err) {
-      setError(err?.response?.data?.message || "Failed to delete user.");
+      setUsersError(err?.response?.data?.message || "Failed to delete user.");
     }
   };
 
@@ -387,7 +435,7 @@ const AdminScreen = () => {
 
       setSelectedUserIds(new Set());
       if (selectedUser?.id && ids.includes(selectedUser.id)) setSelectedUser(null);
-      await loadData();
+      await loadUsers();
 
       if (failed) {
         Alert.alert({
@@ -727,11 +775,11 @@ const AdminScreen = () => {
     );
   }
 
-  const summary = data?.summary || {};
-  const users = data?.users || [];
-  const topBuyers = data?.rankings?.topBuyers || [];
-  const topWinners = data?.rankings?.topGameWinners || [];
-  const referralLeaderboard = data?.rankings?.referralLeaderboard || [];
+  const summary = insightsData?.summary || {};
+  const users = usersData?.users || [];
+  const topBuyers = insightsData?.rankings?.topBuyers || [];
+  const topWinners = insightsData?.rankings?.topGameWinners || [];
+  const referralLeaderboard = insightsData?.rankings?.referralLeaderboard || [];
   const filteredReferralLeaderboard = referralLeaderboard.filter((entry) => {
     const query = String(referralSearch || "").trim().toLowerCase();
     if (!query) return true;
@@ -755,8 +803,8 @@ const AdminScreen = () => {
     (referralPageSafe - 1) * referralPageSize,
     referralPageSafe * referralPageSize
   );
-  const stateBreakdown = data?.stateBreakdown || [];
-  const pagination = data?.pagination || { page: 1, totalPages: 1 };
+  const stateBreakdown = insightsData?.stateBreakdown || [];
+  const pagination = usersData?.pagination || { page: 1, totalPages: 1 };
   const userTotal = Number(summary.usersCount || 0);
   const privatePct = userTotal ? Math.round((Number(summary.privateCount || 0) / userTotal) * 100) : 0;
   const merchantPct = userTotal ? Math.round((Number(summary.merchantCount || 0) / userTotal) * 100) : 0;
@@ -778,8 +826,15 @@ const AdminScreen = () => {
           </BackButton>
           <Title>Admin Dashboard</Title>
           <RefreshButton
-            onClick={() => (section === "users" ? loadData() : loadPlans())}
-            disabled={section === "users" ? loading : planLoading}
+            onClick={() => {
+              if (section === "users") {
+                loadUsers();
+                loadInsights();
+              } else {
+                loadPlans();
+              }
+            }}
+            disabled={section === "users" ? usersLoading : planLoading}
             title="Refresh"
           >
             <RefreshCw size={18} />
@@ -838,9 +893,16 @@ const AdminScreen = () => {
               <ApplyButton
                 onClick={() => {
                   setPage(1);
-                  loadData();
+                  setAppliedFilters({
+                    search,
+                    role,
+                    userRole,
+                    verified,
+                    userAge,
+                    stateFilter,
+                  });
                 }}
-                disabled={loading}
+                disabled={usersLoading}
               >
                 Apply Filters
               </ApplyButton>
@@ -909,76 +971,77 @@ const AdminScreen = () => {
           </FilterCard>
         )}
 
-        {section === "users" && error ? <ErrorBox>{error}</ErrorBox> : null}
+        {section === "users" && usersError ? <ErrorBox>{usersError}</ErrorBox> : null}
+        {section === "users" && insightsError ? <ErrorBox>{insightsError}</ErrorBox> : null}
         {section === "plans" && planError ? <ErrorBox>{planError}</ErrorBox> : null}
 
         {section === "users" ? (
-          loading ? (
-            <LoadingBox>Loading dashboard data...</LoadingBox>
-          ) : (
-            <>
-              <SectionTitle>Overview</SectionTitle>
-              <SummaryGrid>
+          <>
+            {insightsLoading ? <LoadingBox>Loading insights...</LoadingBox> : null}
+            {insightsLoaded && !insightsLoading ? (
+              <>
+                <SectionTitle>Overview</SectionTitle>
+                <SummaryGrid>
+                  <SummaryCard>
+                    <Users size={18} />
+                  <h4>Total Users</h4>
+                  <strong>{summary.usersCount || 0}</strong>
+                  <small>Admins: {summary.adminCount || 0}</small>
+                </SummaryCard>
                 <SummaryCard>
-                  <Users size={18} />
-                <h4>Total Users</h4>
-                <strong>{summary.usersCount || 0}</strong>
-                <small>Admins: {summary.adminCount || 0}</small>
-              </SummaryCard>
-              <SummaryCard>
-                <Shield size={18} />
-                <h4>Roles</h4>
-                <strong>
-                  Private {summary.privateCount || 0} / Merchant {summary.merchantCount || 0}
-                </strong>
-                <small>Verified: {summary.verifiedCount || 0}</small>
-              </SummaryCard>
-              <SummaryCard>
-                <Wallet size={18} />
-                <h4>Total Balances</h4>
-                <strong>{naira(summary.totalBalance)}</strong>
-                <small>Main {naira(summary.totalMainBalance)} | Reward {naira(summary.totalRewardBalance)}</small>
-              </SummaryCard>
-              <SummaryCard>
-                <Trophy size={18} />
-                <h4>Games</h4>
-                <strong>{summary.totalWins || 0} wins</strong>
-                <small>Prize Won: {naira(summary.totalPrizeWon)}</small>
-              </SummaryCard>
-            </SummaryGrid>
+                  <Shield size={18} />
+                  <h4>Roles</h4>
+                  <strong>
+                    Private {summary.privateCount || 0} / Merchant {summary.merchantCount || 0}
+                  </strong>
+                  <small>Verified: {summary.verifiedCount || 0}</small>
+                </SummaryCard>
+                <SummaryCard>
+                  <Wallet size={18} />
+                  <h4>Total Balances</h4>
+                  <strong>{naira(summary.totalBalance)}</strong>
+                  <small>Main {naira(summary.totalMainBalance)} | Reward {naira(summary.totalRewardBalance)}</small>
+                </SummaryCard>
+                <SummaryCard>
+                  <Trophy size={18} />
+                  <h4>Games</h4>
+                  <strong>{summary.totalWins || 0} wins</strong>
+                  <small>Prize Won: {naira(summary.totalPrizeWon)}</small>
+                </SummaryCard>
+              </SummaryGrid>
 
-            <SectionTitle>Visual Insights</SectionTitle>
-            <VisualGrid>
-              <ChartCard>
-                <ChartTitle>User Role Mix</ChartTitle>
-                <Donut
-                  $private={privatePct}
-                  $merchant={merchantPct}
-                  title={`Private ${privatePct}% | Merchant ${merchantPct}%`}
-                >
-                  <span>{userTotal}</span>
-                  <small>Users</small>
-                </Donut>
-                <LegendRow>
-                  <LegendDot $color="#ff7a00" />
-                  <p>Private: {summary.privateCount || 0} ({privatePct}%)</p>
-                </LegendRow>
-                <LegendRow>
-                  <LegendDot $color="#1778f2" />
-                  <p>Merchant: {summary.merchantCount || 0} ({merchantPct}%)</p>
-                </LegendRow>
-              </ChartCard>
+              <SectionTitle>Visual Insights</SectionTitle>
+              <VisualGrid>
+                <ChartCard>
+                  <ChartTitle>User Role Mix</ChartTitle>
+                  <Donut
+                    $private={privatePct}
+                    $merchant={merchantPct}
+                    title={`Private ${privatePct}% | Merchant ${merchantPct}%`}
+                  >
+                    <span>{userTotal}</span>
+                    <small>Users</small>
+                  </Donut>
+                  <LegendRow>
+                    <LegendDot $color="#ff7a00" />
+                    <p>Private: {summary.privateCount || 0} ({privatePct}%)</p>
+                  </LegendRow>
+                  <LegendRow>
+                    <LegendDot $color="#1778f2" />
+                    <p>Merchant: {summary.merchantCount || 0} ({merchantPct}%)</p>
+                  </LegendRow>
+                </ChartCard>
 
-              <ChartCard>
-                <ChartTitle>Wallet Distribution</ChartTitle>
-                <MetricLine>
-                  <span>Main Balance</span>
-                  <strong>{naira(mainBal)}</strong>
-                </MetricLine>
-                <ProgressTrack>
-                  <ProgressFill $width={mainPct} $color="#111" />
-                </ProgressTrack>
-                <MetricLine>
+                <ChartCard>
+                  <ChartTitle>Wallet Distribution</ChartTitle>
+                  <MetricLine>
+                    <span>Main Balance</span>
+                    <strong>{naira(mainBal)}</strong>
+                  </MetricLine>
+                  <ProgressTrack>
+                    <ProgressFill $width={mainPct} $color="#111" />
+                  </ProgressTrack>
+                  <MetricLine>
                   <span>Reward Balance</span>
                   <strong>{naira(rewardBal)}</strong>
                 </MetricLine>
@@ -1175,11 +1238,17 @@ const AdminScreen = () => {
                 <UserMeta>No state data available for current filters.</UserMeta>
               )}
             </BarChartCard>
+              </>
+            ) : null}
 
+            {usersLoading && users.length === 0 ? (
+              <LoadingBox>Loading users...</LoadingBox>
+            ) : (
+              <>
             <UsersHeaderRow>
               <SectionTitle>Users ({users.length})</SectionTitle>
               <BulkRow>
-                <BulkBtn type="button" onClick={() => toggleSelectAllOnPage(users)} disabled={loading || !users.length}>
+                <BulkBtn type="button" onClick={() => toggleSelectAllOnPage(users)} disabled={usersLoading || !users.length}>
                   {users
                     .map((u) => u?.id)
                     .filter((id) => id && String(id) !== myUserId)
@@ -1190,7 +1259,7 @@ const AdminScreen = () => {
                 <BulkDangerBtn
                   type="button"
                   onClick={() => handleDeleteSelectedUsers(users)}
-                  disabled={bulkDeleting || loading || selectedUserIds.size === 0}
+                  disabled={bulkDeleting || usersLoading || selectedUserIds.size === 0}
                 >
                   Delete Selected ({selectedUserIds.size})
                 </BulkDangerBtn>
@@ -1242,7 +1311,7 @@ const AdminScreen = () => {
 
               <Pager>
               <PagerBtn
-                disabled={pagination.page <= 1 || loading}
+                disabled={pagination.page <= 1 || usersLoading}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
               >
                 Previous
@@ -1251,14 +1320,15 @@ const AdminScreen = () => {
                 Page {pagination.page || 1} of {pagination.totalPages || 1}
               </PageLabel>
               <PagerBtn
-                disabled={pagination.page >= (pagination.totalPages || 1) || loading}
+                disabled={pagination.page >= (pagination.totalPages || 1) || usersLoading}
                 onClick={() => setPage((p) => p + 1)}
               >
                 Next
               </PagerBtn>
               </Pager>
-            </>
-          )
+              </>
+            )}
+          </>
         ) : null}
 
         {section === "plans" ? (
