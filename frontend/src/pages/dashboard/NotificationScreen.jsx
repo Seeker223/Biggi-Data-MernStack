@@ -11,7 +11,7 @@ import {
   Trophy,
 } from "lucide-react";
 import { AuthContext } from "../../context/AuthContext";
-import { getNotifications, getReferralStats } from "../../services/api";
+import { getNotifications, getReferralStats, getWalletTransactions } from "../../services/api";
 import api from "../../utils/api";
 
 const NotificationScreen = () => {
@@ -24,15 +24,18 @@ const NotificationScreen = () => {
   const [backendNotifications, setBackendNotifications] = useState([]);
   const [referrals, setReferrals] = useState([]);
   const [depositDetail, setDepositDetail] = useState(null);
+  const [buyDataDetail, setBuyDataDetail] = useState(null);
+  const [buyDataHistory, setBuyDataHistory] = useState([]);
 
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const [notifRes, depRes, wdRes, referralRes] = await Promise.allSettled([
+      const [notifRes, depRes, wdRes, referralRes, walletTxRes] = await Promise.allSettled([
         getNotifications(),
         api.get("/wallet/deposit-history"),
         api.get("/wallet/withdraw-history"),
         getReferralStats(),
+        getWalletTransactions({ type: "purchase", limit: 100 }),
       ]);
 
       const notifications =
@@ -47,11 +50,16 @@ const NotificationScreen = () => {
         referralRes.status === "fulfilled"
           ? referralRes.value?.data?.referrals || referralRes.value?.referrals || []
           : [];
+      const walletTx =
+        walletTxRes.status === "fulfilled"
+          ? walletTxRes.value?.data?.transactions || walletTxRes.value?.transactions || []
+          : [];
 
       setBackendNotifications(Array.isArray(notifications) ? notifications : []);
       setDepositHistory(Array.isArray(deposits) ? deposits : []);
       setWithdrawHistory(Array.isArray(withdrawals) ? withdrawals : []);
       setReferrals(Array.isArray(referralList) ? referralList : []);
+      setBuyDataHistory(Array.isArray(walletTx) ? walletTx : []);
     } finally {
       setLoading(false);
     }
@@ -122,10 +130,21 @@ const NotificationScreen = () => {
       status: "success",
     }));
 
-    return [...deposits, ...withdrawals, ...games, ...notices, ...referralItems].sort(
+    const purchases = buyDataHistory.map((p, idx) => ({
+      id: p?._id || p?.reference || `p-${idx}`,
+      type: "buydata",
+      title: "Buy Data",
+      message: `${p?.status || "pending"}${p?.meta?.network ? ` • ${p.meta.network}` : ""}`,
+      amount: Number(p?.amount || 0),
+      createdAt: p?.date || new Date().toISOString(),
+      status: p?.status || "pending",
+      raw: p,
+    }));
+
+    return [...deposits, ...withdrawals, ...purchases, ...games, ...notices, ...referralItems].sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
-  }, [depositHistory, withdrawHistory, gameHistory, backendNotifications, referrals]);
+  }, [depositHistory, withdrawHistory, buyDataHistory, gameHistory, backendNotifications, referrals]);
 
   const filteredItems = useMemo(() => {
     if (activeTab === "all") return merged;
@@ -135,6 +154,7 @@ const NotificationScreen = () => {
   const stats = {
     deposits: depositHistory.length,
     withdrawals: withdrawHistory.length,
+    buydata: buyDataHistory.length,
     games: gameHistory.length,
     wins: gameHistory.filter((g) => g?.isWinner).length,
     referrals: referrals.length,
@@ -143,6 +163,7 @@ const NotificationScreen = () => {
   const iconFor = (item) => {
     if (item.type === "deposits") return <Wallet size={18} color="#15803d" />;
     if (item.type === "withdrawals") return <Landmark size={18} color="#dc2626" />;
+    if (item.type === "buydata") return <Wallet size={18} color="#0f172a" />;
     if (item.type === "games") {
       return item.status === "winner" ? (
         <Trophy size={18} color="#ca8a04" />
@@ -209,6 +230,12 @@ const NotificationScreen = () => {
           >
             Withdrawals
           </Tab>
+          <Tab
+            $active={activeTab === "buydata"}
+            onClick={() => setActiveTab("buydata")}
+          >
+            Buy Data
+          </Tab>
           <Tab $active={activeTab === "games"} onClick={() => setActiveTab("games")}>
             Games
           </Tab>
@@ -247,9 +274,10 @@ const NotificationScreen = () => {
             {filteredItems.map((item) => (
               <Card
                 key={item.id}
-                $clickable={item.type === "deposits"}
+                $clickable={item.type === "deposits" || item.type === "buydata"}
                 onClick={() => {
                   if (item.type === "deposits") setDepositDetail(item.raw || null);
+                  if (item.type === "buydata") setBuyDataDetail(item.raw || null);
                 }}
               >
                 <IconWrap>{iconFor(item)}</IconWrap>
@@ -318,6 +346,51 @@ const NotificationScreen = () => {
               </DetailValue>
             </DetailRow>
             <CloseBtn onClick={() => setDepositDetail(null)}>Close</CloseBtn>
+          </ModalCard>
+        </ModalOverlay>
+      ) : null}
+
+      {buyDataDetail ? (
+        <ModalOverlay onClick={() => setBuyDataDetail(null)}>
+          <ModalCard onClick={(e) => e.stopPropagation()}>
+            <ModalTitle>Buy Data Details</ModalTitle>
+            <DetailRow>
+              <DetailLabel>Status</DetailLabel>
+              <DetailValue>{buyDataDetail?.status || "pending"}</DetailValue>
+            </DetailRow>
+            <DetailRow>
+              <DetailLabel>Amount</DetailLabel>
+              <DetailValue>₦{Number(buyDataDetail?.amount || 0).toLocaleString()}</DetailValue>
+            </DetailRow>
+            <DetailRow>
+              <DetailLabel>Network</DetailLabel>
+              <DetailValue>{buyDataDetail?.meta?.network || "—"}</DetailValue>
+            </DetailRow>
+            <DetailRow>
+              <DetailLabel>Category</DetailLabel>
+              <DetailValue>{buyDataDetail?.meta?.category || "—"}</DetailValue>
+            </DetailRow>
+            <DetailRow>
+              <DetailLabel>Plan</DetailLabel>
+              <DetailValue>{buyDataDetail?.meta?.plan_id || "—"}</DetailValue>
+            </DetailRow>
+            <DetailRow>
+              <DetailLabel>Phone</DetailLabel>
+              <DetailValue>{buyDataDetail?.meta?.mobile_no || "—"}</DetailValue>
+            </DetailRow>
+            <DetailRow>
+              <DetailLabel>Reference</DetailLabel>
+              <DetailValue>{buyDataDetail?.reference || "—"}</DetailValue>
+            </DetailRow>
+            <DetailRow>
+              <DetailLabel>Created</DetailLabel>
+              <DetailValue>
+                {buyDataDetail?.date
+                  ? new Date(buyDataDetail.date).toLocaleString()
+                  : "—"}
+              </DetailValue>
+            </DetailRow>
+            <CloseBtn onClick={() => setBuyDataDetail(null)}>Close</CloseBtn>
           </ModalCard>
         </ModalOverlay>
       ) : null}

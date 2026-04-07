@@ -287,6 +287,8 @@ export const disableBiometricAuth = () => api.delete("/auth/biometric");
 // WALLET & PAYMENTS
 // -----------------------------------------------------------
 export const refreshUserBalance = () => api.get("/wallet/balance");
+export const getWalletTransactions = (params = {}) =>
+  api.get("/wallet/transactions", { params });
 export const getDepositHistory = () => api.get("/wallet/deposit-history");
 export const getVirtualAccount = (options = {}) => {
   const params = {};
