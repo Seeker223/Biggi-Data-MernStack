@@ -407,6 +407,10 @@ export const verifyTransactionPin = (pin) =>
   api.post("/user/transaction-pin/verify", { pin });
 export const disableTransactionPin = (currentPin) =>
   api.delete("/user/transaction-pin", { data: { currentPin } });
+export const requestTransactionPinReset = () =>
+  api.post("/user/transaction-pin/reset/request");
+export const confirmTransactionPinReset = (otp, pin) =>
+  api.post("/user/transaction-pin/reset/confirm", { otp, pin });
 
 export const updateAvatar = async (formData) => {
   try {

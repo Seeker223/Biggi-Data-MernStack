@@ -8,6 +8,8 @@ import {
   getTransactionSecurityStatus,
   setTransactionPin,
   disableTransactionPin,
+  requestTransactionPinReset,
+  confirmTransactionPinReset,
 } from "../../services/api";
 
 const DEFAULT_AVATAR = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
@@ -33,6 +35,10 @@ const ProfileScreen = () => {
   const [currentPin, setCurrentPin] = useState("");
   const [pinLoading, setPinLoading] = useState(false);
   const [pinNotice, setPinNotice] = useState("");
+  const [resetCode, setResetCode] = useState("");
+  const [resetPin, setResetPin] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetNotice, setResetNotice] = useState("");
   const siteBaseUrl = normalizeSiteUrl(
     import.meta.env.VITE_PUBLIC_SITE_URL || "https://biggidata.com.ng"
   );
@@ -94,6 +100,42 @@ const ProfileScreen = () => {
       setPinNotice(error?.response?.data?.message || "Failed to disable transaction PIN.");
     } finally {
       setPinLoading(false);
+    }
+  };
+
+  const handleRequestPinReset = async () => {
+    setResetLoading(true);
+    setResetNotice("");
+    try {
+      const res = await requestTransactionPinReset();
+      setResetNotice(res?.data?.message || "Reset code sent to your email.");
+    } catch (error) {
+      setResetNotice(error?.response?.data?.message || "Failed to send reset code.");
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  const handleConfirmPinReset = async () => {
+    if (!/^\d{6}$/.test(resetCode)) {
+      setResetNotice("Enter the 6-digit reset code.");
+      return;
+    }
+    if (!/^\d{4}$/.test(resetPin)) {
+      setResetNotice("New PIN must be exactly 4 digits.");
+      return;
+    }
+    setResetLoading(true);
+    try {
+      const res = await confirmTransactionPinReset(resetCode, resetPin);
+      setResetNotice(res?.data?.message || "Transaction PIN reset successfully.");
+      setResetCode("");
+      setResetPin("");
+      setTransactionPinEnabled(true);
+    } catch (error) {
+      setResetNotice(error?.response?.data?.message || "Failed to reset transaction PIN.");
+    } finally {
+      setResetLoading(false);
     }
   };
 
@@ -202,6 +244,41 @@ const ProfileScreen = () => {
               ) : null}
             </PinActions>
             {pinNotice ? <BioNotice>{pinNotice}</BioNotice> : null}
+            <ResetBlock>
+              <ResetTitle>Forgot PIN?</ResetTitle>
+              <ResetText>Send a 6-digit reset code to your email and set a new PIN.</ResetText>
+              <ResetActions>
+                <BioButton type="button" onClick={handleRequestPinReset} disabled={resetLoading}>
+                  {resetLoading ? "Please wait..." : "Send Reset Code"}
+                </BioButton>
+              </ResetActions>
+              <PinRow>
+                <PinInput
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  placeholder="6-digit code"
+                  value={resetCode}
+                  onChange={(e) => setResetCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  disabled={resetLoading}
+                />
+                <PinInput
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={4}
+                  placeholder="New 4-digit PIN"
+                  value={resetPin}
+                  onChange={(e) => setResetPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                  disabled={resetLoading}
+                />
+              </PinRow>
+              <ResetActions>
+                <BioButton type="button" onClick={handleConfirmPinReset} disabled={resetLoading}>
+                  {resetLoading ? "Please wait..." : "Reset PIN"}
+                </BioButton>
+              </ResetActions>
+              {resetNotice ? <BioNotice>{resetNotice}</BioNotice> : null}
+            </ResetBlock>
           </BiometricBlock>
 
           <Options>
@@ -440,6 +517,30 @@ const PinActions = styled.div`
   @media (max-width: 380px) {
     grid-template-columns: 1fr;
   }
+`;
+
+const ResetBlock = styled.div`
+  margin-top: 14px;
+  border: 1px solid #f0f0f0;
+  border-radius: 12px;
+  padding: 12px;
+  background: #fffdf8;
+`;
+
+const ResetTitle = styled.h4`
+  margin: 0 0 6px 0;
+  font-size: 14px;
+  color: #111;
+`;
+
+const ResetText = styled.p`
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  color: #666;
+`;
+
+const ResetActions = styled.div`
+  margin-top: 6px;
 `;
 
 const ModalOverlay = styled.div`
