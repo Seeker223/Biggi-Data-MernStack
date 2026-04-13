@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from "react";
 import styled, { keyframes } from "styled-components";
 import { useNavigate } from "react-router-dom";
-import { Briefcase, User, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { Briefcase, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { AuthContext } from "../../context/AuthContext";
 import { updateUserProfile } from "../../services/api";
 
@@ -10,7 +10,7 @@ const UserRoleScreen = () => {
   const { user, updateUser, refreshUser } = useContext(AuthContext);
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-  const [selectedRole, setSelectedRole] = useState("");
+  const [selectedRole, setSelectedRole] = useState("merchant");
 
   useEffect(() => {
     const role = user?.role || user?.userRole;
@@ -59,23 +59,9 @@ const UserRoleScreen = () => {
 
       <Card>
         <Title>Choose account type</Title>
-        <Subtitle>This helps us tailor game access to your account.</Subtitle>
+        <Subtitle>Merchant accounts get access to the full Biggi Data experience.</Subtitle>
 
         <RoleGrid>
-          <RoleCard
-            type="button"
-            onClick={() => handleSelectRole("private")}
-            $active={selectedRole === "private"}
-            disabled={saving}
-          >
-            <RoleIcon $active={selectedRole === "private"}>
-              <User size={24} />
-            </RoleIcon>
-            <RoleName>Private</RoleName>
-            <RoleDesc>Weekly game + Top Random picks</RoleDesc>
-            {selectedRole === "private" && <SelectedBadge><CheckCircle2 size={16} /> Selected</SelectedBadge>}
-          </RoleCard>
-
           <RoleCard
             type="button"
             onClick={() => handleSelectRole("merchant")}
