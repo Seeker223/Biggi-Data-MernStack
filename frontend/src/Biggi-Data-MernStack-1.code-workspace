@@ -8,6 +8,9 @@
 		},
 		{
 			"path": "../../../Biggi-Data-Application"
+		},
+		{
+			"path": "../../../Biggi-House"
 		}
 	],
 	"settings": {
