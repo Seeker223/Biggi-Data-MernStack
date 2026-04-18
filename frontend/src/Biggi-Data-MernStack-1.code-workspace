@@ -26,7 +26,11 @@
 				"approve": true,
 				"matchCommandLine": true
 			},
-			"npm run lint": true
+			"npm run lint": true,
+			"/^cd \"c:\\\\Users\\\\Deredz\\\\Documents\\\\Web Apps\\\\Biggi-Data-Reactnative-mern\\\\backend\" ; node --check controllers/authController\\.js$/": {
+				"approve": true,
+				"matchCommandLine": true
+			}
 		}
 	}
 }
