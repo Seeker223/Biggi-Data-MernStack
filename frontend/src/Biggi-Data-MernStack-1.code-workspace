@@ -34,6 +34,18 @@
 			"/^cd \"c:\\\\Users\\\\Deredz\\\\Documents\\\\Web Apps\\\\Biggi-Data-Reactnative-mern\" ; git push$/": {
 				"approve": true,
 				"matchCommandLine": true
+			},
+			"/^cd \"c:\\\\Users\\\\Deredz\\\\Documents\\\\Web Apps\\\\Biggi-Data-Reactnative-mern\" ; git add backend/controllers/plansController\\.js backend/routes/planRoutes\\.js ; git commit -m \"feat: add GET /api/v1/plans endpoint to fetch all active plans\"$/": {
+				"approve": true,
+				"matchCommandLine": true
+			},
+			"/^cd \"c:\\\\Users\\\\Deredz\\\\Documents\\\\Web Apps\\\\Biggi-House\" ; git add frontend/src/pages/BuyData\\.jsx ; git commit -m \"fix: resolve network dropdown and button state issues in BuyData\n\n- Fixed computation order: networkPlans now calculated before selectedPlan for consistency\n- Added useEffect to auto-sync plan selection when network or plans change\n- Improved network change handler to properly filter plans for new network\n- Ensures button remains active when switching networks with plans available\n- Prevents empty dropdown selection bug\"$/": {
+				"approve": true,
+				"matchCommandLine": true
+			},
+			"/^cd \"c:\\\\Users\\\\Deredz\\\\Documents\\\\Web Apps\\\\Biggi-House\" ; git push$/": {
+				"approve": true,
+				"matchCommandLine": true
 			}
 		}
 	}
