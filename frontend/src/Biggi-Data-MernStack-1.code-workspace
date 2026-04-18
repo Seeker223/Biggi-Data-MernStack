@@ -21,6 +21,10 @@
 			"/^cd \"c:\\\\Users\\\\Deredz\\\\Documents\\\\Web Apps\\\\Biggi-Data-Reactnative-mern\\\\backend\" ; node --check controllers/biggiHouseController\\.js models/BiggiHouseWallet\\.js$/": {
 				"approve": true,
 				"matchCommandLine": true
+			},
+			"/^cd \"c:\\\\Users\\\\Deredz\\\\Documents\\\\Web Apps\\\\Biggi-Data-Reactnative-mern\\\\backend\" ; node --check index\\.js middleware/error\\.js$/": {
+				"approve": true,
+				"matchCommandLine": true
 			}
 		}
 	}
