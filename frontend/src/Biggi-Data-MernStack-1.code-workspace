@@ -46,6 +46,10 @@
 			"/^cd \"c:\\\\Users\\\\Deredz\\\\Documents\\\\Web Apps\\\\Biggi-House\" ; git push$/": {
 				"approve": true,
 				"matchCommandLine": true
+			},
+			"/^cd \"c:\\\\Users\\\\Deredz\\\\Documents\\\\Web Apps\\\\Biggi-Data-Reactnative-mern\\\\backend\" ; npm start$/": {
+				"approve": true,
+				"matchCommandLine": true
 			}
 		}
 	}
