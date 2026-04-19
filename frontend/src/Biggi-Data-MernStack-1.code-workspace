@@ -54,6 +54,14 @@
 			"/^cd \"c:\\\\Users\\\\Deredz\\\\Documents\\\\Web Apps\\\\Biggi-Data-Reactnative-mern\\\\backend\"; node --check controllers/biggiHouseController\\.js$/": {
 				"approve": true,
 				"matchCommandLine": true
+			},
+			"/^cd \"c:\\\\Users\\\\Deredz\\\\Documents\\\\Web Apps\\\\Biggi-Data-Reactnative-mern\\\\backend\"; if \\(Test-Path package\\.json\\) \\{ Get-Content package\\.json \\| Select-Object -First 20 \\} else \\{ Write-Output 'no package\\.' \\}$/": {
+				"approve": true,
+				"matchCommandLine": true
+			},
+			"/^cd \"c:\\\\Users\\\\Deredz\\\\Documents\\\\Web Apps\\\\Biggi-Data-Reactnative-mern\\\\backend\"; node -e \"console\\.log\\(process\\.env\\.NODE_ENV \\|\\| 'no env'\\);console\\.log\\(process\\.env\\.PORT \\|\\| 'no port'\\);console\\.log\\(process\\.env\\.MONGO_URI \\? 'mongo ok' : 'mongo missing'\\);\"$/": {
+				"approve": true,
+				"matchCommandLine": true
 			}
 		}
 	}
