@@ -271,18 +271,21 @@ export default function Houses() {
 
     joinBiggiHouseHouse(selected.id, token)
       .then((response) => {
-        if (response?.house) {
-          setList((prev) =>
-            prev.map((item) => (item.id === response.house.id ? response.house : item))
-          );
-          setSelected((prev) =>
-            prev?.id === response.house.id ? response.house : prev
-          );
-        }
         if (response?.wallet?.balance !== undefined) {
           setWalletBalance(Number(response.wallet.balance || 0));
         }
-        return getBiggiHouseMemberships(token).then((items) => setMemberships(items || []));
+        return Promise.all([
+          getBiggiHouseMemberships(token).then((items) => setMemberships(items || [])),
+          getBiggiHouseHouses(token).then((houses) => {
+            setList(houses);
+            if (response?.house) {
+              const updatedHouse = houses.find((item) => item.id === response.house.id);
+              if (updatedHouse) {
+                setSelected(updatedHouse);
+              }
+            }
+          }),
+        ]);
       })
       .catch((err) => {
         if (
