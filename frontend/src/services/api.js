@@ -652,4 +652,26 @@ export const storage = {
   }
 };
 
+// -----------------------------------------------------------
+// ADMIN BIGGI HOUSE
+// -----------------------------------------------------------
+export const getBiggiHouseAdminOverview = () => api.get("/biggi-house/admin/overview");
+export const getBiggiHouseAdminUsers = (params = {}) => api.get("/biggi-house/admin/users", { params });
+export const getBiggiHouseAdminUserById = (id) => api.get(`/biggi-house/admin/users/${id}`);
+export const createBiggiHouseAdminUser = (payload) => api.post("/biggi-house/admin/users", payload);
+export const updateBiggiHouseAdminUser = (id, payload) => api.put(`/biggi-house/admin/users/${id}`, payload);
+export const deleteBiggiHouseAdminUser = (id) => api.delete(`/biggi-house/admin/users/${id}`);
+
+export const getBiggiHouseAdminHouses = () => api.get("/biggi-house/admin/houses");
+export const createBiggiHouseAdminHouse = (payload) => api.post("/biggi-house/admin/houses", payload);
+export const updateBiggiHouseAdminHouse = (id, payload) => api.put(`/biggi-house/admin/houses/${id}`, payload);
+export const deleteBiggiHouseAdminHouse = (id) => api.delete(`/biggi-house/admin/houses/${id}`);
+
+export const getBiggiHouseAdminMemberships = (params = {}) => api.get("/biggi-house/admin/memberships", { params });
+export const deleteBiggiHouseAdminMembership = (id) => api.delete(`/biggi-house/admin/memberships/${id}`);
+
+export const getBiggiHouseAdminWinners = (params = {}) => api.get("/biggi-house/admin/winners", { params });
+export const triggerBiggiHouseWinnerSelection = () => api.post("/biggi-house/admin/winners/select");
+export const triggerBiggiHousePayouts = () => api.post("/biggi-house/admin/winners/payout");
+
 export default api;

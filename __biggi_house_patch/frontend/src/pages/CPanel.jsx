@@ -11,6 +11,9 @@ import {
   getBiggiHouseAdminMemberships,
   getBiggiHouseAdminOverview,
   getBiggiHouseAdminUsers,
+  getBiggiHouseAdminWinners,
+  triggerBiggiHouseWinnerSelection,
+  triggerBiggiHousePayouts,
   updateBiggiHouseAdminHouse,
   updateBiggiHouseAdminUser,
 } from "../services/api";
@@ -232,6 +235,8 @@ export default function CPanel() {
   const [newHouse, setNewHouse] = useState({ number: "", minimum: "" });
   const [memberships, setMemberships] = useState([]);
   const [membershipHouseId, setMembershipHouseId] = useState("");
+  const [winners, setWinners] = useState([]);
+  const [winnerFilters, setWinnerFilters] = useState({ houseId: "", status: "" });
 
   const load = async (fn) => {
     setBusy(true);
@@ -274,8 +279,15 @@ export default function CPanel() {
       });
       return;
     }
+    if (tab === "winners") {
+      load(async () => {
+        const data = await getBiggiHouseAdminWinners(token, winnerFilters);
+        setWinners(data.winners || []);
+      });
+      return;
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab]);
+  }, [tab, membershipHouseId, winnerFilters]);
 
   if (!isAdmin) {
     return (
@@ -313,6 +325,9 @@ export default function CPanel() {
           </Tab>
           <Tab $active={tab === "memberships"} onClick={() => setTab("memberships")} type="button">
             Memberships
+          </Tab>
+          <Tab $active={tab === "winners"} onClick={() => setTab("winners")} type="button">
+            Winners
           </Tab>
         </Tabs>
 
@@ -638,6 +653,130 @@ export default function CPanel() {
                     <tr>
                       <td colSpan="4" style={{ color: "#5b6475" }}>
                         No memberships.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </Table>
+            </TableWrap>
+          </Panel>
+        )}
+
+        {tab === "winners" && (
+          <Panel>
+            <PanelHeader>
+              <span>Weekly Winners</span>
+              <Tools>
+                <Select
+                  value={winnerFilters.houseId}
+                  onChange={(e) => setWinnerFilters((p) => ({ ...p, houseId: e.target.value }))}
+                >
+                  <option value="">All houses</option>
+                  {houses
+                    .slice()
+                    .sort((a, b) => a.number - b.number)
+                    .map((h) => (
+                      <option key={h.id} value={h.id}>
+                        House {h.number}
+                      </option>
+                    ))}
+                </Select>
+                <Select
+                  value={winnerFilters.status}
+                  onChange={(e) => setWinnerFilters((p) => ({ ...p, status: e.target.value }))}
+                >
+                  <option value="">All statuses</option>
+                  <option value="pending">Pending</option>
+                  <option value="paid">Paid</option>
+                </Select>
+                <Primary
+                  type="button"
+                  disabled={busy}
+                  onClick={() =>
+                    load(async () => {
+                      await triggerBiggiHouseWinnerSelection(token);
+                      const data = await getBiggiHouseAdminWinners(token, winnerFilters);
+                      setWinners(data.winners || []);
+                    })
+                  }
+                >
+                  Select Winners
+                </Primary>
+                <Primary
+                  type="button"
+                  disabled={busy}
+                  onClick={() =>
+                    load(async () => {
+                      await triggerBiggiHousePayouts(token);
+                      const data = await getBiggiHouseAdminWinners(token, winnerFilters);
+                      setWinners(data.winners || []);
+                    })
+                  }
+                >
+                  Process Payouts
+                </Primary>
+                <Ghost
+                  type="button"
+                  disabled={busy}
+                  onClick={() =>
+                    load(async () => {
+                      const data = await getBiggiHouseAdminWinners(token, winnerFilters);
+                      setWinners(data.winners || []);
+                    })
+                  }
+                >
+                  Refresh
+                </Ghost>
+              </Tools>
+            </PanelHeader>
+
+            <TableWrap>
+              <Table>
+                <thead>
+                  <tr>
+                    <th>Winner</th>
+                    <th>House</th>
+                    <th>Week</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Paid At</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {winners.map((w) => (
+                    <tr key={w.id}>
+                      <td>
+                        <div style={{ fontWeight: 900 }}>{w.user?.username || "—"}</div>
+                        <div style={{ color: "#5b6475", fontSize: 12 }}>{w.user?.email || ""}</div>
+                      </td>
+                      <td>House {w.house?.number || "—"}</td>
+                      <td style={{ color: "#5b6475" }}>
+                        {w.weekStart ? new Date(w.weekStart).toLocaleDateString() : "—"}
+                      </td>
+                      <td>{formatMoney(w.amount)}</td>
+                      <td>
+                        <span
+                          style={{
+                            padding: "4px 8px",
+                            borderRadius: "999px",
+                            fontSize: "12px",
+                            fontWeight: "600",
+                            background: w.status === "paid" ? "rgba(22, 163, 74, 0.12)" : "rgba(245, 158, 11, 0.18)",
+                            color: w.status === "paid" ? "#16a34a" : "#d97706",
+                          }}
+                        >
+                          {w.status}
+                        </span>
+                      </td>
+                      <td style={{ color: "#5b6475" }}>
+                        {w.paidAt ? new Date(w.paidAt).toLocaleString() : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                  {winners.length === 0 && (
+                    <tr>
+                      <td colSpan="6" style={{ color: "#5b6475" }}>
+                        No winners found.
                       </td>
                     </tr>
                   )}
