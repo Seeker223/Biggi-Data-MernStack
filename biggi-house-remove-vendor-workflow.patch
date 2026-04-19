@@ -1,0 +1,584 @@
+diff --git a/frontend/src/pages/Houses.jsx b/frontend/src/pages/Houses.jsx
+index 0000000..0000000 100644
+--- a/frontend/src/pages/Houses.jsx
++++ b/frontend/src/pages/Houses.jsx
+@@
+ import {
+-  createBiggiHouseVendorRequest,
+   getBiggiHouseEligibility,
+   getBiggiHouseHouses,
+   getBiggiHouseMemberships,
+-  getBiggiHouseVendors,
+   getBiggiHouseWallet,
+   joinBiggiHouseHouse,
+   getSubscriptionStatus,
+ } from "../services/api";
+@@
+   const [walletBalance, setWalletBalance] = useState(0);
+   const [memberships, setMemberships] = useState([]);
+   const [eligibility, setEligibility] = useState(null);
+-  const [vendors, setVendors] = useState([]);
+   const [gateOpen, setGateOpen] = useState(false);
+-  const [vendorOpen, setVendorOpen] = useState(false);
+   const [subscriptionOpen, setSubscriptionOpen] = useState(false);
+   const [subscriptionStatus, setSubscriptionStatus] = useState(null);
+-  const [vendorForm, setVendorForm] = useState({
+-    vendorUserId: "",
+-    phoneNumber: user?.phoneNumber || "",
+-    note: "",
+-  });
+@@
+       getBiggiHouseWallet(token).then((wallet) => {
+         setWalletBalance(Number(wallet?.balance || 0));
+       }),
+       getBiggiHouseMemberships(token).then((items) => setMemberships(items || [])),
+       getBiggiHouseEligibility(token).then((data) => setEligibility(data)),
+-      getBiggiHouseVendors(token).then((items) => setVendors(items || [])),
+       getSubscriptionStatus(token).then((data) => setSubscriptionStatus(data)),
+     ])
+       .catch((err) => {
+         setError(err.message || "Unable to load houses right now.");
+       })
+       .finally(() => setLoadingList(false));
+   }, []);
+@@
+-  // Sync vendor form phone number when user data changes
+-  useEffect(() => {
+-    if (user?.phoneNumber && vendorForm.phoneNumber !== user.phoneNumber) {
+-      setVendorForm((prev) => ({ ...prev, phoneNumber: user.phoneNumber }));
+-    }
+-  }, [user?.phoneNumber]);
+-
+   const handleJoin = (house) => {
+     if (!user) {
+       navigate("/login");
+       return;
+     }
+@@
+             {!eligibility?.eligible && (
+               <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                 <GhostButton type="button" onClick={refreshEligibility}>
+                   Refresh status
+                 </GhostButton>
+-                <PrimaryButton type="button" onClick={() => setVendorOpen(true)}>
+-                  Request vendor purchase
++                <PrimaryButton type="button" onClick={() => navigate("/buy-data")}>
++                  Buy Data
+                 </PrimaryButton>
+               </div>
+             )}
+           </InfoCard>
+@@
+               <GhostButton type="button" onClick={refreshEligibility}>
+                 Refresh
+               </GhostButton>
+               {!eligibility?.eligible && (
+-                <PrimaryButton type="button" onClick={() => setVendorOpen(true)}>
+-                  Request vendor purchase
++                <PrimaryButton type="button" onClick={() => navigate("/buy-data")}>
++                  Buy Data
+                 </PrimaryButton>
+               )}
+               {selected &&
+                 Number(eligibility?.purchasesThisWeek || 0) >=
+                   requiredPurchasesForHouse(selected) && (
+@@
+-      {vendorOpen && (
+-        <ModalBackdrop>
+-          <ModalCard>
+-            <h2>Request vendor purchase</h2>
+-            <p style={{ color: "#5b6475" }}>
+-              Choose a Biggi Data merchant. They will be notified that you want to buy
+-              data for this number.
+-            </p>
+-            <div style={{ display: "grid", gap: "10px" }}>
+-              <label style={{ display: "grid", gap: "6px", fontSize: "14px" }}>
+-                Vendor
+-                <select
+-                  value={vendorForm.vendorUserId}
+-                  onChange={(e) =>
+-                    setVendorForm((prev) => ({ ...prev, vendorUserId: e.target.value }))
+-                  }
+-                  style={{
+-                    padding: "10px 12px",
+-                    borderRadius: "12px",
+-                    border: "1px solid rgba(15, 23, 42, 0.14)",
+-                    background: "#fff",
+-                  }}
+-                >
+-                  <option value="">Select vendor</option>
+-                  {vendors.map((vendor) => (
+-                    <option key={vendor.id} value={vendor.id}>
+-                      {vendor.username} ({vendor.phoneNumber})
+-                    </option>
+-                  ))}
+-                </select>
+-              </label>
+-              <label style={{ display: "grid", gap: "6px", fontSize: "14px" }}>
+-                Phone number
+-                <input
+-                  value={vendorForm.phoneNumber}
+-                  onChange={(e) =>
+-                    setVendorForm((prev) => ({ ...prev, phoneNumber: e.target.value }))
+-                  }
+-                  style={{
+-                    padding: "10px 12px",
+-                    borderRadius: "12px",
+-                    border: "1px solid rgba(15, 23, 42, 0.14)",
+-                  }}
+-                />
+-              </label>
+-              <label style={{ display: "grid", gap: "6px", fontSize: "14px" }}>
+-                Note (optional)
+-                <input
+-                  value={vendorForm.note}
+-                  onChange={(e) =>
+-                    setVendorForm((prev) => ({ ...prev, note: e.target.value }))
+-                  }
+-                  placeholder="e.g. 1GB for MTN"
+-                  style={{
+-                    padding: "10px 12px",
+-                    borderRadius: "12px",
+-                    border: "1px solid rgba(15, 23, 42, 0.14)",
+-                  }}
+-                />
+-              </label>
+-            </div>
+-            <ModalActions>
+-              <GhostButton type="button" onClick={() => setVendorOpen(false)} aria-label="Close vendor request form">
+-                Cancel
+-              </GhostButton>
+-              <PrimaryButton
+-                type="button"
+-                disabled={loading}
+-                onClick={() => {
+-                  setError("");
+-                  const token = getAuthToken();
+-                  if (!token) return;
+-                  if (!vendorForm.vendorUserId || !vendorForm.phoneNumber) {
+-                    setError("Vendor and phone number are required.");
+-                    return;
+-                  }
+-                  setLoading(true);
+-                  createBiggiHouseVendorRequest(
+-                    {
+-                      vendorUserId: vendorForm.vendorUserId,
+-                      phoneNumber: vendorForm.phoneNumber,
+-                      note: vendorForm.note || undefined,
+-                    },
+-                    token
+-                  )
+-                    .then(() => {
+-                      setVendorOpen(false);
+-                      setSuccess("Vendor request sent. The vendor was notified in Biggi Data.");
+-                    })
+-                    .catch((err) => setError(err?.message || "Request failed."))
+-                    .finally(() => setLoading(false));
+-                }}
+-              aria-label="Send vendor request"
+-              >
+-                {loading ? "Sending..." : "Send request"}
+-              </PrimaryButton>
+-            </ModalActions>
+-          </ModalCard>
+-        </ModalBackdrop>
+-      )}
+-
+       {subscriptionOpen && (
+         <ModalBackdrop>
+           <ModalCard>
+             <h2>Subscription Required</h2>
+diff --git a/frontend/src/pages/Dashboard.jsx b/frontend/src/pages/Dashboard.jsx
+index 0000000..0000000 100644
+--- a/frontend/src/pages/Dashboard.jsx
++++ b/frontend/src/pages/Dashboard.jsx
+@@
+ import {
+-  createBiggiHouseVendorRequest,
+   getBiggiHouseEligibility,
+   getBiggiHouseMemberships,
+-  getBiggiHouseVendors,
+   getBiggiHouseWallet,
+ } from "../services/api";
+@@
+   const navigate = useNavigate();
+   const { user, logout } = useAuth();
+   const [wallet, setWallet] = useState(null);
+-  const [vendors, setVendors] = useState([]);
+   const [eligibility, setEligibility] = useState(null);
+   const [memberships, setMemberships] = useState([]);
+   const [loadingData, setLoadingData] = useState(false);
+-  const [requestVendorOpen, setRequestVendorOpen] = useState(false);
+-  const [requestForm, setRequestForm] = useState({
+-    vendorUserId: "",
+-    phoneNumber: user?.phoneNumber || "",
+-    network: "",
+-    planId: "",
+-    note: "",
+-  });
+   const [error, setError] = useState("");
+-  const [success, setSuccess] = useState("");
+@@
+     setLoadingData(true);
+     setError("");
+     Promise.all([
+       getBiggiHouseWallet(token).then((data) => setWallet(data)),
+-      getBiggiHouseVendors(token).then((data) => setVendors(data || [])),
+       getBiggiHouseEligibility(token).then((data) => setEligibility(data)),
+       getBiggiHouseMemberships(token).then((data) => setMemberships(data || [])),
+     ])
+       .catch((err) => setError(err?.message || "Unable to load dashboard data."))
+       .finally(() => setLoadingData(false));
+   }, [token]);
+@@
+           {loadingData && (
+             <p style={{ color: "#5b6475", marginTop: "10px" }}>Refreshing...</p>
+           )}
+           {error && <p style={{ color: "#c02626", marginTop: "10px" }}>{error}</p>}
+-          {success && (
+-            <p style={{ color: "#15803d", marginTop: "10px" }}>{success}</p>
+-          )}
+         </div>
+@@
+             {!eligibility?.eligible && (
+               <>
+-                <SecondaryButton onClick={() => setRequestVendorOpen(true)}>
+-                  Request a vendor purchase
++                <SecondaryButton onClick={() => navigate("/buy-data")}>
++                  Buy Data
+                 </SecondaryButton>
+-                <p style={{ color: "#5b6475", fontSize: "14px" }}>
+-                  Vendors are Biggi Data merchant users who can help you buy data.
+-                </p>
+               </>
+             )}
+           </div>
+         </Card>
+-        <Card>
+-          <CardLabel>Vendors (Biggi Data merchants)</CardLabel>
+-          {vendors.length ? (
+-            <div style={{ marginTop: "12px", display: "grid", gap: "10px" }}>
+-              {vendors.slice(0, 6).map((vendor) => (
+-                <div
+-                  key={vendor.id}
+-                  style={{
+-                    display: "flex",
+-                    alignItems: "center",
+-                    justifyContent: "space-between",
+-                    gap: "12px",
+-                    padding: "12px 14px",
+-                    borderRadius: "14px",
+-                    border: "1px solid rgba(15, 23, 42, 0.08)",
+-                    background: "#fff",
+-                  }}
+-                >
+-                  <div style={{ display: "grid", gap: "2px" }}>
+-                    <strong style={{ fontSize: "14px" }}>{vendor.username}</strong>
+-                    <span style={{ color: "#5b6475", fontSize: "13px" }}>
+-                      {vendor.phoneNumber}
+-                    </span>
+-                  </div>
+-                  <SecondaryButton
+-                    onClick={() => {
+-                      setRequestForm((prev) => ({
+-                        ...prev,
+-                        vendorUserId: vendor.id,
+-                      }));
+-                      setRequestVendorOpen(true);
+-                    }}
+-                  >
+-                    Request
+-                  </SecondaryButton>
+-                </div>
+-              ))}
+-              {vendors.length > 6 && (
+-                <p style={{ color: "#5b6475", fontSize: "13px" }}>
+-                  Showing 6 of {vendors.length} vendors.
+-                </p>
+-              )}
+-            </div>
+-          ) : (
+-            <p style={{ color: "#5b6475", marginTop: "10px" }}>
+-              No vendors available yet.
+-            </p>
+-          )}
+-        </Card>
+       </Grid>
+-
+-      {requestVendorOpen && (
+-        <div
+-          style={{
+-            position: "fixed",
+-            inset: 0,
+-            background: "rgba(8, 12, 24, 0.35)",
+-            display: "grid",
+-            placeItems: "center",
+-            padding: "20px",
+-            zIndex: 60,
+-          }}
+-        >
+-          <div
+-            style={{
+-              width: "min(560px, 100%)",
+-              background: "#fff",
+-              borderRadius: "18px",
+-              padding: "18px",
+-              border: "1px solid rgba(15, 23, 42, 0.08)",
+-              boxShadow: "0 10px 40px rgba(15, 23, 42, 0.14)",
+-              display: "grid",
+-              gap: "12px",
+-            }}
+-          >
+-            <h3 style={{ margin: 0 }}>Request data purchase</h3>
+-            <p style={{ color: "#5b6475", margin: 0 }}>
+-              Choose a vendor. They will receive a notification in Biggi Data.
+-            </p>
+-            <label style={{ display: "grid", gap: "6px", fontSize: "14px" }}>
+-              Vendor
+-              <select
+-                value={requestForm.vendorUserId}
+-                onChange={(e) =>
+-                  setRequestForm((prev) => ({ ...prev, vendorUserId: e.target.value }))
+-                }
+-                style={{
+-                  padding: "10px 12px",
+-                  borderRadius: "12px",
+-                  border: "1px solid rgba(15, 23, 42, 0.14)",
+-                }}
+-              >
+-                <option value="">Select vendor</option>
+-                {vendors.map((vendor) => (
+-                  <option key={vendor.id} value={vendor.id}>
+-                    {vendor.username} ({vendor.phoneNumber})
+-                  </option>
+-                ))}
+-              </select>
+-            </label>
+-            <label style={{ display: "grid", gap: "6px", fontSize: "14px" }}>
+-              Phone number
+-              <input
+-                value={requestForm.phoneNumber}
+-                onChange={(e) =>
+-                  setRequestForm((prev) => ({ ...prev, phoneNumber: e.target.value }))
+-                }
+-                style={{
+-                  padding: "10px 12px",
+-                  borderRadius: "12px",
+-                  border: "1px solid rgba(15, 23, 42, 0.14)",
+-                }}
+-              />
+-            </label>
+-            <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+-              <GhostButton onClick={() => setRequestVendorOpen(false)}>
+-                Cancel
+-              </GhostButton>
+-              <Button
+-                onClick={() => {
+-                  setError("");
+-                  setSuccess("");
+-                  const token = getAuthToken();
+-                  if (!token) return;
+-                  if (!requestForm.vendorUserId || !requestForm.phoneNumber) {
+-                    setError("Vendor and phone number are required.");
+-                    return;
+-                  }
+-                  createBiggiHouseVendorRequest(
+-                    {
+-                      vendorUserId: requestForm.vendorUserId,
+-                      phoneNumber: requestForm.phoneNumber,
+-                      network: requestForm.network || undefined,
+-                      planId: requestForm.planId || undefined,
+-                      note: requestForm.note || undefined,
+-                    },
+-                    token
+-                  )
+-                    .then(() => {
+-                      setRequestVendorOpen(false);
+-                      setSuccess("Vendor request sent. The vendor was notified in Biggi Data.");
+-                      reload();
+-                    })
+-                    .catch((err) => setError(err?.message || "Request failed."));
+-                }}
+-              >
+-                Send request
+-              </Button>
+-            </div>
+-            {error && <p style={{ color: "#c02626", margin: 0 }}>{error}</p>}
+-          </div>
+-        </div>
+-      )}
+     </Wrapper>
+   );
+ }
+diff --git a/frontend/src/pages/FAQ.jsx b/frontend/src/pages/FAQ.jsx
+index 0000000..0000000 100644
+--- a/frontend/src/pages/FAQ.jsx
++++ b/frontend/src/pages/FAQ.jsx
+@@
+     {
+-      q: "How do vendor purchases work?",
+-      a: "Biggi Data merchant users act as vendors. If you need help buying data to meet eligibility, you can request a vendor from your dashboard (or houses page). The vendor gets a notification in Biggi Data and can assist you.",
+-    },
+-    {
+       q: "Can I use the same account on Biggi Data and BiggiHouse?",
+       a: "Accounts are managed by a shared backend, but access is controlled per app. By default, BiggiHouse users are private users and may not be allowed to sign in on Biggi Data unless their account is enabled for it.",
+     },
+     {
+       q: "Is BiggiHouse powered by Biggi Data?",
+-      a: "Yes. BiggiHouse uses Biggi Data bundles services for eligibility checks and merchant vendor workflows.",
++      a: "Yes. BiggiHouse uses Biggi Data bundle services for eligibility checks based on your weekly purchases tied to your phone number.",
+     },
+   ];
+@@
+         <Title>Frequently Asked Questions</Title>
+         <Sub>
+           Everything you need to know about BiggiHouse houses, eligibility,
+-          weekly payouts, and vendor purchases powered by Biggi Data.
++          weekly payouts, and data purchase eligibility powered by Biggi Data.
+         </Sub>
+       </Header>
+diff --git a/frontend/src/pages/CPanel.jsx b/frontend/src/pages/CPanel.jsx
+index 0000000..0000000 100644
+--- a/frontend/src/pages/CPanel.jsx
++++ b/frontend/src/pages/CPanel.jsx
+@@
+ import {
+   createBiggiHouseAdminHouse,
+   deleteBiggiHouseAdminHouse,
+   deleteBiggiHouseAdminMembership,
+   getBiggiHouseAdminHouses,
+   getBiggiHouseAdminMemberships,
+   getBiggiHouseAdminOverview,
+   getBiggiHouseAdminUsers,
+-  getBiggiHouseAdminVendorRequests,
+   updateBiggiHouseAdminHouse,
+   updateBiggiHouseAdminUser,
+-  updateBiggiHouseAdminVendorRequest,
+ } from "../services/api";
+@@
+   const [membershipHouseId, setMembershipHouseId] = useState("");
+   const [memberships, setMemberships] = useState([]);
+-  const [requests, setRequests] = useState([]);
+-  const [requestStatus, setRequestStatus] = useState("");
+@@
+-    if (tab === "requests") {
+-      load(async () => {
+-        const data = await getBiggiHouseAdminVendorRequests(token, { status: requestStatus || undefined });
+-        setRequests(data.requests || []);
+-      });
+-    }
+     // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [tab]);
+@@
+           <Tab $active={tab === "memberships"} onClick={() => setTab("memberships")} type="button">
+             Memberships
+           </Tab>
+-          <Tab $active={tab === "requests"} onClick={() => setTab("requests")} type="button">
+-            Vendor Requests
+-          </Tab>
+         </Tabs>
+@@
+               <Stat>
+                 <StatLabel>Memberships</StatLabel>
+                 <StatValue>{overview?.houses?.memberships ?? "—"}</StatValue>
+               </Stat>
+-              <Stat>
+-                <StatLabel>Pending Requests</StatLabel>
+-                <StatValue>{overview?.vendorRequests?.pending ?? "—"}</StatValue>
+-              </Stat>
+             </Cards>
+@@
+-        {tab === "requests" && (
+-          <Panel>
+-            <PanelHeader>
+-              <span>Vendor Requests</span>
+-              <Tools>
+-                <Select value={requestStatus} onChange={(e) => setRequestStatus(e.target.value)}>
+-                  <option value="">All statuses</option>
+-                  <option value="pending">Pending</option>
+-                  <option value="approved">Approved</option>
+-                  <option value="rejected">Rejected</option>
+-                </Select>
+-                <Primary
+-                  type="button"
+-                  disabled={busy}
+-                  onClick={() =>
+-                    load(async () => {
+-                      const data = await getBiggiHouseAdminVendorRequests(token, { status: requestStatus || undefined });
+-                      setRequests(data.requests || []);
+-                    })
+-                  }
+-                >
+-                  Apply
+-                </Primary>
+-              </Tools>
+-            </PanelHeader>
+-
+-            <TableWrap>
+-              <Table>
+-                <thead>
+-                  <tr>
+-                    <th>User</th>
+-                    <th>Vendor</th>
+-                    <th>Phone</th>
+-                    <th>Status</th>
+-                    <th>Created</th>
+-                    <th>Actions</th>
+-                  </tr>
+-                </thead>
+-                <tbody>
+-                  {requests.map((r) => (
+-                    <tr key={r.id}>
+-                      <td>
+-                        <div style={{ fontWeight: 900 }}>{r.user?.username || "—"}</div>
+-                        <div style={{ color: "#5b6475", fontSize: 12 }}>{r.user?.email || ""}</div>
+-                      </td>
+-                      <td>{r.vendor?.username || "—"}</td>
+-                      <td style={{ color: "#5b6475" }}>{r.phoneNumber || "—"}</td>
+-                      <td style={{ fontWeight: 900 }}>{r.status || "pending"}</td>
+-                      <td style={{ color: "#5b6475" }}>{r.createdAt ? new Date(r.createdAt).toLocaleString() : "—"}</td>
+-                      <td>
+-                        <Tools>
+-                          <Ghost
+-                            type="button"
+-                            disabled={busy}
+-                            onClick={() => {
+-                              load(async () => {
+-                                const status = "approved";
+-                                const next = await updateBiggiHouseAdminVendorRequest(r.id, { status }, token);
+-                                setRequests((prev) => prev.map((x) => (x.id === r.id ? { ...x, ...next } : x)));
+-                              });
+-                            }}
+-                          >
+-                            Approve
+-                          </Ghost>
+-                          <Danger
+-                            type="button"
+-                            disabled={busy}
+-                            onClick={() => {
+-                              load(async () => {
+-                                const status = "rejected";
+-                                const next = await updateBiggiHouseAdminVendorRequest(r.id, { status }, token);
+-                                setRequests((prev) => prev.map((x) => (x.id === r.id ? { ...x, ...next } : x)));
+-                              });
+-                            }}
+-                          >
+-                            Reject
+-                          </Danger>
+-                        </Tools>
+-                      </td>
+-                    </tr>
+-                  ))}
+-                  {requests.length === 0 && (
+-                    <tr>
+-                      <td colSpan="6" style={{ color: "#5b6475" }}>
+-                        No requests.
+-                      </td>
+-                    </tr>
+-                  )}
+-                </tbody>
+-              </Table>
+-            </TableWrap>
+-          </Panel>
+-        )}
++
