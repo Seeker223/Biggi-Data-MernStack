@@ -7,6 +7,7 @@ import { AuthContext } from "../../context/AuthContext";
 import { FEATURE_FLAGS } from "../../constants/featureFlags";
 import api from "../../utils/api";
 import { DRAW_LETTERS, letterToNumber, numberToLetter } from "../../utils/drawLetters";
+import { isBiggiHouseMember } from "../../utils/biggiHouse";
 
 const REQUIRED_PICKS = 5;
 const PROMO_PICKS = 3;
@@ -33,9 +34,8 @@ const DailyNumberDrawScreen = () => {
   const tickets = Number(user?.tickets || 0);
   const historyCount = Array.isArray(user?.dailyNumberDraw) ? user.dailyNumberDraw.length : 0;
   const letters = useMemo(() => DRAW_LETTERS, []);
-  const role = String(user?.userRole || "").toLowerCase();
-  const isMerchantRole = role === "merchant";
-  const isPrivateRole = role === "private";
+  const isMerchantRole = isBiggiHouseMember(user);
+  const isPrivateRole = !isMerchantRole;
   const isMonthlyCardRole = isMerchantRole || isPrivateRole;
 
   const showToast = (message) => {

@@ -7,6 +7,7 @@ import { FEATURE_FLAGS } from "../../constants/featureFlags";
 import BrandLoader from "../../components/BrandLoader";
 import { toLetters } from "../../utils/drawLetters";
 import { getMerchantWeeklyWinners } from "../../services/api";
+import { isBiggiHouseMember } from "../../utils/biggiHouse";
 
 const DailyHistoryScreen = () => {
   const navigate = useNavigate();
@@ -51,7 +52,7 @@ const DailyHistoryScreen = () => {
     navigate("/daily-draw");
   };
 
-  const isMerchantRole = String(user?.userRole || "").toLowerCase() === "merchant";
+  const isMerchantRole = isBiggiHouseMember(user);
 
   const loadWinners = useCallback(() => {
     let mounted = true;

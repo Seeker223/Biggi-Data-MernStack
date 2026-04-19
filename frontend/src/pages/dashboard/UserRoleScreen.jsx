@@ -1,51 +1,16 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useMemo } from "react";
 import styled, { keyframes } from "styled-components";
 import { useNavigate } from "react-router-dom";
-import { Briefcase, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Wifi } from "lucide-react";
 import { AuthContext } from "../../context/AuthContext";
-import { updateUserProfile } from "../../services/api";
+import { getUserDataPurchaseCount, isBiggiHouseMember } from "../../utils/biggiHouse";
 
 const UserRoleScreen = () => {
   const navigate = useNavigate();
-  const { user, updateUser, refreshUser } = useContext(AuthContext);
-  const [saving, setSaving] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
-  const [selectedRole, setSelectedRole] = useState("merchant");
+  const { user } = useContext(AuthContext);
 
-  useEffect(() => {
-    const role = user?.role || user?.userRole;
-    if (role) {
-      navigate("/", { replace: true });
-    }
-  }, [user, navigate]);
-
-  const handleSelectRole = async (role) => {
-    if (saving) return;
-    setSelectedRole(role);
-    setSaving(true);
-    setErrorMsg("");
-
-    try {
-      const res = await updateUserProfile({ role, userRole: role });
-      const updatedUser =
-        res?.data?.user || res?.data?.updatedUser || res?.data?.data || null;
-
-      if (!updatedUser && res?.data?.success === false) {
-        throw new Error(res?.data?.message || "Failed to save role");
-      }
-
-      if (updatedUser) {
-        updateUser(updatedUser);
-      } else {
-        updateUser({ role, userRole: role });
-      }
-      await refreshUser();
-      navigate("/", { replace: true });
-    } catch (err) {
-      setErrorMsg(err?.response?.data?.message || err?.message || "Failed to save role. Try again.");
-      setSaving(false);
-    }
-  };
+  const dataBuys = useMemo(() => getUserDataPurchaseCount(user), [user]);
+  const isMember = useMemo(() => isBiggiHouseMember(user), [user]);
 
   return (
     <Page>
@@ -53,32 +18,35 @@ const UserRoleScreen = () => {
         <BackBtn onClick={() => navigate(-1)}>
           <ArrowLeft size={22} />
         </BackBtn>
-        <HeaderTitle>Select Your Role</HeaderTitle>
+        <HeaderTitle>Biggi House</HeaderTitle>
         <Spacer />
       </Header>
 
       <Card>
-        <Title>Choose account type</Title>
-        <Subtitle>Merchant accounts get access to the full Biggi Data experience.</Subtitle>
+        <Title>{isMember ? "You’re in Biggi House" : "Join Biggi House"}</Title>
+        <Subtitle>
+          Biggi House access is now unlocked by buying data on Biggi Data.
+        </Subtitle>
 
-        <RoleGrid>
-          <RoleCard
-            type="button"
-            onClick={() => handleSelectRole("merchant")}
-            $active={selectedRole === "merchant"}
-            disabled={saving}
-          >
-            <RoleIcon $active={selectedRole === "merchant"}>
-              <Briefcase size={24} />
-            </RoleIcon>
-            <RoleName>Merchant</RoleName>
-            <RoleDesc>Access all game cards</RoleDesc>
-            {selectedRole === "merchant" && <SelectedBadge><CheckCircle2 size={16} /> Selected</SelectedBadge>}
-          </RoleCard>
-        </RoleGrid>
+        <InfoBox>
+          <InfoRow>
+            <strong>Data purchases:</strong> <span>{dataBuys}</span>
+          </InfoRow>
+          <InfoRow>
+            <strong>Status:</strong>{" "}
+            <span>{isMember ? "Active member" : "Not a member yet"}</span>
+          </InfoRow>
+        </InfoBox>
 
-        {saving && <SavingText>Saving role...</SavingText>}
-        {errorMsg && <ErrorText>{errorMsg}</ErrorText>}
+        {isMember ? (
+          <PrimaryBtn type="button" onClick={() => navigate("/", { replace: true })}>
+            <CheckCircle2 size={18} /> Continue
+          </PrimaryBtn>
+        ) : (
+          <PrimaryBtn type="button" onClick={() => navigate("/buy-data")}>
+            <Wifi size={18} /> Buy Data to Join
+          </PrimaryBtn>
+        )}
       </Card>
     </Page>
   );
@@ -198,6 +166,47 @@ const RoleName = styled.h3`
   font-size: 18px;
   font-weight: 800;
   color: #000;
+`;
+
+const InfoBox = styled.div`
+  margin-top: 10px;
+  border: 1px solid #f0f0f0;
+  border-radius: 16px;
+  padding: 14px;
+  background: #ffffff;
+`;
+
+const InfoRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 0;
+  color: #333;
+
+  strong {
+    color: #111;
+  }
+
+  span {
+    color: #555;
+    font-weight: 700;
+  }
+`;
+
+const PrimaryBtn = styled.button`
+  margin-top: 16px;
+  width: 100%;
+  border: none;
+  border-radius: 16px;
+  padding: 14px 16px;
+  font-weight: 900;
+  cursor: pointer;
+  background: linear-gradient(90deg, #ff7a00 0%, #111 100%);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
 `;
 
 const RoleDesc = styled.p`

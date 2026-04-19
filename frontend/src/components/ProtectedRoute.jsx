@@ -13,12 +13,10 @@ const ProtectedRoute = () => {
 
   if (!user) return <Navigate to="/launch" />;
 
-  const userRole = user?.userRole || user?.role;
-  if (!userRole && location.pathname !== "/user-role") {
-    return <Navigate to="/user-role" replace />;
-  }
-  if (userRole && location.pathname === "/user-role") {
-    return <Navigate to="/" replace />;
+  // Biggi House membership is now unlocked via data purchases, not role selection.
+  // Keep legacy /user-role route accessible but never force users through it.
+  if (location.pathname === "/user-role") {
+    return <Outlet />;
   }
 
   return <Outlet />;

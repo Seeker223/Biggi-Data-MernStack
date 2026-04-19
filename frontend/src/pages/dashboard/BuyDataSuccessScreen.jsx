@@ -1,19 +1,21 @@
-import React, { useContext, useMemo, useState } from "react";
+import React, { useContext, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { FEATURE_FLAGS } from "../../constants/featureFlags";
 import { CheckCircle2 } from "lucide-react";
 import { AuthContext } from "../../context/AuthContext";
+import { isBiggiHouseMember } from "../../utils/biggiHouse";
 
 const BuyDataSuccessScreen = () => {
   const navigate = useNavigate();
   const { state } = useLocation();
-  const { user } = useContext(AuthContext);
-  const role = String(user?.userRole || "").toLowerCase();
-  const isMerchantRole = role === "merchant";
-  const isPrivateRole = role === "private";
-  const showMonthlyCard = isMerchantRole || isPrivateRole;
-  const [showWeeklyModal, setShowWeeklyModal] = useState(showMonthlyCard);
+  const { user, refreshUser } = useContext(AuthContext);
+  const isMember = isBiggiHouseMember(user);
+  const [showWeeklyModal, setShowWeeklyModal] = useState(true);
+
+  useEffect(() => {
+    refreshUser?.();
+  }, [refreshUser]);
 
   const phone = state?.phone || "";
   const network = state?.network || "";
@@ -33,14 +35,14 @@ const BuyDataSuccessScreen = () => {
 
   const weeklyCardProgress = useMemo(() => {
     const purchases = Math.max(0, Number(user?.currentMonthPurchases || 0));
-    const required = isMerchantRole ? 25 : 5;
+    const required = isMember ? 25 : 5;
     const ticketsEarned = Math.floor(purchases / required);
     const mod = purchases % required;
     const nextIn = purchases === 0 ? required : mod === 0 ? required : required - mod;
     const qualifyIn = purchases >= required ? 0 : required - purchases;
     const progressPct = purchases === 0 ? 0 : Math.round((mod / required) * 100);
     return { purchases, ticketsEarned, nextIn, qualifyIn, progressPct };
-  }, [user?.currentMonthPurchases, isMerchantRole]);
+  }, [user?.currentMonthPurchases, isMember]);
 
   return (
     <Wrap>
@@ -83,10 +85,10 @@ const BuyDataSuccessScreen = () => {
           onClick={() => navigate("/daily-draw")}
           disabled={FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM}
         >
-          {isMerchantRole ? "Play Monthly Game" : "Play Weekly Game"}
+          {isMember ? "Play Monthly Game" : "Play Weekly Game"}
         </Btn>
       </Card>
-      {showMonthlyCard && showWeeklyModal && (
+      {showWeeklyModal && (
         <Overlay>
           <ModalCard>
             <ModalTitle>Monthly Card Game</ModalTitle>
@@ -113,7 +115,7 @@ const BuyDataSuccessScreen = () => {
               <ModalProgressFill $pct={Math.min(100, weeklyCardProgress.progressPct)} />
             </ModalProgress>
             <ModalNote>
-              Every {isMerchantRole ? 25 : 5} data purchases this month gives 1 monthly game ticket.
+              Every {isMember ? 25 : 5} data purchases this month gives 1 monthly game ticket.
             </ModalNote>
             <ModalBtn onClick={() => setShowWeeklyModal(false)}>Continue</ModalBtn>
           </ModalCard>

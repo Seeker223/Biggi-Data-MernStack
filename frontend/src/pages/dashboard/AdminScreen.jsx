@@ -415,7 +415,7 @@ const AdminScreen = () => {
     });
   };
 
-  const handleDeleteSelectedUsers = async (users = []) => {
+  const handleDeleteSelectedUsers = async () => {
     const ids = Array.from(selectedUserIds || []);
     if (!ids.length) return;
 
@@ -816,6 +816,12 @@ const AdminScreen = () => {
   const rewardPct = balanceTotal ? Math.round((rewardBal / balanceTotal) * 100) : 0;
   const buyerMax = Number(topBuyers?.[0]?.dataBundleCount || 1);
   const winnerMax = Number(topWinners?.[0]?.totalWins || 1);
+  const selectedMembershipLabel =
+    selectedUser &&
+    (Number(selectedUser?.balances?.dataBundleCount || 0) > 0 ||
+      String(selectedUser?.personal?.userRole || "").toLowerCase() === "merchant")
+      ? "Biggi House"
+      : "Standard";
 
   return (
     <Page>
@@ -867,9 +873,9 @@ const AdminScreen = () => {
                 <option value="admin">Admin</option>
               </Select>
               <Select value={userRole} onChange={(e) => setUserRole(e.target.value)}>
-                <option value="">All user roles</option>
-                <option value="private">Private</option>
-                <option value="merchant">Merchant</option>
+                <option value="">All memberships</option>
+                <option value="private">Standard</option>
+                <option value="merchant">Biggi House</option>
               </Select>
               <Select value={verified} onChange={(e) => setVerified(e.target.value)}>
                 <option value="">All verification</option>
@@ -990,9 +996,9 @@ const AdminScreen = () => {
                 </SummaryCard>
                 <SummaryCard>
                   <Shield size={18} />
-                  <h4>Roles</h4>
+                  <h4>Membership</h4>
                   <strong>
-                    Private {summary.privateCount || 0} / Merchant {summary.merchantCount || 0}
+                    Standard {summary.privateCount || 0} / Biggi House {summary.merchantCount || 0}
                   </strong>
                   <small>Verified: {summary.verifiedCount || 0}</small>
                 </SummaryCard>
@@ -1013,22 +1019,22 @@ const AdminScreen = () => {
               <SectionTitle>Visual Insights</SectionTitle>
               <VisualGrid>
                 <ChartCard>
-                  <ChartTitle>User Role Mix</ChartTitle>
+                  <ChartTitle>Membership Mix</ChartTitle>
                   <Donut
                     $private={privatePct}
                     $merchant={merchantPct}
-                    title={`Private ${privatePct}% | Merchant ${merchantPct}%`}
+                    title={`Standard ${privatePct}% | Biggi House ${merchantPct}%`}
                   >
                     <span>{userTotal}</span>
                     <small>Users</small>
                   </Donut>
                   <LegendRow>
                     <LegendDot $color="#ff7a00" />
-                    <p>Private: {summary.privateCount || 0} ({privatePct}%)</p>
+                    <p>Standard: {summary.privateCount || 0} ({privatePct}%)</p>
                   </LegendRow>
                   <LegendRow>
                     <LegendDot $color="#1778f2" />
-                    <p>Merchant: {summary.merchantCount || 0} ({merchantPct}%)</p>
+                    <p>Biggi House: {summary.merchantCount || 0} ({merchantPct}%)</p>
                   </LegendRow>
                 </ChartCard>
 
@@ -1258,7 +1264,7 @@ const AdminScreen = () => {
                 </BulkBtn>
                 <BulkDangerBtn
                   type="button"
-                  onClick={() => handleDeleteSelectedUsers(users)}
+                  onClick={() => handleDeleteSelectedUsers()}
                   disabled={bulkDeleting || usersLoading || selectedUserIds.size === 0}
                 >
                   Delete Selected ({selectedUserIds.size})
@@ -1534,7 +1540,9 @@ const AdminScreen = () => {
               <p>Email: {selectedUser.personal?.email}</p>
               <p>Phone: {selectedUser.personal?.phoneNumber || "-"}</p>
               <p>State: {selectedUser.personal?.state || "-"}</p>
-              <p>Role: {selectedUser.personal?.role || "user"} / {selectedUser.personal?.userRole || "-"}</p>
+              <p>Role: {selectedUser.personal?.role || "user"}</p>
+              <p>Membership: {selectedMembershipLabel}</p>
+              <p>Data purchases (subscription): {selectedUser.balances?.dataBundleCount || 0}</p>
               <p>Verified: {selectedUser.personal?.isVerified ? "Yes" : "No"}</p>
               <p>Last Login: {dateFmt(selectedUser.personal?.lastLogin)}</p>
             </ModalSection>
@@ -1585,7 +1593,7 @@ const AdminScreen = () => {
               <VisualPillRow>
                 <VisualPill $tone="dark">{form.role === "admin" ? "Admin Account" : "User Account"}</VisualPill>
                 <VisualPill $tone={form.userRole === "merchant" ? "blue" : "orange"}>
-                  {form.userRole === "merchant" ? "Merchant" : "Private"}
+                  {form.userRole === "merchant" ? "Biggi House" : "Standard"}
                 </VisualPill>
                 <VisualPill $tone={form.isVerified ? "green" : "red"}>
                   {form.isVerified ? "Verified" : "Unverified"}
@@ -1675,10 +1683,10 @@ const AdminScreen = () => {
                 </select>
               </Field>
               <Field>
-                <label>User Role</label>
+                <label>Membership</label>
                 <select value={form.userRole} onChange={(e) => setForm((p) => ({ ...p, userRole: e.target.value }))}>
-                  <option value="private">Private</option>
-                  <option value="merchant">Merchant</option>
+                  <option value="private">Standard</option>
+                  <option value="merchant">Biggi House</option>
                 </select>
               </Field>
               <Field>

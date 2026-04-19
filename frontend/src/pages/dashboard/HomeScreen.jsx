@@ -31,6 +31,7 @@ import FloatingBottomNav from '../../components/FloatingBottomNav';
 import BrandLoader from '../../components/BrandLoader';
 import { AuthContext } from '../../context/AuthContext';
 import { FEATURE_FLAGS } from '../../constants/featureFlags';
+import { isBiggiHouseMember } from '../../utils/biggiHouse';
 import {
   getMonthlyEligibility,
   updateAvatar,
@@ -289,9 +290,8 @@ const HomeScreen = () => {
   const privateCardRemaining = Math.max(0, privateCardRequired - monthlyEligibility.purchases);
   const dataBundleCount = Number(user.dataBundleCount || 0);
   const totalSavings = Number(user.totalSavings || 0);
-  const role = String(user?.userRole || "").toLowerCase();
-  const isPrivateRole = role === "private";
-  const isMerchantRole = role === "merchant";
+  const isMerchantRole = isBiggiHouseMember(user);
+  const isPrivateRole = !isMerchantRole;
   const hasPurchasedData = dataBundleCount > 0;
   const useStaticVirtualAccount = FEATURE_FLAGS.USE_STATIC_VIRTUAL_ACCOUNT;
   const hasReferralActivity = referralCount > 0;
@@ -357,10 +357,9 @@ const HomeScreen = () => {
   }, []);
 
   useEffect(() => {
-    const userRole = String(user?.userRole || "").toLowerCase();
-    if (!user || userRole !== "merchant") return;
+    if (!user || !isMerchantRole) return;
     loadReferralLeaderboard();
-  }, [user?._id, user?.userRole, loadReferralLeaderboard]);
+  }, [user?._id, user?.dataBundleCount, isMerchantRole, loadReferralLeaderboard]);
 
   const handleMonthlyGameClick = () => {
     if (FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM) return;
@@ -662,10 +661,7 @@ const HomeScreen = () => {
                     Available Tickets: <TicketCount>{tickets}</TicketCount>
                   </TicketText>
                   <InfoText>
-                    Buy Any Bundle to Unlock Weekly Game
-                    {isMerchantRole
-                      ? " + Monthly Raffle Tickets"
-                      : " + Top Random Picks"}
+                    Buy your first data bundle to join Biggi House and unlock games.
                   </InfoText>
                 </TicketInfoBlock>
               )}
@@ -798,7 +794,7 @@ const HomeScreen = () => {
                 </TopRandomCard>
               </>
             ) : (
-              (isPrivateRole || !role) && (
+              isPrivateRole && (
                 <GameCard>
                   <GamepadIcon size={28} />
                   <GameTitle>Monthly Card Game</GameTitle>
@@ -887,7 +883,7 @@ const HomeScreen = () => {
                 </MonthlyBtn>
               </MonthlyGameCard>
             ) : (
-              (isPrivateRole || !role) && (
+              isPrivateRole && (
                 <MonthlyGameCard $pulse={monthlyEligibility.isEligible}>
                   <MonthlyHeader>
                     <TrophyIcon size={24} />
@@ -1005,7 +1001,7 @@ const HomeScreen = () => {
                 </PlayBtn>
               </GameCard>
             ) : (
-              (isPrivateRole || !role) && (
+              isPrivateRole && (
                 <TopRandomCard>
                   <TopRandomHeader>
                     <TopRandomIconWrap>
@@ -1261,7 +1257,7 @@ const HomeScreen = () => {
                 To participate in Top Random Weekly Picks:
                 {"\n"}• Make at least 1 data purchase this week
                 {isMerchantRole
-                  ? "\n• Merchants need 7+ purchases to qualify"
+                  ? "\n• Biggi House members need 7+ purchases to qualify"
                   : ""}
                 {"\n"}• Winners are selected at week end
               </ModalMsg>
