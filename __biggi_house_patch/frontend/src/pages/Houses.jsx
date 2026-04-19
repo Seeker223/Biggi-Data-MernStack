@@ -275,6 +275,9 @@ export default function Houses() {
           setList((prev) =>
             prev.map((item) => (item.id === response.house.id ? response.house : item))
           );
+          setSelected((prev) =>
+            prev?.id === response.house.id ? response.house : prev
+          );
         }
         if (response?.wallet?.balance !== undefined) {
           setWalletBalance(Number(response.wallet.balance || 0));
