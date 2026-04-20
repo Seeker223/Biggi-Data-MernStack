@@ -1,0 +1,2451 @@
+diff --git a/frontend/src/App.jsx b/frontend/src/App.jsx
+index 2ca3870..02fe573 100644
+--- a/frontend/src/App.jsx
++++ b/frontend/src/App.jsx
+@@ -14,6 +14,7 @@ import FAQ from "./pages/FAQ";
+ import VerifyEmail from "./pages/VerifyEmail";
+ import ForgotPassword from "./pages/ForgotPassword";
+ import CPanel from "./pages/CPanel";
++import MonthlyCardGame from "./pages/MonthlyCardGame";
+ import { useAuth } from "./utils/AuthContext";
+ 
+ const AppShell = styled.div`
+@@ -57,30 +58,34 @@ function App() {
+           <Route path="/" element={<Home />} />
+           <Route
+             path="/houses"
+-            element={user ? <Houses /> : <Navigate to="/" replace />}
++            element={user ? <Houses /> : <Navigate to="/login" replace />}
+           />
+           <Route
+             path="/subscription"
+-            element={user ? <Subscription /> : <Navigate to="/" replace />}
++            element={user ? <Subscription /> : <Navigate to="/login" replace />}
+           />
+           <Route
+             path="/dashboard"
+-            element={user ? <Dashboard /> : <Navigate to="/" replace />}
++            element={user ? <Dashboard /> : <Navigate to="/login" replace />}
+           />
+           <Route
+             path="/wallet"
+-            element={user ? <Wallet /> : <Navigate to="/" replace />}
++            element={user ? <Wallet /> : <Navigate to="/login" replace />}
++          />
++          <Route
++            path="/monthly-card-game"
++            element={user ? <MonthlyCardGame /> : <Navigate to="/login" replace />}
+           />
+           <Route
+             path="/profile"
+-            element={user ? <Profile /> : <Navigate to="/" replace />}
++            element={user ? <Profile /> : <Navigate to="/login" replace />}
+           />
+           <Route path="/faq" element={<FAQ />} />
+           <Route path="/verify-email" element={<VerifyEmail />} />
+           <Route path="/forgot-password" element={<ForgotPassword />} />
+           <Route
+             path="/payment-success"
+-            element={user ? <PaymentSuccess /> : <Navigate to="/" replace />}
++            element={user ? <PaymentSuccess /> : <Navigate to="/login" replace />}
+           />
+           <Route
+             path="/c-panel"
+diff --git a/frontend/src/pages/BuyData.jsx b/__tmp_house_old/frontend/src/pages/BuyData.jsx
+deleted file mode 100644
+index 884fc97..0000000
+--- a/frontend/src/pages/BuyData.jsx
++++ /dev/null
+@@ -1,392 +0,0 @@
+-import styled from "styled-components";
+-import { useState, useEffect } from "react";
+-import { useNavigate } from "react-router-dom";
+-import Container from "../components/Container";
+-import { useAuth } from "../utils/AuthContext";
+-import { getAuthToken } from "../utils/auth";
+-import { getDataPlans, buyData } from "../services/api";
+-
+-const Wrapper = styled(Container)`
+-  padding: 40px 0;
+-  display: flex;
+-  justify-content: center;
+-
+-  @media (max-width: 640px) {
+-    padding: 20px 0;
+-    width: min(100%, 92%);
+-  }
+-`;
+-
+-const Card = styled.div`
+-  width: min(500px, 100%);
+-  background: ${({ theme }) => theme.colors.surface};
+-  border-radius: ${({ theme }) => theme.radius.lg};
+-  border: 1px solid ${({ theme }) => theme.colors.border};
+-  padding: 32px;
+-  box-shadow: ${({ theme }) => theme.shadows.soft};
+-
+-  @media (max-width: 640px) {
+-    padding: 24px 18px;
+-    border-radius: 22px;
+-  }
+-`;
+-
+-const Title = styled.h1`
+-  font-size: 26px;
+-  margin-bottom: 8px;
+-  font-weight: 700;
+-
+-  @media (max-width: 640px) {
+-    font-size: 22px;
+-  }
+-`;
+-
+-const Sub = styled.p`
+-  color: ${({ theme }) => theme.colors.muted};
+-  margin-bottom: 22px;
+-`;
+-
+-const Field = styled.div`
+-  display: grid;
+-  gap: 6px;
+-  margin-bottom: 14px;
+-`;
+-
+-const Label = styled.label`
+-  font-size: 14px;
+-  color: ${({ theme }) => theme.colors.muted};
+-  font-weight: 600;
+-`;
+-
+-const Input = styled.input`
+-  width: 100%;
+-  padding: 12px 14px;
+-  border-radius: 12px;
+-  border: 1px solid ${({ theme }) => theme.colors.border};
+-  background: #fdfdff;
+-  font-size: 16px;
+-
+-  &:focus {
+-    outline: none;
+-    border-color: ${({ theme }) => theme.colors.primary};
+-    box-shadow: 0 0 0 3px ${({ theme }) => theme.colors.soft};
+-  }
+-
+-  &:disabled {
+-    background: #f5f5f7;
+-    cursor: not-allowed;
+-  }
+-`;
+-
+-const Select = styled.select`
+-  width: 100%;
+-  padding: 12px 14px;
+-  border-radius: 12px;
+-  border: 1px solid ${({ theme }) => theme.colors.border};
+-  background: #fdfdff;
+-  font-size: 16px;
+-  cursor: pointer;
+-
+-  &:focus {
+-    outline: none;
+-    border-color: ${({ theme }) => theme.colors.primary};
+-  }
+-
+-  &:disabled {
+-    background: #f5f5f7;
+-    cursor: not-allowed;
+-  }
+-`;
+-
+-const PriceBox = styled.div`
+-  background: ${({ theme }) => theme.colors.soft};
+-  border-radius: 12px;
+-  padding: 14px 16px;
+-  margin-bottom: 16px;
+-  display: flex;
+-  justify-content: space-between;
+-  align-items: center;
+-`;
+-
+-const PriceLabel = styled.span`
+-  font-size: 14px;
+-  color: ${({ theme }) => theme.colors.muted};
+-`;
+-
+-const PriceValue = styled.span`
+-  font-size: 18px;
+-  font-weight: 700;
+-  color: ${({ theme }) => theme.colors.ink};
+-`;
+-
+-const Button = styled.button`
+-  width: 100%;
+-  padding: 12px 16px;
+-  border-radius: 12px;
+-  border: none;
+-  background: ${({ theme }) => theme.gradients.brand};
+-  color: #fff;
+-  font-weight: 600;
+-  font-size: 15px;
+-  margin-top: 10px;
+-  cursor: pointer;
+-  transition: all 0.2s;
+-
+-  &:hover:not(:disabled) {
+-    opacity: 0.9;
+-    transform: translateY(-1px);
+-  }
+-
+-  &:disabled {
+-    opacity: 0.6;
+-    cursor: not-allowed;
+-  }
+-`;
+-
+-const ErrorMsg = styled.p`
+-  color: #c02626;
+-  font-size: 13px;
+-  margin-bottom: 12px;
+-  background: #fef2f2;
+-  padding: 8px 12px;
+-  border-radius: 8px;
+-`;
+-
+-const SuccessMsg = styled.p`
+-  color: #059669;
+-  font-size: 13px;
+-  margin-bottom: 12px;
+-  background: #f0fdf4;
+-  padding: 8px 12px;
+-  border-radius: 8px;
+-`;
+-
+-const InfoBox = styled.div`
+-  background: ${({ theme }) => theme.colors.soft};
+-  border-radius: 12px;
+-  padding: 12px 14px;
+-  font-size: 13px;
+-  color: ${({ theme }) => theme.colors.muted};
+-  line-height: 1.6;
+-`;
+-
+-export default function BuyData() {
+-  const navigate = useNavigate();
+-  const { user } = useAuth();
+-  const [plans, setPlans] = useState([]);
+-  const [phone, setPhone] = useState("");
+-  const [network, setNetwork] = useState("mtn");
+-  const [planId, setPlanId] = useState("");
+-  const [loading, setLoading] = useState(false);
+-  const [error, setError] = useState("");
+-  const [success, setSuccess] = useState("");
+-
+-  useEffect(() => {
+-    if (!user) {
+-      navigate("/login");
+-      return;
+-    }
+-    loadPlans();
+-  }, [user, navigate]);
+-
+-  // Auto-select first plan when plans load or network changes
+-  useEffect(() => {
+-    console.log("useEffect triggered - plans:", plans.length, "network:", network, "current planId:", planId);
+-    if (plans.length === 0) return;
+-    
+-    const plansForCurrentNetwork = plans.filter(
+-      (p) => (p.network || "").toLowerCase().trim() === network.toLowerCase().trim()
+-    );
+-    console.log("Plans for current network:", plansForCurrentNetwork);
+-    
+-    if (plansForCurrentNetwork.length > 0) {
+-      // If current planId is valid for this network, keep it
+-      if (plansForCurrentNetwork.some((p) => (p.plan_id || "").trim() === (planId || "").trim())) {
+-        console.log("Current planId is valid, keeping it");
+-        return;
+-      }
+-      // Otherwise, select the first plan for this network
+-      console.log("Setting new planId:", plansForCurrentNetwork[0].plan_id);
+-      setPlanId(plansForCurrentNetwork[0].plan_id);
+-    } else {
+-      // No plans for this network, clear selection
+-      console.log("No plans for network, clearing planId");
+-      setPlanId("");
+-    }
+-  }, [plans, network]);
+-
+-  const loadPlans = async () => {
+-    try {
+-      const token = getAuthToken();
+-      const data = await getDataPlans(token);
+-      console.log("Raw plans data:", data);
+-      const filtered = Array.isArray(data)
+-        ? data.filter((p) => p.active && p.network && p.amount)
+-        : [];
+-      console.log("Filtered plans:", filtered);
+-      setPlans(filtered);
+-      setError(""); // Clear error on successful load
+-      if (filtered.length > 0) {
+-        const mtnPlan = filtered.find((p) => p.network?.toLowerCase() === "mtn");
+-        console.log("Selected MTN plan:", mtnPlan);
+-        setPlanId(mtnPlan?.plan_id || filtered[0].plan_id);
+-      }
+-    } catch (err) {
+-      setError(err.message || "Failed to load plans");
+-    }
+-  };
+-
+-  const normalizePhone = (value) => {
+-    const digits = String(value || "").replace(/\D/g, "");
+-    if (digits.startsWith("234") && digits.length >= 13) {
+-      return `0${digits.slice(digits.length - 10)}`.slice(0, 11);
+-    }
+-    return digits.slice(0, 11);
+-  };
+-
+-  const networkPlans = plans.filter(
+-    (p) => (p.network || "").toLowerCase().trim() === network.toLowerCase().trim()
+-  );
+-  const selectedPlan = networkPlans.find((p) => (p.plan_id || "").trim() === (planId || "").trim());
+-  const isValid = phone.length === 11 && planId && selectedPlan;
+-
+-  // Debug logging
+-  console.log("BuyData Debug:", {
+-    phone: phone.length,
+-    planId: `"${planId}"`,
+-    selectedPlan: selectedPlan ? `"${selectedPlan.plan_id}"` : null,
+-    networkPlansCount: networkPlans.length,
+-    network: `"${network}"`,
+-    networkPlansIds: networkPlans.map(p => `"${p.plan_id}"`),
+-    isValid
+-  });
+-
+-  const handleSubmit = async (e) => {
+-    e.preventDefault();
+-    setError("");
+-    setSuccess("");
+-
+-    if (!isValid) {
+-      setError("Please fill all fields correctly");
+-      return;
+-    }
+-
+-    if (!user?.id) {
+-      setError("Not authenticated");
+-      return;
+-    }
+-
+-    setLoading(true);
+-    try {
+-      const token = getAuthToken();
+-      if (!token) {
+-        setError("Authentication token not found. Please sign in again.");
+-        return;
+-      }
+-      const result = await buyData({ plan_id: planId, mobile_no: phone }, token);
+-
+-      if (result.success) {
+-        setSuccess(`Data purchase successful! Reference: ${result.reference || "pending"}`);
+-        setTimeout(() => {
+-          navigate("/dashboard");
+-        }, 2000);
+-      } else {
+-        setError(result.msg || result.error || "Purchase failed");
+-      }
+-    } catch (err) {
+-      setError(err.message || "Purchase failed. Please try again.");
+-      console.error("Buy data error:", err);
+-    } finally {
+-      setLoading(false);
+-    }
+-  };
+-
+-  return (
+-    <Wrapper>
+-      <Card>
+-        <Title>Buy Data</Title>
+-        <Sub>Recharge your data using your Biggi House wallet</Sub>
+-
+-        <form onSubmit={handleSubmit}>
+-          <Field>
+-            <Label>Phone Number</Label>
+-            <Input
+-              type="tel"
+-              placeholder="Enter phone number (e.g. 08012345678)"
+-              value={phone}
+-              onChange={(e) => setPhone(normalizePhone(e.target.value))}
+-              maxLength={11}
+-              disabled={loading}
+-            />
+-          </Field>
+-
+-          <Field>
+-            <Label>Network</Label>
+-            <Select
+-              value={network}
+-              onChange={(e) => {
+-                const newNetwork = e.target.value;
+-                console.log("Network changed to:", newNetwork);
+-                setNetwork(newNetwork);
+-                // Find first plan for the new network from already-filtered plans
+-                const plansForNetwork = plans.filter(
+-                  (p) => p.network?.toLowerCase() === newNetwork.toLowerCase()
+-                );
+-                console.log("Plans for new network:", plansForNetwork);
+-                setPlanId(plansForNetwork.length > 0 ? plansForNetwork[0].plan_id : "");
+-                console.log("Set planId to:", plansForNetwork.length > 0 ? plansForNetwork[0].plan_id : "");
+-              }}
+-              disabled={loading}
+-            >
+-              <option value="mtn">MTN</option>
+-              <option value="airtel">Airtel</option>
+-              <option value="glo">Glo</option>
+-            </Select>
+-          </Field>
+-
+-          <Field>
+-            <Label>Data Plan</Label>
+-            <Select
+-              value={planId}
+-              onChange={(e) => {
+-                const newPlanId = (e.target.value || "").trim();
+-                console.log("Plan changed to:", `"${newPlanId}"`);
+-                setPlanId(newPlanId);
+-              }}
+-              disabled={loading || networkPlans.length === 0}
+-            >
+-              <option value="">Select a plan</option>
+-              {networkPlans.map((p) => (
+-                <option key={p.plan_id} value={p.plan_id}>
+-                  {p.name || p.plan_name} - ?{Number(p.amount || 0).toLocaleString()}
+-                </option>
+-              ))}
+-            </Select>
+-          </Field>
+-
+-          {selectedPlan && (
+-            <PriceBox>
+-              <PriceLabel>{selectedPlan.name || selectedPlan.plan_name}</PriceLabel>
+-              <PriceValue>?{Number(selectedPlan.amount || 0).toLocaleString()}</PriceValue>
+-            </PriceBox>
+-          )}
+-
+-          {error && <ErrorMsg>{error}</ErrorMsg>}
+-          {success && <SuccessMsg>{success}</SuccessMsg>}
+-
+-          <Button type="submit" disabled={loading || !isValid}>
+-            {loading ? "Processing..." : "Buy Data"}
+-          </Button>
+-        </form>
+-
+-        <InfoBox style={{ marginTop: "16px" }}>
+-          • Ensure phone number is correct
+-          <br />
+-          • Network must match your SIM card
+-          <br />
+-          • Data will be delivered instantly
+-        </InfoBox>
+-      </Card>
+-    </Wrapper>
+-  );
+-}
+diff --git a/frontend/src/pages/CPanel.jsx b/frontend/src/pages/CPanel.jsx
+index e63fe8b..78636b5 100644
+--- a/frontend/src/pages/CPanel.jsx
++++ b/frontend/src/pages/CPanel.jsx
+@@ -4,6 +4,7 @@ import Container from "../components/Container";
+ import { useAuth } from "../utils/AuthContext";
+ import { getAuthToken } from "../utils/auth";
+ import {
++  adjustBiggiHouseAdminUserWallet,
+   createBiggiHouseAdminHouse,
+   deleteBiggiHouseAdminHouse,
+   deleteBiggiHouseAdminMembership,
+@@ -12,8 +13,10 @@ import {
+   getBiggiHouseAdminWinners,
+   getBiggiHouseAdminOverview,
+   getBiggiHouseAdminUsers,
++  getBiggiHousePublicConfig,
+   triggerBiggiHouseWinnerPayouts,
+   triggerBiggiHouseWinnerSelection,
++  updateBiggiHouseAdminConfig,
+   updateBiggiHouseAdminHouse,
+   updateBiggiHouseAdminUser,
+ } from "../services/api";
+@@ -229,6 +232,7 @@ export default function CPanel() {
+   const [error, setError] = useState("");
+ 
+   const [overview, setOverview] = useState(null);
++  const [config, setConfig] = useState(null);
+   const [users, setUsers] = useState([]);
+   const [userQuery, setUserQuery] = useState("");
+   const [houses, setHouses] = useState([]);
+@@ -266,6 +270,10 @@ export default function CPanel() {
+       load(async () => setOverview(await getBiggiHouseAdminOverview(token)));
+       return;
+     }
++    if (tab === "config") {
++      load(async () => setConfig(await getBiggiHousePublicConfig()));
++      return;
++    }
+     if (tab === "users") {
+       load(async () => setUsers((await getBiggiHouseAdminUsers(token, { q: userQuery })).users || []));
+       return;
+@@ -332,6 +340,9 @@ export default function CPanel() {
+           <Tab $active={tab === "overview"} onClick={() => setTab("overview")} type="button">
+             Overview
+           </Tab>
++          <Tab $active={tab === "config"} onClick={() => setTab("config")} type="button">
++            Config
++          </Tab>
+           <Tab $active={tab === "users"} onClick={() => setTab("users")} type="button">
+             Users
+           </Tab>
+@@ -393,12 +404,135 @@ export default function CPanel() {
+                 </Ghost>
+               </PanelHeader>
+               <Sub>
+-                BiggiHouse wallet is independent. Users need an active subscription and enough wallet balance to join houses.
++                BiggiHouse wallet is independent. Users need an active weekly subscription and enough wallet balance to join houses. Monthly Card Game is controlled from the Config tab.
+               </Sub>
+             </Panel>
+           </Grid>
+         )}
+ 
++        {tab === "config" && (
++          <Panel>
++            <PanelHeader>
++              <span>Platform Config</span>
++              <Tools>
++                <Ghost
++                  type="button"
++                  disabled={busy}
++                  onClick={() => load(async () => setConfig(await getBiggiHousePublicConfig()))}
++                >
++                  Refresh
++                </Ghost>
++                <Primary
++                  type="button"
++                  disabled={busy || !config}
++                  onClick={() =>
++                    load(async () => {
++                      const next = await updateBiggiHouseAdminConfig(
++                        {
++                          weeklyPayout: config?.weeklyPayout,
++                          features: config?.features,
++                          game: config?.game,
++                        },
++                        token
++                      );
++                      setConfig(next);
++                    })
++                  }
++                >
++                  Save
++                </Primary>
++              </Tools>
++            </PanelHeader>
++
++            <div style={{ marginTop: 12, display: "grid", gap: 14 }}>
++              <div style={{ display: "grid", gap: 8 }}>
++                <div style={{ fontWeight: 900 }}>Monthly Card Game</div>
++                <label style={{ display: "flex", gap: 10, alignItems: "center" }}>
++                  <input
++                    type="checkbox"
++                    checked={Boolean(config?.features?.monthlyCardGameEnabled)}
++                    onChange={(e) =>
++                      setConfig((p) => ({
++                        ...(p || {}),
++                        features: {
++                          ...(p?.features || {}),
++                          monthlyCardGameEnabled: e.target.checked,
++                        },
++                      }))
++                    }
++                  />
++                  <span>Enable game</span>
++                </label>
++                <label style={{ display: "flex", gap: 10, alignItems: "center" }}>
++                  <input
++                    type="checkbox"
++                    checked={Boolean(config?.game?.requireDataPurchase)}
++                    onChange={(e) =>
++                      setConfig((p) => ({
++                        ...(p || {}),
++                        game: { ...(p?.game || {}), requireDataPurchase: e.target.checked },
++                      }))
++                    }
++                  />
++                  <span>Require at least 1 data purchase before play</span>
++                </label>
++              </div>
++
++              <div style={{ display: "grid", gap: 10 }}>
++                <div style={{ fontWeight: 900 }}>Weekly Payout Time</div>
++                <div
++                  style={{
++                    display: "grid",
++                    gap: 10,
++                    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
++                  }}
++                >
++                  <Input
++                    value={String(config?.weeklyPayout?.dayOfWeek ?? 0)}
++                    onChange={(e) =>
++                      setConfig((p) => ({
++                        ...(p || {}),
++                        weeklyPayout: {
++                          ...(p?.weeklyPayout || {}),
++                          dayOfWeek: Number(e.target.value || 0),
++                        },
++                      }))
++                    }
++                    placeholder="Day (0=Sun)"
++                  />
++                  <Input
++                    value={String(config?.weeklyPayout?.hour ?? 22)}
++                    onChange={(e) =>
++                      setConfig((p) => ({
++                        ...(p || {}),
++                        weeklyPayout: {
++                          ...(p?.weeklyPayout || {}),
++                          hour: Number(e.target.value || 0),
++                        },
++                      }))
++                    }
++                    placeholder="Hour (0-23)"
++                  />
++                  <Input
++                    value={String(config?.weeklyPayout?.minute ?? 0)}
++                    onChange={(e) =>
++                      setConfig((p) => ({
++                        ...(p || {}),
++                        weeklyPayout: {
++                          ...(p?.weeklyPayout || {}),
++                          minute: Number(e.target.value || 0),
++                        },
++                      }))
++                    }
++                    placeholder="Minute"
++                  />
++                </div>
++                <Sub>Default: Sunday (0) at 22:00.</Sub>
++              </div>
++            </div>
++          </Panel>
++        )}
++
+         {tab === "users" && (
+           <Panel>
+             <PanelHeader>
+@@ -421,6 +555,8 @@ export default function CPanel() {
+                     <th>Phone</th>
+                     <th>Verified</th>
+                     <th>User Role</th>
++                    <th>Wallet</th>
++                    <th>Subscription</th>
+                     <th>Actions</th>
+                   </tr>
+                 </thead>
+@@ -434,6 +570,19 @@ export default function CPanel() {
+                       <td>{u.phoneNumber || "—"}</td>
+                       <td>{u.isVerified ? "Yes" : "No"}</td>
+                       <td>{u.userRole || "private"}</td>
++                      <td style={{ fontWeight: 900 }}>{formatMoney(u.walletBalance ?? 0)}</td>
++                      <td>
++                        {u.subscription?.active ? (
++                          <div style={{ fontWeight: 900, color: "#065f46" }}>Active</div>
++                        ) : (
++                          <div style={{ fontWeight: 900, color: "#991b1b" }}>Inactive</div>
++                        )}
++                        {u.subscription?.renewalDate ? (
++                          <div style={{ color: "#5b6475", fontSize: 12 }}>
++                            Renew: {new Date(u.subscription.renewalDate).toLocaleDateString()}
++                          </div>
++                        ) : null}
++                      </td>
+                       <td style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                         <Ghost
+                           type="button"
+@@ -446,6 +595,44 @@ export default function CPanel() {
+                         >
+                           Toggle Verify
+                         </Ghost>
++                        <Ghost
++                          type="button"
++                          onClick={() => {
++                            const raw = window.prompt("Wallet credit amount (NGN):", "0");
++                            if (raw === null) return;
++                            const amount = Number(raw);
++                            if (!Number.isFinite(amount) || amount <= 0) return;
++                            load(async () => {
++                              const wallet = await adjustBiggiHouseAdminUserWallet(u.id, { amount }, token);
++                              setUsers((prev) =>
++                                prev.map((x) =>
++                                  x.id === u.id ? { ...x, walletBalance: wallet.balance } : x
++                                )
++                              );
++                            });
++                          }}
++                        >
++                          Credit Wallet
++                        </Ghost>
++                        <Ghost
++                          type="button"
++                          onClick={() => {
++                            const raw = window.prompt("Wallet debit amount (NGN):", "0");
++                            if (raw === null) return;
++                            const amount = Number(raw);
++                            if (!Number.isFinite(amount) || amount <= 0) return;
++                            load(async () => {
++                              const wallet = await adjustBiggiHouseAdminUserWallet(u.id, { amount: -amount }, token);
++                              setUsers((prev) =>
++                                prev.map((x) =>
++                                  x.id === u.id ? { ...x, walletBalance: wallet.balance } : x
++                                )
++                              );
++                            });
++                          }}
++                        >
++                          Debit Wallet
++                        </Ghost>
+                         <Ghost
+                           type="button"
+                           onClick={() => {
+@@ -477,7 +664,7 @@ export default function CPanel() {
+                   ))}
+                   {users.length === 0 && (
+                     <tr>
+-                      <td colSpan="5" style={{ color: "#5b6475" }}>
++                      <td colSpan="7" style={{ color: "#5b6475" }}>
+                         No users.
+                       </td>
+                     </tr>
+diff --git a/frontend/src/pages/Dashboard.jsx b/frontend/src/pages/Dashboard.jsx
+index e6b5fbd..cb38e43 100644
+--- a/frontend/src/pages/Dashboard.jsx
++++ b/frontend/src/pages/Dashboard.jsx
+@@ -10,6 +10,7 @@ import { useAuth } from "../utils/AuthContext";
+ import {
+   getBiggiHouseMemberships,
+   getBiggiHouseWallet,
++  getBiggiHousePublicConfig,
+ } from "../services/api";
+ 
+ const Wrapper = styled(Container)`
+@@ -123,6 +124,7 @@ export default function Dashboard() {
+   const { user, logout } = useAuth();
+   const [wallet, setWallet] = useState(null);
+   const [memberships, setMemberships] = useState([]);
++  const [config, setConfig] = useState(null);
+   const [loadingData, setLoadingData] = useState(false);
+   const [error, setError] = useState("");
+ 
+@@ -135,6 +137,7 @@ export default function Dashboard() {
+     Promise.all([
+       getBiggiHouseWallet(token).then((data) => setWallet(data)),
+       getBiggiHouseMemberships(token).then((data) => setMemberships(data || [])),
++      getBiggiHousePublicConfig().then((data) => setConfig(data)).catch(() => null),
+     ])
+       .catch((err) => setError(err?.message || "Unable to load dashboard data."))
+       .finally(() => setLoadingData(false));
+@@ -159,17 +162,32 @@ export default function Dashboard() {
+   const walletBalance = Number(wallet?.balance || 0);
+   const latestHouse = memberships[0]?.house || null;
+   const latestJoin = (wallet?.transactions || []).find((item) => item.type === "house_join");
+-  const weeklyPayoutTime = `Fridays ${"\u00B7"} 6:00 PM`;
++  const weeklyPayout = config?.weeklyPayout || { dayOfWeek: 0, hour: 22, minute: 0 };
++  const weeklyPayoutTime = (() => {
++    const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
++    const dayLabel = days[Number(weeklyPayout.dayOfWeek) % 7] || "Sunday";
++    const hh = String(Number(weeklyPayout.hour || 0)).padStart(2, "0");
++    const mm = String(Number(weeklyPayout.minute || 0)).padStart(2, "0");
++    return `${dayLabel}s ${"\u00B7"} ${hh}:${mm}`;
++  })();
+ 
+   const nextPayout = useMemo(() => {
+     const now = new Date();
+     const next = new Date(now);
+-    const targetDow = 5; // Fri
++    const targetDow = Number(weeklyPayout.dayOfWeek || 0); // 0 = Sun
+     const currentDow = next.getDay();
+     let addDays = (targetDow - currentDow + 7) % 7;
+-    if (addDays === 0 && next.getHours() >= 18) addDays = 7;
++    const targetHour = Number(weeklyPayout.hour || 22);
++    const targetMinute = Number(weeklyPayout.minute || 0);
++    if (
++      addDays === 0 &&
++      (next.getHours() > targetHour ||
++        (next.getHours() === targetHour && next.getMinutes() >= targetMinute))
++    ) {
++      addDays = 7;
++    }
+     next.setDate(next.getDate() + addDays);
+-    next.setHours(18, 0, 0, 0);
++    next.setHours(targetHour, targetMinute, 0, 0);
+     return next.toLocaleString("en-NG", {
+       weekday: "short",
+       day: "numeric",
+@@ -177,7 +195,9 @@ export default function Dashboard() {
+       hour: "2-digit",
+       minute: "2-digit",
+     });
+-  }, []);
++  }, [weeklyPayout.dayOfWeek, weeklyPayout.hour, weeklyPayout.minute]);
++
++  const gameEnabled = Boolean(config?.features?.monthlyCardGameEnabled);
+ 
+   const handleLogout = () => {
+     logout();
+@@ -245,6 +265,23 @@ export default function Dashboard() {
+       </Grid>
+ 
+       <Grid style={{ marginTop: "24px" }}>
++        <Card>
++          <CardLabel>Monthly Card Game</CardLabel>
++          <CardValue>{gameEnabled ? "Enabled" : "Disabled"}</CardValue>
++          <p style={{ color: "#5b6475", marginTop: "10px" }}>
++            Play entries are saved to your account. No tickets required.
++          </p>
++          <div style={{ marginTop: 12 }}>
++            <Button
++              type="button"
++              disabled={!gameEnabled}
++              onClick={() => navigate("/monthly-card-game")}
++              style={{ opacity: gameEnabled ? 1 : 0.6 }}
++            >
++              Open game
++            </Button>
++          </div>
++        </Card>
+         <Card>
+           <CardLabel>BiggiHouse wallet</CardLabel>
+           <CardValue>
+diff --git a/frontend/src/pages/FAQ.jsx b/frontend/src/pages/FAQ.jsx
+index 2415dbe..bf7186e 100644
+--- a/frontend/src/pages/FAQ.jsx
++++ b/frontend/src/pages/FAQ.jsx
+@@ -86,7 +86,7 @@ export default function FAQ() {
+     },
+     {
+       q: "How are payouts handled?",
+-      a: "Payouts are weekly. Your dashboard shows the next payout time and your latest activity so the flow stays transparent.",
++      a: "Payouts are weekly. Default payout time is Sunday 10:00pm and your dashboard shows the next payout time and latest activity.",
+     },
+     {
+       q: "Can I join more than one house?",
+@@ -104,6 +104,10 @@ export default function FAQ() {
+       q: "Is BiggiHouse powered by Biggi Data?",
+       a: "Yes. BiggiHouse shares the Biggi ecosystem backend services, while keeping its own wallet and house memberships.",
+     },
++    {
++      q: "What is the Monthly Card Game?",
++      a: "It is a fun weekly prediction game entry page. No tickets are required, but you must have at least 1 data purchase before you can submit an entry. Admin controls when the game is enabled.",
++    },
+   ];
+ 
+   return (
+diff --git a/__tmp_house_new/frontend/src/pages/Home.jsx b/frontend/src/pages/Home.jsx
+new file mode 100644
+index 0000000..2f54e52
+--- /dev/null
++++ b/frontend/src/pages/Home.jsx
+@@ -0,0 +1,684 @@
++import styled from "styled-components";
++import { Link, useNavigate } from "react-router-dom";
++import { useEffect, useMemo, useState } from "react";
++import { useAuth } from "../utils/AuthContext";
++import Container from "../components/Container";
++import HouseCard from "../components/HouseCard";
++import { houses } from "../data/houses";
++import {
++  HouseIcon,
++  WalletIcon,
++  PayoutIcon,
++  ShieldIcon,
++} from "../components/Icons";
++import fintechMockup from "../assets/biggiHouse fintech platform interface.png";
++import { getBiggiHousePublicConfig } from "../services/api";
++
++const HeroSection = styled.section`
++  padding: 70px 0 40px;
++
++  @media (max-width: 640px) {
++    padding: 32px 0 28px;
++  }
++`;
++
++const HeroGrid = styled(Container)`
++  display: grid;
++  grid-template-columns: repeat(2, minmax(0, 1fr));
++  gap: 32px;
++  align-items: center;
++
++  @media (max-width: 900px) {
++    grid-template-columns: 1fr;
++    gap: 22px;
++  }
++`;
++
++const HeroCopy = styled.div`
++  min-width: 0;
++`;
++
++const HeroCard = styled.div`
++  background: ${({ theme }) => theme.colors.surface};
++  border-radius: ${({ theme }) => theme.radius.lg};
++  padding: 26px;
++  box-shadow: ${({ theme }) => theme.shadows.soft};
++  border: 1px solid ${({ theme }) => theme.colors.border};
++
++  @media (max-width: 640px) {
++    padding: 16px;
++    border-radius: 18px;
++  }
++`;
++
++const Mockup = styled.img`
++  width: 100%;
++  border-radius: 22px;
++  border: 1px solid ${({ theme }) => theme.colors.border};
++  box-shadow: ${({ theme }) => theme.shadows.soft};
++`;
++
++const Title = styled.h1`
++  font-size: clamp(2.6rem, 4vw, 3.5rem);
++  line-height: 1.05;
++  margin-bottom: 16px;
++  letter-spacing: -1px;
++
++  @media (max-width: 640px) {
++    font-size: clamp(2rem, 9vw, 2.5rem);
++    line-height: 1.1;
++    margin-bottom: 14px;
++    text-align: center;
++  }
++`;
++
++const AnimatedTitle = styled(Title)`
++  position: relative;
++  overflow: hidden;
++  white-space: nowrap;
++  border-right: 3px solid ${({ theme }) => theme.colors.primary};
++  display: inline-block;
++  max-width: 100%;
++  animation: typing 4.4s steps(25, end) 0.2s infinite,
++    blink 0.9s step-end infinite;
++
++  @keyframes typing {
++    0% {
++      width: 0;
++    }
++    55% {
++      width: 100%;
++    }
++    100% {
++      width: 0;
++    }
++  }
++
++  @keyframes blink {
++    0%,
++    100% {
++      border-color: transparent;
++    }
++    50% {
++      border-color: ${({ theme }) => theme.colors.primary};
++    }
++  }
++
++  @media (max-width: 640px) {
++    white-space: normal;
++    overflow: visible;
++    border-right: none;
++    display: block;
++    animation: fadeInText 1s ease both;
++
++    @keyframes fadeInText {
++      from {
++        opacity: 0;
++        transform: translateY(8px);
++      }
++      to {
++        opacity: 1;
++        transform: translateY(0);
++      }
++    }
++  }
++`;
++
++const Sub = styled.p`
++  color: ${({ theme }) => theme.colors.muted};
++  font-size: 1.05rem;
++  margin-bottom: 18px;
++
++  @media (max-width: 640px) {
++    text-align: center;
++    font-size: 0.98rem;
++  }
++`;
++
++const PoweredBy = styled.div`
++  display: inline-flex;
++  align-items: center;
++  gap: 8px;
++  padding: 8px 14px;
++  border-radius: 999px;
++  background: ${({ theme }) => theme.colors.soft};
++  color: ${({ theme }) => theme.colors.primary};
++  font-weight: 600;
++  font-size: 13px;
++  margin-bottom: 24px;
++
++  @media (max-width: 640px) {
++    display: flex;
++    width: 100%;
++    justify-content: center;
++    text-align: center;
++    padding: 10px 14px;
++  }
++`;
++
++const ButtonRow = styled.div`
++  display: flex;
++  gap: 12px;
++  flex-wrap: wrap;
++
++  @media (max-width: 640px) {
++    flex-direction: column;
++  }
++`;
++
++const PrimaryButton = styled(Link)`
++  background: ${({ theme }) => theme.gradients.brand};
++  color: #fff;
++  padding: 12px 20px;
++  border-radius: 999px;
++  font-weight: 600;
++  box-shadow: ${({ theme }) => theme.shadows.card};
++  text-align: center;
++
++  @media (max-width: 640px) {
++    width: 100%;
++  }
++`;
++
++const GhostButton = styled(Link)`
++  border: 1px solid ${({ theme }) => theme.colors.border};
++  padding: 12px 20px;
++  border-radius: 999px;
++  font-weight: 600;
++  text-align: center;
++
++  @media (max-width: 640px) {
++    width: 100%;
++  }
++`;
++
++const GhostActionButton = styled.button`
++  border: 1px solid ${({ theme }) => theme.colors.border};
++  padding: 12px 20px;
++  border-radius: 999px;
++  font-weight: 600;
++  text-align: center;
++  background: #fff;
++
++  @media (max-width: 640px) {
++    width: 100%;
++  }
++`;
++
++const StatGrid = styled(Container)`
++  margin-top: 26px;
++  display: grid;
++  grid-template-columns: repeat(4, minmax(0, 1fr));
++  gap: 16px;
++
++  @media (max-width: 900px) {
++    grid-template-columns: repeat(2, minmax(0, 1fr));
++  }
++
++  @media (max-width: 560px) {
++    grid-template-columns: 1fr;
++  }
++`;
++
++const StatCard = styled.div`
++  background: ${({ theme }) => theme.colors.surface};
++  border: 1px solid ${({ theme }) => theme.colors.border};
++  border-radius: ${({ theme }) => theme.radius.md};
++  padding: 18px;
++  box-shadow: ${({ theme }) => theme.shadows.card};
++`;
++
++const StatValue = styled.div`
++  font-size: 22px;
++  font-weight: 700;
++`;
++
++const StatLabel = styled.div`
++  color: ${({ theme }) => theme.colors.muted};
++  font-size: 14px;
++  margin-top: 4px;
++`;
++
++const Section = styled.section`
++  padding: 46px 0;
++`;
++
++const SectionTitle = styled.h2`
++  font-size: 28px;
++  margin-bottom: 10px;
++
++  @media (max-width: 640px) {
++    font-size: 24px;
++  }
++`;
++
++const SectionSub = styled.p`
++  color: ${({ theme }) => theme.colors.muted};
++  margin-bottom: 26px;
++`;
++
++const StepsRow = styled(Container)`
++  display: grid;
++  grid-template-columns: repeat(3, minmax(0, 1fr));
++  gap: 20px;
++  align-items: center;
++  position: relative;
++
++  @media (max-width: 900px) {
++    grid-template-columns: 1fr;
++  }
++`;
++
++const StepCard = styled.div`
++  background: ${({ theme }) => theme.colors.surface};
++  border-radius: ${({ theme }) => theme.radius.md};
++  border: 1px solid ${({ theme }) => theme.colors.border};
++  padding: 22px;
++  box-shadow: ${({ theme }) => theme.shadows.card};
++  display: grid;
++  gap: 8px;
++`;
++
++const StepIcon = styled.div`
++  width: 52px;
++  height: 52px;
++  border-radius: 18px;
++  background: ${({ theme }) => theme.colors.soft};
++  display: grid;
++  place-items: center;
++`;
++
++const Arrow = styled.div`
++  position: absolute;
++  top: 50%;
++  left: 33%;
++  width: 34%;
++  height: 2px;
++  background: ${({ theme }) => theme.colors.soft};
++  transform: translateY(-50%);
++
++  &::after,
++  &::before {
++    content: "";
++    position: absolute;
++    top: 50%;
++    width: 10px;
++    height: 10px;
++    border-right: 2px solid ${({ theme }) => theme.colors.primary};
++    border-bottom: 2px solid ${({ theme }) => theme.colors.primary};
++    transform: translateY(-50%) rotate(-45deg);
++  }
++
++  &::before {
++    left: 0;
++  }
++
++  &::after {
++    right: 0;
++  }
++
++  @media (max-width: 900px) {
++    display: none;
++  }
++`;
++
++const TrustText = styled.p`
++  text-align: center;
++  color: ${({ theme }) => theme.colors.muted};
++  margin-top: 18px;
++  font-size: 14px;
++`;
++
++const HousesGrid = styled(Container)`
++  display: grid;
++  grid-template-columns: repeat(3, minmax(0, 1fr));
++  gap: 20px;
++
++  @media (max-width: 1024px) {
++    grid-template-columns: repeat(2, minmax(0, 1fr));
++  }
++
++  @media (max-width: 640px) {
++    grid-template-columns: 1fr;
++  }
++`;
++
++const Highlight = styled.div`
++  background: ${({ theme }) => theme.gradients.brand};
++  color: #fff;
++  border-radius: ${({ theme }) => theme.radius.lg};
++  padding: 28px;
++  display: flex;
++  align-items: center;
++  justify-content: space-between;
++  gap: 20px;
++
++  @media (max-width: 760px) {
++    flex-direction: column;
++    align-items: flex-start;
++    padding: 22px;
++  }
++`;
++
++const HighlightTitle = styled.h3`
++  font-size: 24px;
++  margin-bottom: 8px;
++`;
++
++const HighlightButton = styled(Link)`
++  background: #fff;
++  color: ${({ theme }) => theme.colors.primary};
++  padding: 12px 20px;
++  border-radius: 999px;
++  font-weight: 600;
++`;
++
++const Partners = styled.section`
++  padding: 40px 0 20px;
++`;
++
++const PartnerRow = styled(Container)`
++  display: flex;
++  align-items: center;
++  justify-content: space-between;
++  gap: 16px;
++  flex-wrap: wrap;
++`;
++
++const PartnerTitle = styled.p`
++  font-weight: 600;
++  color: ${({ theme }) => theme.colors.muted};
++`;
++
++const PartnerLogos = styled.div`
++  display: flex;
++  gap: 12px;
++  flex-wrap: wrap;
++`;
++
++const PartnerBadge = styled.div`
++  padding: 10px 16px;
++  border-radius: 999px;
++  background: ${({ theme }) => theme.colors.surface};
++  border: 1px solid ${({ theme }) => theme.colors.border};
++  font-weight: 600;
++`;
++
++const Footer = styled.footer`
++  padding: 36px 0 50px;
++  border-top: 1px solid ${({ theme }) => theme.colors.border};
++`;
++
++const FooterGrid = styled(Container)`
++  display: grid;
++  grid-template-columns: repeat(3, minmax(0, 1fr));
++  gap: 18px;
++
++  @media (max-width: 900px) {
++    grid-template-columns: 1fr;
++  }
++`;
++
++const FooterBrand = styled.div`
++  display: grid;
++  gap: 8px;
++  color: ${({ theme }) => theme.colors.muted};
++`;
++
++const FooterLogo = styled.span`
++  font-weight: 700;
++  color: ${({ theme }) => theme.colors.primary};
++  font-size: 20px;
++`;
++
++const FooterLinks = styled.div`
++  display: flex;
++  gap: 16px;
++  flex-wrap: wrap;
++`;
++
++const Socials = styled.div`
++  display: flex;
++  gap: 12px;
++  justify-content: flex-end;
++
++  @media (max-width: 900px) {
++    justify-content: flex-start;
++  }
++`;
++
++const SocialChip = styled.span`
++  padding: 8px 12px;
++  border-radius: 999px;
++  border: 1px solid ${({ theme }) => theme.colors.border};
++  background: ${({ theme }) => theme.colors.surface};
++  font-weight: 600;
++  font-size: 13px;
++`;
++
++export default function Home() {
++  const navigate = useNavigate();
++  const { user, logout } = useAuth();
++  const preview = houses.slice(0, 3);
++  const [config, setConfig] = useState(null);
++
++  const isGameEnabled = Boolean(config?.features?.monthlyCardGameEnabled);
++
++  useEffect(() => {
++    getBiggiHousePublicConfig()
++      .then((cfg) => setConfig(cfg))
++      .catch(() => setConfig(null));
++  }, []);
++
++  const joinHouseHref = user ? "/houses" : "/login";
++  const onJoinHouse = useMemo(() => () => navigate(joinHouseHref), [navigate, joinHouseHref]);
++
++  return (
++    <>
++      <HeroSection>
++        <HeroGrid>
++          <HeroCopy>
++            {user ? (
++              <AnimatedTitle>Join biggi house and enjoy biggi rewards, for recharging biggi data bundles.</AnimatedTitle>
++            ) : (
++              <Title>Join biggi house and enjoy biggi rewards, for recharging biggi data bundles.</Title>
++            )}
++            <Sub>
++              BiggiHouse is a smart group savings platform. Pick a house,
++              contribute weekly, and receive scheduled payouts transparently.
++            </Sub>
++            {user && (
++              <PoweredBy>Powered by Biggi Data bundles services</PoweredBy>
++            )}
++            <ButtonRow>
++              {!user ? (
++                <>
++                  <GhostButton to="/signup">Create Account</GhostButton>
++                  <PrimaryButton to="/login">Join a House</PrimaryButton>
++                </>
++              ) : (
++                <>
++                  <PrimaryButton to="/houses">Join a House</PrimaryButton>
++                  <GhostActionButton type="button" onClick={logout}>
++                    Sign out
++                  </GhostActionButton>
++                </>
++              )}
++            </ButtonRow>
++          </HeroCopy>
++          <HeroCard>
++            <Mockup
++              src={fintechMockup}
++              alt="biggiHouse fintech platform interface preview"
++            />
++          </HeroCard>
++        </HeroGrid>
++
++        <StatGrid>
++          {[
++            { value: "10", label: "Houses live" },
++            { value: "\u20A64.2M", label: "Total payouts" },
++            { value: "98%", label: "On-time payouts" },
++            { value: "24/7", label: "Support coverage" },
++          ].map((stat) => (
++            <StatCard key={stat.label}>
++              <StatValue>{stat.value}</StatValue>
++              <StatLabel>{stat.label}</StatLabel>
++            </StatCard>
++          ))}
++        </StatGrid>
++      </HeroSection>
++
++      <Section>
++        <Container>
++          <SectionTitle>How biggiHouse works</SectionTitle>
++          <SectionSub>
++            Simple steps designed to feel safe, transparent, and consistent.
++          </SectionSub>
++        </Container>
++        <StepsRow>
++          <Arrow />
++          {[
++            {
++              icon: <HouseIcon size={28} />,
++              title: "Join a house",
++              text: "Select a contribution plan that fits you.",
++            },
++            {
++              icon: <WalletIcon size={28} />,
++              title: "Contribute weekly",
++              text: "Pay your contribution securely each cycle.",
++            },
++            {
++              icon: <PayoutIcon size={28} />,
++              title: "Receive a payout",
++              text: "Get your full payout when it is your turn.",
++            },
++          ].map((step) => (
++            <StepCard key={step.title}>
++              <StepIcon>{step.icon}</StepIcon>
++              <h3>{step.title}</h3>
++              <p style={{ color: "#5b6475" }}>{step.text}</p>
++            </StepCard>
++          ))}
++        </StepsRow>
++        <TrustText>
++          Secured payments {"\u00B7"} Powered by Flutterwave
++        </TrustText>
++      </Section>
++
++      <Section>
++        <Container>
++          <SectionTitle>Choose a house</SectionTitle>
++          <SectionSub>
++            Houses are capped at 10 contributors to keep the cycle clear and
++            fair.
++          </SectionSub>
++        </Container>
++        <HousesGrid>
++          {preview.map((house) => (
++            <HouseCard
++              key={house.id}
++              house={house}
++              onJoin={onJoinHouse}
++            />
++          ))}
++        </HousesGrid>
++      </Section>
++
++      <Section>
++        <Container>
++          <Highlight>
++            <div>
++              <HighlightTitle>Monthly Card Game</HighlightTitle>
++              <p style={{ opacity: 0.85 }}>
++                Requires at least 1 data purchase to play Weekly Prediction Game.
++              </p>
++            </div>
++            <HighlightButton
++              as="button"
++              type="button"
++              disabled={!isGameEnabled}
++              onClick={() => navigate("/monthly-card-game")}
++              style={{ opacity: isGameEnabled ? 1 : 0.6 }}
++              aria-disabled={!isGameEnabled}
++              title={isGameEnabled ? "Open game" : "Admin will enable soon"}
++            >
++              {isGameEnabled ? "Play now" : "Disabled"}
++            </HighlightButton>
++          </Highlight>
++        </Container>
++      </Section>
++
++      <Section>
++        <Container>
++          <Highlight>
++            <div>
++              <HighlightTitle>Start your savings journey today</HighlightTitle>
++              <p style={{ opacity: 0.85 }}>
++                Create an account in minutes and join the right house for you.
++              </p>
++            </div>
++            {!user ? (
++              <HighlightButton to="/signup">Get started</HighlightButton>
++            ) : (
++              <HighlightButton to="/houses">Open houses</HighlightButton>
++            )}
++          </Highlight>
++        </Container>
++      </Section>
++
++      <Section>
++        <Container>
++          <SectionTitle>Trust and safety</SectionTitle>
++          <SectionSub>
++            Transparent cycles, verified payments, and dedicated support.
++          </SectionSub>
++          <div style={{ display: "grid", gap: "18px" }}>
++            <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
++              <ShieldIcon size={32} />
++              <div>
++                <strong>Protected contributions</strong>
++                <div style={{ color: "#5b6475" }}>
++                  We verify every payment before it enters a house.
++                </div>
++              </div>
++            </div>
++          </div>
++        </Container>
++      </Section>
++
++      <Partners>
++        <PartnerRow>
++          <PartnerTitle>Trusted payments</PartnerTitle>
++          <PartnerLogos>
++            <PartnerBadge>Flutterwave</PartnerBadge>
++            <PartnerBadge>Paystack</PartnerBadge>
++          </PartnerLogos>
++        </PartnerRow>
++      </Partners>
++
++      <Footer>
++        <FooterGrid>
++          <FooterBrand>
++            <FooterLogo>biggiHouse</FooterLogo>
++            <p>Your trusted savings platform.</p>
++            <p style={{ color: "#3b82f6", fontWeight: 600 }}>
++              Powered by Biggi Data bundles services
++            </p>
++          </FooterBrand>
++          <FooterLinks>
++            <Link to="#">Terms</Link>
++            <Link to="#">Privacy</Link>
++            <Link to="#">Contact</Link>
++          </FooterLinks>
++          <Socials>
++            <SocialChip>Facebook</SocialChip>
++            <SocialChip>Twitter</SocialChip>
++            <SocialChip>Instagram</SocialChip>
++          </Socials>
++        </FooterGrid>
++      </Footer>
++    </>
++  );
++}
+diff --git a/__tmp_house_new/frontend/src/pages/MonthlyCardGame.jsx b/frontend/src/pages/MonthlyCardGame.jsx
+new file mode 100644
+index 0000000..e6d9181
+--- /dev/null
++++ b/frontend/src/pages/MonthlyCardGame.jsx
+@@ -0,0 +1,257 @@
++import styled from "styled-components";
++import { useEffect, useMemo, useState } from "react";
++import Container from "../components/Container";
++import { getAuthToken } from "../utils/auth";
++import {
++  getBiggiHouseMonthlyCardHistory,
++  getBiggiHousePublicConfig,
++  playBiggiHouseMonthlyCardGame,
++} from "../services/api";
++
++const Wrapper = styled(Container)`
++  padding: 40px 0 60px;
++  max-width: 720px;
++`;
++
++const Header = styled.div`
++  display: grid;
++  gap: 8px;
++  margin-bottom: 18px;
++`;
++
++const Title = styled.h1`
++  font-size: 28px;
++  margin: 0;
++`;
++
++const Sub = styled.p`
++  margin: 0;
++  color: ${({ theme }) => theme.colors.muted};
++`;
++
++const Card = styled.div`
++  background: ${({ theme }) => theme.colors.surface};
++  border: 1px solid ${({ theme }) => theme.colors.border};
++  border-radius: ${({ theme }) => theme.radius.lg};
++  padding: 20px;
++  box-shadow: ${({ theme }) => theme.shadows.card};
++`;
++
++const Grid = styled.div`
++  display: grid;
++  grid-template-columns: repeat(6, minmax(0, 1fr));
++  gap: 10px;
++  margin-top: 14px;
++
++  @media (max-width: 640px) {
++    grid-template-columns: repeat(5, minmax(0, 1fr));
++  }
++`;
++
++const Letter = styled.button`
++  border-radius: 14px;
++  padding: 12px 0;
++  border: 1px solid ${({ theme }) => theme.colors.border};
++  background: ${({ $active, theme }) =>
++    $active ? theme.gradients.brand : theme.colors.surface};
++  color: ${({ $active }) => ($active ? "#fff" : "#111827")};
++  font-weight: 900;
++`;
++
++const Picks = styled.div`
++  margin-top: 14px;
++  display: flex;
++  gap: 10px;
++  flex-wrap: wrap;
++`;
++
++const PickPill = styled.div`
++  padding: 8px 12px;
++  border-radius: 999px;
++  background: ${({ theme }) => theme.colors.soft};
++  border: 1px solid ${({ theme }) => theme.colors.border};
++  font-weight: 800;
++`;
++
++const Actions = styled.div`
++  margin-top: 16px;
++  display: grid;
++  gap: 10px;
++`;
++
++const Primary = styled.button`
++  width: 100%;
++  padding: 12px 16px;
++  border-radius: 14px;
++  border: none;
++  background: ${({ theme }) => theme.gradients.brand};
++  color: #fff;
++  font-weight: 900;
++  opacity: ${({ disabled }) => (disabled ? 0.6 : 1)};
++  cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
++`;
++
++const Ghost = styled.button`
++  width: 100%;
++  padding: 12px 16px;
++  border-radius: 14px;
++  border: 1px solid ${({ theme }) => theme.colors.border};
++  background: #fff;
++  font-weight: 900;
++`;
++
++const Notice = styled.div`
++  margin-top: 12px;
++  padding: 12px 14px;
++  border-radius: 14px;
++  border: 1px solid ${({ $tone }) => ($tone === "error" ? "rgba(220,38,38,.25)" : "rgba(16,185,129,.25)")};
++  background: ${({ $tone }) => ($tone === "error" ? "rgba(220,38,38,.06)" : "rgba(16,185,129,.08)")};
++  color: ${({ $tone }) => ($tone === "error" ? "#991b1b" : "#065f46")};
++  font-weight: 700;
++`;
++
++const History = styled.div`
++  margin-top: 18px;
++  display: grid;
++  gap: 10px;
++`;
++
++const HistoryItem = styled.div`
++  padding: 12px 14px;
++  border-radius: 14px;
++  border: 1px solid ${({ theme }) => theme.colors.border};
++  background: #fff;
++  display: flex;
++  justify-content: space-between;
++  gap: 12px;
++  color: ${({ theme }) => theme.colors.muted};
++`;
++
++export default function MonthlyCardGame() {
++  const [config, setConfig] = useState(null);
++  const [picks, setPicks] = useState([]);
++  const [busy, setBusy] = useState(false);
++  const [notice, setNotice] = useState(null);
++  const [history, setHistory] = useState([]);
++
++  const letters = useMemo(() => "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""), []);
++  const token = useMemo(() => getAuthToken(), []);
++
++  const load = async () => {
++    const [cfg, hist] = await Promise.all([
++      getBiggiHousePublicConfig().catch(() => null),
++      token ? getBiggiHouseMonthlyCardHistory(token).catch(() => ({ plays: [] })) : { plays: [] },
++    ]);
++    if (cfg) setConfig(cfg);
++    setHistory(Array.isArray(hist?.plays) ? hist.plays : []);
++  };
++
++  useEffect(() => {
++    load();
++    // eslint-disable-next-line react-hooks/exhaustive-deps
++  }, []);
++
++  const enabled = Boolean(config?.features?.monthlyCardGameEnabled);
++  const canSubmit = enabled && picks.length === 5;
++
++  const togglePick = (letter) => {
++    setNotice(null);
++    setPicks((prev) => {
++      const next = prev.includes(letter) ? prev.filter((x) => x !== letter) : [...prev, letter];
++      return next.slice(0, 5);
++    });
++  };
++
++  const play = async () => {
++    if (!token) return;
++    setBusy(true);
++    setNotice(null);
++    try {
++      await playBiggiHouseMonthlyCardGame({ letters: picks }, token);
++      setNotice({ tone: "success", text: "Entry submitted successfully." });
++      setPicks([]);
++      const hist = await getBiggiHouseMonthlyCardHistory(token);
++      setHistory(Array.isArray(hist?.plays) ? hist.plays : []);
++    } catch (e) {
++      setNotice({ tone: "error", text: e?.message || "Unable to submit." });
++    } finally {
++      setBusy(false);
++    }
++  };
++
++  return (
++    <Wrapper>
++      <Header>
++        <Title>Monthly Card Game</Title>
++        <Sub>
++          No tickets required. Admin controls when this game is available.
++        </Sub>
++      </Header>
++
++      <Card>
++        <Sub>
++          Pick exactly 5 letters. Your entry is saved to your account when you submit.
++        </Sub>
++
++        {!enabled ? (
++          <Notice $tone="error">
++            Game is currently disabled. Check back later.
++          </Notice>
++        ) : null}
++
++        <Grid aria-label="Letter picker">
++          {letters.map((l) => (
++            <Letter
++              key={l}
++              type="button"
++              $active={picks.includes(l)}
++              onClick={() => togglePick(l)}
++              disabled={!enabled}
++              aria-label={`Pick ${l}`}
++            >
++              {l}
++            </Letter>
++          ))}
++        </Grid>
++
++        <Picks aria-label="Selected picks">
++          {picks.length ? (
++            picks.map((l) => <PickPill key={`pick-${l}`}>{l}</PickPill>)
++          ) : (
++            <Sub>No picks yet.</Sub>
++          )}
++        </Picks>
++
++        <Actions>
++          <Primary type="button" disabled={!canSubmit || busy} onClick={play}>
++            {busy ? "Submitting..." : "Submit Entry"}
++          </Primary>
++          <Ghost
++            type="button"
++            onClick={() => setPicks([])}
++            disabled={busy || picks.length === 0}
++          >
++            Clear picks
++          </Ghost>
++        </Actions>
++
++        {notice ? <Notice $tone={notice.tone}>{notice.text}</Notice> : null}
++      </Card>
++
++      <History>
++        <Title style={{ fontSize: 18 }}>My Entries</Title>
++        {history.length ? (
++          history.slice(0, 10).map((p) => (
++            <HistoryItem key={p.id}>
++              <span>{(p.letters || []).join(", ")}</span>
++              <span>{p.createdAt ? new Date(p.createdAt).toLocaleString() : ""}</span>
++            </HistoryItem>
++          ))
++        ) : (
++          <Sub>No entries yet.</Sub>
++        )}
++      </History>
++    </Wrapper>
++  );
++}
++
+diff --git a/frontend/src/pages/Signup.jsx b/frontend/src/pages/Signup.jsx
+index cc0f317..b62e1a7 100644
+--- a/frontend/src/pages/Signup.jsx
++++ b/frontend/src/pages/Signup.jsx
+@@ -78,6 +78,12 @@ const Button = styled.button`
+   cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
+ `;
+ 
++const ButtonStack = styled.div`
++  margin-top: 10px;
++  display: grid;
++  gap: 12px;
++`;
++
+ export default function Signup() {
+   const navigate = useNavigate();
+   const { login } = useAuth();
+@@ -239,13 +245,15 @@ export default function Signup() {
+           {error && (
+             <p style={{ color: "#c02626", fontSize: "13px" }}>{error}</p>
+           )}
+-          <Button type="submit" disabled={loading}>
+-            {loading ? "Creating account..." : "Create account"}
+-          </Button>
++          <ButtonStack>
++            <Button type="submit" disabled={loading}>
++              {loading ? "Creating account..." : "Create account"}
++            </Button>
++            <Button as={Link} to="/login" type="button">
++              Login
++            </Button>
++          </ButtonStack>
+         </form>
+-        <Button as={Link} to="/login" type="button" style={{ marginTop: 12 }}>
+-          Login
+-        </Button>
+       </Card>
+     </Wrapper>
+   );
+diff --git a/__tmp_house_new/frontend/src/services/api.js b/frontend/src/services/api.js
+new file mode 100644
+index 0000000..a2db6b7
+--- /dev/null
++++ b/frontend/src/services/api.js
+@@ -0,0 +1,605 @@
++const API_BASE =
++  (import.meta.env.VITE_BASE_URL
++    ? `${import.meta.env.VITE_BASE_URL}/api/v1`
++    : null) || "http://localhost:5000/api/v1";
++
++export async function getHouses() {
++  // Legacy helper retained for older backends; BiggiHouse now uses /biggihouse/houses.
++  const res = await fetch(`${API_BASE}/houses`);
++  if (!res.ok) throw new Error("Failed to fetch houses");
++  const data = await res.json();
++  return data.houses || [];
++}
++
++export async function joinHouse(id, token) {
++  // Legacy helper retained for older backends; BiggiHouse now uses /biggihouse/houses/:id/join.
++  const headers = { "Content-Type": "application/json" };
++  if (token) headers.Authorization = `Bearer ${token}`;
++  const res = await fetch(`${API_BASE}/houses/${id}/join`, {
++    method: "POST",
++    headers,
++  });
++  if (!res.ok) throw new Error("Failed to join house");
++  const data = await res.json();
++  return data.house;
++}
++
++export async function getBiggiHouseHouses(token) {
++  const headers = {};
++  if (token) headers.Authorization = `Bearer ${token}`;
++  const res = await fetch(`${API_BASE}/biggihouse/houses`, { headers });
++  const data = await res.json().catch(() => ({}));
++  if (!res.ok) {
++    const err = new Error(data.error || data.message || "Failed to fetch houses");
++    err.code = data.errorCode;
++    throw err;
++  }
++  return data.houses || [];
++}
++
++export async function getBiggiHousePublicConfig() {
++  const res = await fetch(`${API_BASE}/biggihouse/config`);
++  const data = await res.json().catch(() => ({}));
++  if (!res.ok) throw new Error(data.error || data.message || "Failed to load config");
++  return data.config || data;
++}
++
++export async function updateBiggiHouseAdminConfig(payload, token) {
++  const headers = { "Content-Type": "application/json" };
++  if (token) headers.Authorization = `Bearer ${token}`;
++  const res = await fetch(`${API_BASE}/biggihouse/admin/config`, {
++    method: "PATCH",
++    headers,
++    body: JSON.stringify(payload || {}),
++  });
++  const data = await res.json().catch(() => ({}));
++  if (!res.ok) throw new Error(data.error || data.message || "Failed to update config");
++  return data.config || data;
++}
++
++export async function playBiggiHouseMonthlyCardGame(payload, token) {
++  const headers = { "Content-Type": "application/json" };
++  if (token) headers.Authorization = `Bearer ${token}`;
++  const res = await fetch(`${API_BASE}/biggihouse/game/monthly-card/play`, {
++    method: "POST",
++    headers,
++    body: JSON.stringify(payload || {}),
++  });
++  const data = await res.json().catch(() => ({}));
++  if (!res.ok) {
++    const err = new Error(data.error || data.message || "Unable to play game");
++    err.code = data.errorCode;
++    throw err;
++  }
++  return data;
++}
++
++export async function getBiggiHouseMonthlyCardHistory(token) {
++  const headers = {};
++  if (token) headers.Authorization = `Bearer ${token}`;
++  const res = await fetch(`${API_BASE}/biggihouse/game/monthly-card/history`, { headers });
++  const data = await res.json().catch(() => ({}));
++  if (!res.ok) throw new Error(data.error || data.message || "Failed to load history");
++  return data;
++}
++
++export async function joinBiggiHouseHouse(id, token) {
++  const headers = { "Content-Type": "application/json" };
++  if (token) headers.Authorization = `Bearer ${token}`;
++  const res = await fetch(`${API_BASE}/biggihouse/houses/${id}/join`, {
++    method: "POST",
++    headers,
++  });
++  const data = await res.json().catch(() => ({}));
++  if (!res.ok) {
++    const err = new Error(data.error || data.message || "Failed to join house");
++    err.code = data.errorCode;
++    throw err;
++  }
++  return data;
++}
++
++export async function getBiggiHouseWallet(token) {
++  const headers = {};
++  if (token) headers.Authorization = `Bearer ${token}`;
++  const res = await fetch(`${API_BASE}/biggihouse/wallet`, { headers });
++  const data = await res.json().catch(() => ({}));
++  if (!res.ok) throw new Error(data.error || data.message || "Failed to load wallet");
++  return data.wallet;
++}
++
++export async function getBiggiHouseVirtualAccount(token, refresh = false) {
++  const headers = {};
++  if (token) headers.Authorization = `Bearer ${token}`;
++  const url = `${API_BASE}/biggihouse/wallet/virtual-account${refresh ? "?refresh=true" : ""}`;
++  const res = await fetch(url, { headers });
++  const data = await res.json().catch(() => ({}));
++  if (!res.ok) throw new Error(data.error || data.message || "Failed to load virtual account");
++  return data;
++}
++
++export async function generateBiggiHouseTxRef(token) {
++  const headers = {};
++  if (token) headers.Authorization = `Bearer ${token}`;
++  const res = await fetch(`${API_BASE}/biggihouse/wallet/generate-tx-ref`, { headers });
++  const data = await res.json().catch(() => ({}));
++  if (!res.ok) throw new Error(data.error || data.message || "Failed to generate reference");
++  return data.tx_ref;
++}
++
++export async function verifyBiggiHouseFlutterwavePayment(payload, token) {
++  const headers = { "Content-Type": "application/json" };
++  if (token) headers.Authorization = `Bearer ${token}`;
++  const res = await fetch(`${API_BASE}/biggihouse/wallet/verify-flutterwave`, {
++    method: "POST",
++    headers,
++    body: JSON.stringify(payload),
++  });
++  const data = await res.json().catch(() => ({}));
++  if (!res.ok) throw new Error(data.error || data.message || "Verification failed");
++  return data;
++}
++
++export async function getBiggiHouseDepositFeeSettings(token) {
++  const headers = {};
++  if (token) headers.Authorization = `Bearer ${token}`;
++  const res = await fetch(`${API_BASE}/biggihouse/wallet/deposit-fee-settings`, { headers });
++  const data = await res.json().catch(() => ({}));
++  if (!res.ok) throw new Error(data.error || data.message || "Failed to load fee settings");
++  return data.settings || data.feeSettings || data;
++}
++
++export async function depositBiggiHouseWallet(amount, token) {
++  const headers = { "Content-Type": "application/json" };
++  if (token) headers.Authorization = `Bearer ${token}`;
++  const res = await fetch(`${API_BASE}/biggihouse/wallet/deposit`, {
++    method: "POST",
++    headers,
++    body: JSON.stringify({ amount }),
++  });
++  const data = await res.json().catch(() => ({}));
++  if (!res.ok) throw new Error(data.error || data.message || "Deposit failed");
++  return data;
++}
++
++export async function withdrawBiggiHouseWallet(amount, token) {
++  const headers = { "Content-Type": "application/json" };
++  if (token) headers.Authorization = `Bearer ${token}`;
++  const res = await fetch(`${API_BASE}/biggihouse/wallet/withdraw`, {
++    method: "POST",
++    headers,
++    body: JSON.stringify({ amount }),
++  });
++  const data = await res.json().catch(() => ({}));
++  if (!res.ok) throw new Error(data.error || data.message || "Withdraw failed");
++  return data;
++}
++
++export async function getBiggiHouseEligibility(token) {
++  const headers = {};
++  if (token) headers.Authorization = `Bearer ${token}`;
++  const res = await fetch(`${API_BASE}/biggihouse/eligibility`, { headers });
++  const data = await res.json().catch(() => ({}));
++  if (!res.ok) throw new Error(data.error || data.message || "Eligibility check failed");
++  return data;
++}
++
++export async function getBiggiHouseMemberships(token) {
++  const headers = {};
++  if (token) headers.Authorization = `Bearer ${token}`;
++  const res = await fetch(`${API_BASE}/biggihouse/memberships`, { headers });
++  const data = await res.json().catch(() => ({}));
++  if (!res.ok) throw new Error(data.error || data.message || "Failed to load memberships");
++  return data.memberships || [];
++}
++
++export async function getBiggiHouseVendors(token) {
++  const headers = {};
++  if (token) headers.Authorization = `Bearer ${token}`;
++  const res = await fetch(`${API_BASE}/biggihouse/vendors`, { headers });
++  const data = await res.json().catch(() => ({}));
++  if (!res.ok) throw new Error(data.error || data.message || "Failed to load vendors");
++  return data.vendors || [];
++}
++
++export async function getBiggiHouseAdminOverview(token) {
++  const headers = {};
++  if (token) headers.Authorization = `Bearer ${token}`;
++  const res = await fetch(`${API_BASE}/biggihouse/admin/overview`, { headers });
++  const data = await res.json().catch(() => ({}));
++  if (!res.ok) throw new Error(data.error || data.message || "Failed to load admin overview");
++  return data.overview;
++}
++
++export async function getBiggiHouseAdminUsers(token, params = {}) {
++  const headers = {};
++  if (token) headers.Authorization = `Bearer ${token}`;
++  const q = new URLSearchParams();
++  if (params.q) q.set("q", params.q);
++  if (params.page) q.set("page", String(params.page));
++  if (params.limit) q.set("limit", String(params.limit));
++  const res = await fetch(`${API_BASE}/biggihouse/admin/users${q.toString() ? `?${q}` : ""}`, {
++    headers,
++  });
++  const data = await res.json().catch(() => ({}));
++  if (!res.ok) throw new Error(data.error || data.message || "Failed to load users");
++  return data;
++}
++
++export async function updateBiggiHouseAdminUser(userId, payload, token) {
++  const headers = { "Content-Type": "application/json" };
++  if (token) headers.Authorization = `Bearer ${token}`;
++  const res = await fetch(`${API_BASE}/biggihouse/admin/users/${userId}`, {
++    method: "PATCH",
++    headers,
++    body: JSON.stringify(payload || {}),
++  });
++  const data = await res.json().catch(() => ({}));
++  if (!res.ok) throw new Error(data.error || data.message || "Failed to update user");
++  return data.user;
++}
++
++export async function adjustBiggiHouseAdminUserWallet(userId, payload, token) {
++  const headers = { "Content-Type": "application/json" };
++  if (token) headers.Authorization = `Bearer ${token}`;
++  const res = await fetch(`${API_BASE}/biggihouse/admin/users/${userId}/wallet-adjust`, {
++    method: "POST",
++    headers,
++    body: JSON.stringify(payload || {}),
++  });
++  const data = await res.json().catch(() => ({}));
++  if (!res.ok) throw new Error(data.error || data.message || "Failed to update wallet");
++  return data.wallet;
++}
++
++export async function getBiggiHouseAdminHouses(token) {
++  const headers = {};
++  if (token) headers.Authorization = `Bearer ${token}`;
++  const res = await fetch(`${API_BASE}/biggihouse/admin/houses`, { headers });
++  const data = await res.json().catch(() => ({}));
++  if (!res.ok) throw new Error(data.error || data.message || "Failed to load houses");
++  return data.houses || [];
++}
++
++export async function createBiggiHouseAdminHouse(payload, token) {
++  const headers = { "Content-Type": "application/json" };
++  if (token) headers.Authorization = `Bearer ${token}`;
++  const res = await fetch(`${API_BASE}/biggihouse/admin/houses`, {
++    method: "POST",
++    headers,
++    body: JSON.stringify(payload || {}),
++  });
++  const data = await res.json().catch(() => ({}));
++  if (!res.ok) throw new Error(data.error || data.message || "Failed to create house");
++  return data.house;
++}
++
++export async function updateBiggiHouseAdminHouse(houseId, payload, token) {
++  const headers = { "Content-Type": "application/json" };
++  if (token) headers.Authorization = `Bearer ${token}`;
++  const res = await fetch(`${API_BASE}/biggihouse/admin/houses/${houseId}`, {
++    method: "PATCH",
++    headers,
++    body: JSON.stringify(payload || {}),
++  });
++  const data = await res.json().catch(() => ({}));
++  if (!res.ok) throw new Error(data.error || data.message || "Failed to update house");
++  return data.house;
++}
++
++export async function deleteBiggiHouseAdminHouse(houseId, token) {
++  const headers = {};
++  if (token) headers.Authorization = `Bearer ${token}`;
++  const res = await fetch(`${API_BASE}/biggihouse/admin/houses/${houseId}`, {
++    method: "DELETE",
++    headers,
++  });
++  const data = await res.json().catch(() => ({}));
++  if (!res.ok) throw new Error(data.error || data.message || "Failed to delete house");
++  return data;
++}
++
++export async function getBiggiHouseAdminMemberships(token, params = {}) {
++  const headers = {};
++  if (token) headers.Authorization = `Bearer ${token}`;
++  const q = new URLSearchParams();
++  if (params.houseId) q.set("houseId", params.houseId);
++  if (params.page) q.set("page", String(params.page));
++  if (params.limit) q.set("limit", String(params.limit));
++  const res = await fetch(
++    `${API_BASE}/biggihouse/admin/memberships${q.toString() ? `?${q}` : ""}`,
++    { headers }
++  );
++  const data = await res.json().catch(() => ({}));
++  if (!res.ok) throw new Error(data.error || data.message || "Failed to load memberships");
++  return data;
++}
++
++export async function getBiggiHouseAdminWinners(token, params = {}) {
++  const headers = {};
++  if (token) headers.Authorization = `Bearer ${token}`;
++  const q = new URLSearchParams();
++  if (params.houseId) q.set("houseId", params.houseId);
++  if (params.status) q.set("status", params.status);
++  if (params.page) q.set("page", String(params.page));
++  if (params.limit) q.set("limit", String(params.limit));
++  const res = await fetch(
++    `${API_BASE}/biggihouse/admin/winners${q.toString() ? `?${q}` : ""}`,
++    { headers }
++  );
++  const data = await res.json().catch(() => ({}));
++  if (!res.ok) throw new Error(data.error || data.message || "Failed to load winners");
++  return data;
++}
++
++export async function triggerBiggiHouseWinnerSelection(token) {
++  const headers = { "Content-Type": "application/json" };
++  if (token) headers.Authorization = `Bearer ${token}`;
++  const res = await fetch(`${API_BASE}/biggihouse/admin/winners/select`, {
++    method: "POST",
++    headers,
++  });
++  const data = await res.json().catch(() => ({}));
++  if (!res.ok) throw new Error(data.error || data.message || "Failed to select winners");
++  return data;
++}
++
++export async function triggerBiggiHouseWinnerPayouts(token) {
++  const headers = { "Content-Type": "application/json" };
++  if (token) headers.Authorization = `Bearer ${token}`;
++  const res = await fetch(`${API_BASE}/biggihouse/admin/winners/payout`, {
++    method: "POST",
++    headers,
++  });
++  const data = await res.json().catch(() => ({}));
++  if (!res.ok) throw new Error(data.error || data.message || "Failed to process payouts");
++  return data;
++}
++
++export async function deleteBiggiHouseAdminMembership(membershipId, token) {
++  const headers = {};
++  if (token) headers.Authorization = `Bearer ${token}`;
++  const res = await fetch(`${API_BASE}/biggihouse/admin/memberships/${membershipId}`, {
++    method: "DELETE",
++    headers,
++  });
++  const data = await res.json().catch(() => ({}));
++  if (!res.ok) throw new Error(data.error || data.message || "Failed to remove membership");
++  return data;
++}
++
++export async function getBiggiHouseAdminVendorRequests(token, params = {}) {
++  const headers = {};
++  if (token) headers.Authorization = `Bearer ${token}`;
++  const q = new URLSearchParams();
++  if (params.status) q.set("status", params.status);
++  if (params.page) q.set("page", String(params.page));
++  if (params.limit) q.set("limit", String(params.limit));
++  const res = await fetch(
++    `${API_BASE}/biggihouse/admin/vendor-requests${q.toString() ? `?${q}` : ""}`,
++    { headers }
++  );
++  const data = await res.json().catch(() => ({}));
++  if (!res.ok) throw new Error(data.error || data.message || "Failed to load requests");
++  return data;
++}
++
++export async function updateBiggiHouseAdminVendorRequest(requestId, payload, token) {
++  const headers = { "Content-Type": "application/json" };
++  if (token) headers.Authorization = `Bearer ${token}`;
++  const res = await fetch(`${API_BASE}/biggihouse/admin/vendor-requests/${requestId}`, {
++    method: "PATCH",
++    headers,
++    body: JSON.stringify(payload || {}),
++  });
++  const data = await res.json().catch(() => ({}));
++  if (!res.ok) throw new Error(data.error || data.message || "Failed to update request");
++  return data.request;
++}
++
++export async function createBiggiHouseVendorRequest(payload, token) {
++  const headers = { "Content-Type": "application/json" };
++  if (token) headers.Authorization = `Bearer ${token}`;
++  const res = await fetch(`${API_BASE}/biggihouse/vendor-requests`, {
++    method: "POST",
++    headers,
++    body: JSON.stringify(payload),
++  });
++  const data = await res.json().catch(() => ({}));
++  if (!res.ok) throw new Error(data.error || data.message || "Request failed");
++  return data.request;
++}
++
++export async function getBiggiDataBalance(token) {
++  const headers = {};
++  if (token) headers.Authorization = `Bearer ${token}`;
++  const res = await fetch(`${API_BASE}/wallet/balance`, { headers });
++  const data = await res.json().catch(() => ({}));
++  if (!res.ok) throw new Error(data.error || data.message || "Failed to load balance");
++  return data.balance;
++}
++
++export async function getBiggiDataDepositFeeSettings(token) {
++  const headers = {};
++  if (token) headers.Authorization = `Bearer ${token}`;
++  const res = await fetch(`${API_BASE}/wallet/deposit-fee-settings`, { headers });
++  const data = await res.json().catch(() => ({}));
++  if (!res.ok) throw new Error(data.error || data.message || "Failed to load fee settings");
++  return data.settings || data.feeSettings || data;
++}
++
++export async function getBiggiDataVirtualAccount(token, refresh = false) {
++  const headers = {};
++  if (token) headers.Authorization = `Bearer ${token}`;
++  const url = `${API_BASE}/wallet/virtual-account${refresh ? "?refresh=true" : ""}`;
++  const res = await fetch(url, { headers });
++  const data = await res.json().catch(() => ({}));
++  if (!res.ok) throw new Error(data.error || data.message || "Failed to load virtual account");
++  return data;
++}
++
++// Subscription endpoints
++export async function getSubscriptionStatus(token) {
++  const headers = {};
++  if (token) headers.Authorization = `Bearer ${token}`;
++  const res = await fetch(`${API_BASE}/subscription/status`, { headers });
++  const data = await res.json().catch(() => ({}));
++  if (!res.ok) throw new Error(data.error || data.message || "Failed to fetch subscription status");
++  return data;
++}
++
++export async function subscribe(payload, token) {
++  const headers = { "Content-Type": "application/json" };
++  if (token) headers.Authorization = `Bearer ${token}`;
++  const res = await fetch(`${API_BASE}/subscription/subscribe`, {
++    method: "POST",
++    headers,
++    body: JSON.stringify(payload),
++  });
++  const data = await res.json().catch(() => ({}));
++  if (!res.ok) throw new Error(data.error || data.message || "Failed to subscribe");
++  return data;
++}
++
++export async function cancelSubscription(token) {
++  const headers = { "Content-Type": "application/json" };
++  if (token) headers.Authorization = `Bearer ${token}`;
++  const res = await fetch(`${API_BASE}/subscription/cancel`, {
++    method: "POST",
++    headers,
++  });
++  const data = await res.json().catch(() => ({}));
++  if (!res.ok) throw new Error(data.error || data.message || "Failed to cancel subscription");
++  return data;
++}
++
++export async function renewSubscription(token) {
++  const headers = { "Content-Type": "application/json" };
++  if (token) headers.Authorization = `Bearer ${token}`;
++  const res = await fetch(`${API_BASE}/subscription/renew`, {
++    method: "POST",
++    headers,
++  });
++  const data = await res.json().catch(() => ({}));
++  if (!res.ok) throw new Error(data.error || data.message || "Failed to renew subscription");
++  return data;
++}
++
++export async function generateBiggiDataTxRef(token) {
++  const headers = {};
++  if (token) headers.Authorization = `Bearer ${token}`;
++  const res = await fetch(`${API_BASE}/wallet/generate-tx-ref`, { headers });
++  const data = await res.json().catch(() => ({}));
++  if (!res.ok) throw new Error(data.error || data.message || "Failed to generate reference");
++  return data.tx_ref;
++}
++
++export async function verifyBiggiDataFlutterwavePayment(payload, token) {
++  const headers = { "Content-Type": "application/json" };
++  if (token) headers.Authorization = `Bearer ${token}`;
++  const res = await fetch(`${API_BASE}/wallet/verify-flutterwave`, {
++    method: "POST",
++    headers,
++    body: JSON.stringify(payload),
++  });
++  const data = await res.json().catch(() => ({}));
++  if (!res.ok) throw new Error(data.error || data.message || "Verification failed");
++  return data;
++}
++
++export async function registerUser(payload) {
++  const res = await fetch(`${API_BASE}/auth/register`, {
++    method: "POST",
++    headers: { "Content-Type": "application/json", "X-Client-App": "biggi-house" },
++    body: JSON.stringify(payload),
++  });
++  const data = await res.json();
++  if (!res.ok) {
++    const err = new Error(data.error || data.message || "Registration failed");
++    err.requiresVerification = data.requiresVerification;
++    err.email = data.email;
++    throw err;
++  }
++  return data;
++}
++
++export async function loginUser(payload) {
++  const res = await fetch(`${API_BASE}/auth/login`, {
++    method: "POST",
++    headers: { "Content-Type": "application/json", "X-Client-App": "biggi-house" },
++    body: JSON.stringify(payload),
++  });
++  const data = await res.json();
++  if (!res.ok) {
++    const err = new Error(data.error || data.message || "Login failed");
++    err.requiresVerification = data.requiresVerification;
++    err.email = data.email;
++    throw err;
++  }
++  return data;
++}
++
++export async function verifyEmailOtp(payload) {
++  const res = await fetch(`${API_BASE}/auth/verify-email`, {
++    method: "POST",
++    headers: { "Content-Type": "application/json" },
++    body: JSON.stringify(payload),
++  });
++  const data = await res.json();
++  if (!res.ok) throw new Error(data.error || data.message || "Verification failed");
++  return data;
++}
++
++export async function resendVerification(payload) {
++  const res = await fetch(`${API_BASE}/auth/resend-verification`, {
++    method: "POST",
++    headers: { "Content-Type": "application/json" },
++    body: JSON.stringify(payload),
++  });
++  const data = await res.json();
++  if (!res.ok) throw new Error(data.error || data.message || "Resend failed");
++  return data;
++}
++
++export async function forgotPassword(payload) {
++  const res = await fetch(`${API_BASE}/auth/forgot-password`, {
++    method: "POST",
++    headers: { "Content-Type": "application/json" },
++    body: JSON.stringify(payload),
++  });
++  const data = await res.json();
++  if (!res.ok) throw new Error(data.error || data.message || "Request failed");
++  return data;
++}
++
++export async function getMe(token) {
++  const res = await fetch(`${API_BASE}/auth/me`, {
++    headers: { Authorization: `Bearer ${token}`, "X-Client-App": "biggi-house" },
++  });
++  if (!res.ok) throw new Error("Unauthorized");
++  return res.json();
++}
++
++export async function getDataPlans(token) {
++  const res = await fetch(`${API_BASE}/plans`, {
++    headers: { Authorization: `Bearer ${token}`, "X-Client-App": "biggi-house" },
++  });
++  const data = await res.json().catch(() => ({}));
++  if (!res.ok) throw new Error(data.error || data.message || "Failed to fetch plans");
++  return Array.isArray(data.plans) ? data.plans : [];
++}
++
++export async function buyData(payload, token) {
++  const res = await fetch(`${API_BASE}/data/buy`, {
++    method: "POST",
++    headers: {
++      "Content-Type": "application/json",
++      Authorization: `Bearer ${token}`,
++      "X-Client-App": "biggi-house",
++    },
++    body: JSON.stringify(payload),
++  });
++  const data = await res.json();
++  if (!res.ok) throw new Error(data.error || data.message || "Purchase failed");
++  return data;
++}
+
