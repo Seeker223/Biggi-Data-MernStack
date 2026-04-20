@@ -9,11 +9,11 @@ import {
   deleteBiggiHouseAdminMembership,
   getBiggiHouseAdminHouses,
   getBiggiHouseAdminMemberships,
+  getBiggiHouseAdminWinners,
   getBiggiHouseAdminOverview,
   getBiggiHouseAdminUsers,
-  getBiggiHouseAdminWinners,
+  triggerBiggiHouseWinnerPayouts,
   triggerBiggiHouseWinnerSelection,
-  triggerBiggiHousePayouts,
   updateBiggiHouseAdminHouse,
   updateBiggiHouseAdminUser,
 } from "../services/api";
@@ -237,6 +237,8 @@ export default function CPanel() {
   const [membershipHouseId, setMembershipHouseId] = useState("");
   const [winners, setWinners] = useState([]);
   const [winnerFilters, setWinnerFilters] = useState({ houseId: "", status: "" });
+  const [winnerPage, setWinnerPage] = useState(1);
+  const [winnerTotalPages, setWinnerTotalPages] = useState(1);
 
   const load = async (fn) => {
     setBusy(true);
@@ -279,15 +281,28 @@ export default function CPanel() {
       });
       return;
     }
-    if (tab === "winners") {
-      load(async () => {
-        const data = await getBiggiHouseAdminWinners(token, winnerFilters);
-        setWinners(data.winners || []);
-      });
-      return;
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, membershipHouseId, winnerFilters]);
+  }, [tab]);
+
+  useEffect(() => {
+    if (!isAdmin || !token || tab !== "winners") return;
+
+    load(async () => {
+      if (houses.length === 0) {
+        setHouses(await getBiggiHouseAdminHouses(token));
+      }
+
+      const data = await getBiggiHouseAdminWinners(token, {
+        houseId: winnerFilters.houseId || undefined,
+        status: winnerFilters.status || undefined,
+        page: winnerPage,
+        limit: 50,
+      });
+
+      setWinners(data.winners || []);
+      setWinnerTotalPages(data.pagination?.pages || 1);
+    });
+  }, [tab, winnerFilters, winnerPage, houses.length, isAdmin, token]);
 
   if (!isAdmin) {
     return (
@@ -378,8 +393,7 @@ export default function CPanel() {
                 </Ghost>
               </PanelHeader>
               <Sub>
-                BiggiHouse wallet is independent. House-join eligibility depends on weekly Biggi Data purchases tied to
-                the user&apos;s phone number.
+                BiggiHouse wallet is independent. Users need an active subscription and enough wallet balance to join houses.
               </Sub>
             </Panel>
           </Grid>
@@ -665,12 +679,9 @@ export default function CPanel() {
         {tab === "winners" && (
           <Panel>
             <PanelHeader>
-              <span>Weekly Winners</span>
+              <span>Winners</span>
               <Tools>
-                <Select
-                  value={winnerFilters.houseId}
-                  onChange={(e) => setWinnerFilters((p) => ({ ...p, houseId: e.target.value }))}
-                >
+                <Select value={winnerFilters.houseId} onChange={(e) => setWinnerFilters((prev) => ({ ...prev, houseId: e.target.value }))}>
                   <option value="">All houses</option>
                   {houses
                     .slice()
@@ -681,10 +692,7 @@ export default function CPanel() {
                       </option>
                     ))}
                 </Select>
-                <Select
-                  value={winnerFilters.status}
-                  onChange={(e) => setWinnerFilters((p) => ({ ...p, status: e.target.value }))}
-                >
+                <Select value={winnerFilters.status} onChange={(e) => setWinnerFilters((prev) => ({ ...prev, status: e.target.value }))}>
                   <option value="">All statuses</option>
                   <option value="pending">Pending</option>
                   <option value="paid">Paid</option>
@@ -692,36 +700,23 @@ export default function CPanel() {
                 <Primary
                   type="button"
                   disabled={busy}
-                  onClick={() =>
-                    load(async () => {
-                      await triggerBiggiHouseWinnerSelection(token);
-                      const data = await getBiggiHouseAdminWinners(token, winnerFilters);
-                      setWinners(data.winners || []);
-                    })
-                  }
+                  onClick={() => setWinnerPage(1)}
                 >
-                  Select Winners
-                </Primary>
-                <Primary
-                  type="button"
-                  disabled={busy}
-                  onClick={() =>
-                    load(async () => {
-                      await triggerBiggiHousePayouts(token);
-                      const data = await getBiggiHouseAdminWinners(token, winnerFilters);
-                      setWinners(data.winners || []);
-                    })
-                  }
-                >
-                  Process Payouts
+                  Apply
                 </Primary>
                 <Ghost
                   type="button"
                   disabled={busy}
                   onClick={() =>
                     load(async () => {
-                      const data = await getBiggiHouseAdminWinners(token, winnerFilters);
+                      const data = await getBiggiHouseAdminWinners(token, {
+                        houseId: winnerFilters.houseId || undefined,
+                        status: winnerFilters.status || undefined,
+                        page: winnerPage,
+                        limit: 50,
+                      });
                       setWinners(data.winners || []);
+                      setWinnerTotalPages(data.pagination?.pages || 1);
                     })
                   }
                 >
@@ -730,52 +725,79 @@ export default function CPanel() {
               </Tools>
             </PanelHeader>
 
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
+              <Primary
+                type="button"
+                disabled={busy}
+                onClick={() =>
+                  load(async () => {
+                    await triggerBiggiHouseWinnerSelection(token);
+                    const data = await getBiggiHouseAdminWinners(token, {
+                      houseId: winnerFilters.houseId || undefined,
+                      status: winnerFilters.status || undefined,
+                      page: winnerPage,
+                      limit: 50,
+                    });
+                    setWinners(data.winners || []);
+                    setWinnerTotalPages(data.pagination?.pages || 1);
+                  })
+                }
+              >
+                Select Winners
+              </Primary>
+              <Danger
+                type="button"
+                disabled={busy}
+                onClick={() =>
+                  load(async () => {
+                    await triggerBiggiHouseWinnerPayouts(token);
+                    const data = await getBiggiHouseAdminWinners(token, {
+                      houseId: winnerFilters.houseId || undefined,
+                      status: winnerFilters.status || undefined,
+                      page: winnerPage,
+                      limit: 50,
+                    });
+                    setWinners(data.winners || []);
+                    setWinnerTotalPages(data.pagination?.pages || 1);
+                  })
+                }
+              >
+                Process Payouts
+              </Danger>
+            </div>
+
             <TableWrap>
               <Table>
                 <thead>
                   <tr>
-                    <th>Winner</th>
                     <th>House</th>
-                    <th>Week</th>
-                    <th>Amount</th>
+                    <th>Winner</th>
+                    <th>Phone</th>
                     <th>Status</th>
+                    <th>Amount</th>
+                    <th>Week</th>
                     <th>Paid At</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {winners.map((w) => (
-                    <tr key={w.id}>
+                  {winners.map((winner) => (
+                    <tr key={winner.id}>
+                      <td>{winner.house ? `House ${winner.house.number}` : "—"}</td>
+                      <td>{winner.user?.username || winner.user?.email || "—"}</td>
+                      <td>{winner.user?.phoneNumber || "—"}</td>
+                      <td>{winner.status || "—"}</td>
+                      <td>{formatMoney(winner.amount || 0)}</td>
                       <td>
-                        <div style={{ fontWeight: 900 }}>{w.user?.username || "—"}</div>
-                        <div style={{ color: "#5b6475", fontSize: 12 }}>{w.user?.email || ""}</div>
+                        {winner.weekStart && winner.weekEnd
+                          ? `${new Date(winner.weekStart).toLocaleDateString()} - ${new Date(winner.weekEnd).toLocaleDateString()}`
+                          : "—"}
                       </td>
-                      <td>House {w.house?.number || "—"}</td>
-                      <td style={{ color: "#5b6475" }}>
-                        {w.weekStart ? new Date(w.weekStart).toLocaleDateString() : "—"}
-                      </td>
-                      <td>{formatMoney(w.amount)}</td>
-                      <td>
-                        <span
-                          style={{
-                            padding: "4px 8px",
-                            borderRadius: "999px",
-                            fontSize: "12px",
-                            fontWeight: "600",
-                            background: w.status === "paid" ? "rgba(22, 163, 74, 0.12)" : "rgba(245, 158, 11, 0.18)",
-                            color: w.status === "paid" ? "#16a34a" : "#d97706",
-                          }}
-                        >
-                          {w.status}
-                        </span>
-                      </td>
-                      <td style={{ color: "#5b6475" }}>
-                        {w.paidAt ? new Date(w.paidAt).toLocaleString() : "—"}
-                      </td>
+                      <td>{winner.paidAt ? new Date(winner.paidAt).toLocaleString() : "—"}</td>
                     </tr>
                   ))}
                   {winners.length === 0 && (
                     <tr>
-                      <td colSpan="6" style={{ color: "#5b6475" }}>
+                      <td colSpan="7" style={{ color: "#5b6475" }}>
                         No winners found.
                       </td>
                     </tr>
@@ -783,6 +805,30 @@ export default function CPanel() {
                 </tbody>
               </Table>
             </TableWrap>
+
+            {winnerTotalPages > 1 && (
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 14 }}>
+                <span>
+                  Page {winnerPage} of {winnerTotalPages}
+                </span>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <Ghost
+                    type="button"
+                    disabled={busy || winnerPage <= 1}
+                    onClick={() => setWinnerPage((page) => Math.max(1, page - 1))}
+                  >
+                    Prev
+                  </Ghost>
+                  <Ghost
+                    type="button"
+                    disabled={busy || winnerPage >= winnerTotalPages}
+                    onClick={() => setWinnerPage((page) => Math.min(winnerTotalPages, page + 1))}
+                  >
+                    Next
+                  </Ghost>
+                </div>
+              </div>
+            )}
           </Panel>
         )}
 

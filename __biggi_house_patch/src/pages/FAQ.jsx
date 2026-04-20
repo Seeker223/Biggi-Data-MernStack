@@ -82,7 +82,7 @@ export default function FAQ() {
     },
     {
       q: "What do I need before I can join a house?",
-      a: "You must have successful data purchases this week for your phone number (from Biggi Data). The required number of purchases matches the house level: House 1 needs 1 purchase, House 2 needs 2 purchases ... House 10 needs 10 purchases.",
+      a: "You need an active subscription and enough BiggiHouse wallet balance to pay the house minimum contribution.",
     },
     {
       q: "How are payouts handled?",
@@ -102,7 +102,7 @@ export default function FAQ() {
     },
     {
       q: "Is BiggiHouse powered by Biggi Data?",
-      a: "Yes. BiggiHouse uses Biggi Data bundle services for eligibility checks based on your weekly purchases tied to your phone number.",
+      a: "Yes. BiggiHouse shares the Biggi ecosystem backend services, while keeping its own wallet and house memberships.",
     },
   ];
 
@@ -111,8 +111,8 @@ export default function FAQ() {
       <Header>
         <Title>Frequently Asked Questions</Title>
         <Sub>
-          Everything you need to know about BiggiHouse houses, eligibility,
-          weekly payouts, and data purchase eligibility powered by Biggi Data.
+          Everything you need to know about BiggiHouse houses, subscription,
+          weekly payouts, and house pooling.
         </Sub>
       </Header>
       <Grid>

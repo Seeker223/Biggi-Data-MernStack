@@ -8,7 +8,6 @@ import {
 } from "../utils/auth";
 import { useAuth } from "../utils/AuthContext";
 import {
-  getBiggiHouseEligibility,
   getBiggiHouseMemberships,
   getBiggiHouseWallet,
 } from "../services/api";
@@ -35,14 +34,6 @@ const Button = styled.button`
   border: none;
   background: ${({ theme }) => theme.gradients.brand};
   color: #fff;
-  font-weight: 600;
-`;
-
-const SecondaryButton = styled.button`
-  padding: 10px 18px;
-  border-radius: 999px;
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  background: #fff;
   font-weight: 600;
 `;
 
@@ -131,7 +122,6 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [wallet, setWallet] = useState(null);
-  const [eligibility, setEligibility] = useState(null);
   const [memberships, setMemberships] = useState([]);
   const [loadingData, setLoadingData] = useState(false);
   const [error, setError] = useState("");
@@ -144,7 +134,6 @@ export default function Dashboard() {
     setError("");
     Promise.all([
       getBiggiHouseWallet(token).then((data) => setWallet(data)),
-      getBiggiHouseEligibility(token).then((data) => setEligibility(data)),
       getBiggiHouseMemberships(token).then((data) => setMemberships(data || [])),
     ])
       .catch((err) => setError(err?.message || "Unable to load dashboard data."))
@@ -190,10 +179,6 @@ export default function Dashboard() {
     });
   }, []);
 
-  const purchasesThisWeek = Number(eligibility?.purchasesThisWeek || 0);
-  const eligible = Boolean(eligibility?.eligible);
-  const eligibilityProgress = eligible ? 100 : Math.min(80, purchasesThisWeek * 50);
-
   const handleLogout = () => {
     logout();
     navigate("/");
@@ -224,7 +209,6 @@ export default function Dashboard() {
           {error && <p style={{ color: "#c02626", marginTop: "10px" }}>{error}</p>}
         </div>
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-          <Button onClick={() => navigate("/buy-data")}>Buy Data</Button>
           {memberships.length > 0 && (
             <WarningButton onClick={handleLeaveHouse}>View houses</WarningButton>
           )}
@@ -261,17 +245,6 @@ export default function Dashboard() {
       </Grid>
 
       <Grid style={{ marginTop: "24px" }}>
-        <Card>
-          <CardLabel>Weekly eligibility</CardLabel>
-          <CardValue>{eligible ? "Eligible" : "Not eligible"}</CardValue>
-          <ProgressWrap>
-            <Progress $value={eligibilityProgress} />
-          </ProgressWrap>
-          <p style={{ color: "#5b6475", marginTop: "10px" }}>
-            Purchases this week for {eligibility?.phoneNumber || "your number"}:{" "}
-            <strong>{purchasesThisWeek}</strong>
-          </p>
-        </Card>
         <Card>
           <CardLabel>BiggiHouse wallet</CardLabel>
           <CardValue>
@@ -334,32 +307,6 @@ export default function Dashboard() {
               You have not joined a house yet.
             </p>
           )}
-        </Card>
-        <Card>
-          <CardLabel>Buy Data To Join Houses</CardLabel>
-          <div style={{ marginTop: "12px", display: "grid", gap: "10px" }}>
-            <p style={{ color: "#5b6475" }}>
-              Weekly requirement: buy at least 1 data bundle for your phone number.
-            </p>
-            <p style={{ color: "#111827", fontWeight: 700 }}>
-              Status:{" "}
-              {eligibility?.eligible
-                ? "Eligible"
-                : eligibility?.reason === "MISSING_PHONE_NUMBER"
-                ? "Add phone number"
-                : "Not eligible"}
-            </p>
-            <ProgressWrap>
-              <Progress $value={eligibilityProgress} />
-            </ProgressWrap>
-            {!eligibility?.eligible && (
-              <>
-                <SecondaryButton onClick={() => navigate("/buy-data")}>
-                  Buy Data
-                </SecondaryButton>
-              </>
-            )}
-          </div>
         </Card>
       </Grid>
     </Wrapper>
