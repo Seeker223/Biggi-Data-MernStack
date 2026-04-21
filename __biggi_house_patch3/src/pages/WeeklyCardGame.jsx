@@ -39,9 +39,15 @@ const Card = styled.div`
   box-shadow: ${({ theme }) => theme.shadows.card};
 `;
 
+const PromoCard = styled(Card)`
+  background: linear-gradient(135deg, #0b2f6f 0%, #1d4ed8 45%, #0284c7 100%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #fff;
+`;
+
 const PromoBrand = styled.div`
   font-weight: 900;
-  color: ${({ theme }) => theme.colors.primary};
+  color: rgba(255, 255, 255, 0.92);
   letter-spacing: 0.08em;
   font-size: 12px;
 `;
@@ -50,11 +56,12 @@ const PromoTitle = styled.div`
   font-weight: 1000;
   font-size: 20px;
   margin-top: 6px;
+  color: #fff;
 `;
 
 const PromoSubtitle = styled.div`
   margin-top: 6px;
-  color: ${({ theme }) => theme.colors.muted};
+  color: rgba(255, 255, 255, 0.82);
   font-weight: 700;
 `;
 
@@ -89,18 +96,18 @@ const PromoGridGroup = styled.div`
 const PromoGridBox = styled.div`
   height: 54px;
   border-radius: 14px;
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  background: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.12);
   display: grid;
   place-items: center;
   font-weight: 1000;
   font-size: 20px;
-  color: ${({ $winner, theme }) => ($winner ? "#065f46" : theme.colors.ink)};
+  color: ${({ $winner }) => ($winner ? "#a7f3d0" : "#fff")};
 `;
 
 const Hint = styled.div`
   margin-top: 12px;
-  color: ${({ theme }) => theme.colors.muted};
+  color: rgba(255, 255, 255, 0.8);
   font-weight: 700;
   font-size: 13px;
 `;
@@ -115,13 +122,18 @@ const PromoBoxes = styled.div`
 const PromoInput = styled.input`
   height: 58px;
   border-radius: 16px;
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  background: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.12);
   text-align: center;
   font-weight: 1000;
   font-size: 22px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
+  color: #fff;
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.55);
+  }
 `;
 
 const Actions = styled.div`
@@ -135,8 +147,8 @@ const Primary = styled.button`
   padding: 12px 16px;
   border-radius: 14px;
   border: none;
-  background: ${({ theme }) => theme.gradients.brand};
-  color: #fff;
+  background: #fff;
+  color: #0b2f6f;
   font-weight: 900;
   opacity: ${({ disabled }) => (disabled ? 0.6 : 1)};
   cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
@@ -146,8 +158,9 @@ const Ghost = styled.button`
   width: 100%;
   padding: 12px 16px;
   border-radius: 14px;
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  background: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: transparent;
+  color: #fff;
   font-weight: 900;
 `;
 
@@ -159,8 +172,8 @@ const Notice = styled.div`
     ${({ $tone }) =>
       $tone === "error" ? "rgba(220,38,38,.25)" : "rgba(16,185,129,.25)"};
   background: ${({ $tone }) =>
-    $tone === "error" ? "rgba(220,38,38,.06)" : "rgba(16,185,129,.08)"};
-  color: ${({ $tone }) => ($tone === "error" ? "#991b1b" : "#065f46")};
+    $tone === "error" ? "rgba(220,38,38,.12)" : "rgba(16,185,129,.14)"};
+  color: ${({ $tone }) => ($tone === "error" ? "#fee2e2" : "#bbf7d0")};
   font-weight: 800;
 `;
 
@@ -280,7 +293,7 @@ export default function WeeklyCardGame() {
         </Sub>
       </Header>
 
-      <Card>
+      <PromoCard>
         <PromoBrand>BIGGI HOUSE</PromoBrand>
         <PromoTitle>PROMO CARD</PromoTitle>
         <PromoSubtitle>Predict three (3) letters from A - Z</PromoSubtitle>
@@ -344,7 +357,7 @@ export default function WeeklyCardGame() {
         </Actions>
 
         {notice ? <Notice $tone={notice.tone}>{notice.text}</Notice> : null}
-      </Card>
+      </PromoCard>
 
       <History>
         <Title style={{ fontSize: 18 }}>My Entries</Title>
