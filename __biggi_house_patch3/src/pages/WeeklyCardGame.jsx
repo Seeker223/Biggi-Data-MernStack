@@ -4,6 +4,7 @@ import Container from "../components/Container";
 import { getAuthToken } from "../utils/auth";
 import {
   getBiggiHouseWeeklyCard,
+  getBiggiHouseWeeklyCardAccess,
   getBiggiHouseWeeklyCardHistory,
   getBiggiHousePublicConfig,
   playBiggiHouseWeeklyCardGame,
@@ -178,6 +179,7 @@ const normalizeLetter = (value) =>
 
 export default function WeeklyCardGame() {
   const [config, setConfig] = useState(null);
+  const [access, setAccess] = useState(null);
   const [card, setCard] = useState(null);
   const [picks, setPicks] = useState(["", "", ""]);
   const [busy, setBusy] = useState(false);
@@ -191,12 +193,14 @@ export default function WeeklyCardGame() {
     const [cfg, weeklyCard, hist] = await Promise.all([
       getBiggiHousePublicConfig().catch(() => null),
       token ? getBiggiHouseWeeklyCard(token).catch(() => null) : null,
+      token ? getBiggiHouseWeeklyCardAccess(token).catch(() => null) : null,
       token
         ? getBiggiHouseWeeklyCardHistory(token).catch(() => ({ plays: [] }))
         : { plays: [] },
     ]);
     if (cfg) setConfig(cfg);
     if (weeklyCard) setCard(weeklyCard);
+    if (access) setAccess(access);
     setHistory(Array.isArray(hist?.plays) ? hist.plays : []);
   };
 
@@ -205,7 +209,7 @@ export default function WeeklyCardGame() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const enabled = Boolean(config?.features?.weeklyCardGameEnabled);
+  const enabled = Boolean(access?.enabled ?? config?.features?.weeklyCardGameEnabled);
   const canSubmit = enabled && picks.every((v) => Boolean(v)) && picks.length === 3;
 
   const onChangePick = (index, value) => {
@@ -353,4 +357,3 @@ export default function WeeklyCardGame() {
     </Wrapper>
   );
 }
-

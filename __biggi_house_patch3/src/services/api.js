@@ -96,6 +96,15 @@ export async function getBiggiHouseWeeklyCard(token) {
   return data.card || data;
 }
 
+export async function getBiggiHouseWeeklyCardAccess(token) {
+  const headers = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const res = await fetch(`${API_BASE}/biggihouse/game/weekly-card/access`, { headers });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || data.message || "Failed to load game access");
+  return data.access || data;
+}
+
 export async function joinBiggiHouseHouse(id, token) {
   const headers = { "Content-Type": "application/json" };
   if (token) headers.Authorization = `Bearer ${token}`;

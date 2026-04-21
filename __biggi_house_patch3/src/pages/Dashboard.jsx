@@ -11,6 +11,7 @@ import {
   getBiggiHouseMemberships,
   getBiggiHouseWallet,
   getBiggiHousePublicConfig,
+  getBiggiHouseWeeklyCardAccess,
 } from "../services/api";
 
 const Wrapper = styled(Container)`
@@ -125,6 +126,7 @@ export default function Dashboard() {
   const [wallet, setWallet] = useState(null);
   const [memberships, setMemberships] = useState([]);
   const [config, setConfig] = useState(null);
+  const [access, setAccess] = useState(null);
   const [loadingData, setLoadingData] = useState(false);
   const [error, setError] = useState("");
 
@@ -138,6 +140,7 @@ export default function Dashboard() {
       getBiggiHouseWallet(token).then((data) => setWallet(data)),
       getBiggiHouseMemberships(token).then((data) => setMemberships(data || [])),
       getBiggiHousePublicConfig().then((data) => setConfig(data)).catch(() => null),
+      getBiggiHouseWeeklyCardAccess(token).then((data) => setAccess(data)).catch(() => null),
     ])
       .catch((err) => setError(err?.message || "Unable to load dashboard data."))
       .finally(() => setLoadingData(false));
@@ -197,7 +200,7 @@ export default function Dashboard() {
     });
   }, [weeklyPayout.dayOfWeek, weeklyPayout.hour, weeklyPayout.minute]);
 
-  const gameEnabled = Boolean(config?.features?.weeklyCardGameEnabled);
+  const gameEnabled = Boolean(access?.enabled ?? config?.features?.weeklyCardGameEnabled);
 
   const handleLogout = () => {
     logout();

@@ -12,7 +12,8 @@ import {
   ShieldIcon,
 } from "../components/Icons";
 import fintechMockup from "../assets/biggiHouse fintech platform interface.png";
-import { getBiggiHousePublicConfig } from "../services/api";
+import { getBiggiHousePublicConfig, getBiggiHouseWeeklyCardAccess } from "../services/api";
+import { getAuthToken } from "../utils/auth";
 
 const HeroSection = styled.section`
   padding: 70px 0 40px;
@@ -461,14 +462,29 @@ export default function Home() {
   const { user, logout } = useAuth();
   const preview = houses.slice(0, 3);
   const [config, setConfig] = useState(null);
+  const [access, setAccess] = useState(null);
 
-  const isGameEnabled = Boolean(config?.features?.weeklyCardGameEnabled);
+  const isGameEnabled = Boolean(
+    access?.enabled ?? config?.features?.weeklyCardGameEnabled
+  );
 
   useEffect(() => {
     getBiggiHousePublicConfig()
       .then((cfg) => setConfig(cfg))
       .catch(() => setConfig(null));
   }, []);
+
+  useEffect(() => {
+    if (!user) {
+      setAccess(null);
+      return;
+    }
+    const token = getAuthToken();
+    if (!token) return;
+    getBiggiHouseWeeklyCardAccess(token)
+      .then((a) => setAccess(a))
+      .catch(() => setAccess(null));
+  }, [user]);
 
   const joinHouseHref = user ? "/houses" : "/login";
   const onJoinHouse = useMemo(() => () => navigate(joinHouseHref), [navigate, joinHouseHref]);

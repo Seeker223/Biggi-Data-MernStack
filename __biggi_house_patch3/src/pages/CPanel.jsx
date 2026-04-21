@@ -557,6 +557,7 @@ export default function CPanel() {
                     <th>User Role</th>
                     <th>Wallet</th>
                     <th>Subscription</th>
+                    <th>Weekly Game</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -583,6 +584,7 @@ export default function CPanel() {
                           </div>
                         ) : null}
                       </td>
+                      <td>{u.weeklyCardGameEnabled ? "Enabled" : "Disabled"}</td>
                       <td style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                         <Ghost
                           type="button"
@@ -659,12 +661,27 @@ export default function CPanel() {
                         >
                           Set Role
                         </Ghost>
+                        <Ghost
+                          type="button"
+                          onClick={() =>
+                            load(async () => {
+                              const next = await updateBiggiHouseAdminUser(
+                                u.id,
+                                { weeklyCardGameEnabled: !u.weeklyCardGameEnabled },
+                                token
+                              );
+                              setUsers((prev) => prev.map((x) => (x.id === u.id ? next : x)));
+                            })
+                          }
+                        >
+                          Toggle Game
+                        </Ghost>
                       </td>
                     </tr>
                   ))}
                   {users.length === 0 && (
                     <tr>
-                      <td colSpan="7" style={{ color: "#5b6475" }}>
+                      <td colSpan="8" style={{ color: "#5b6475" }}>
                         No users.
                       </td>
                     </tr>
