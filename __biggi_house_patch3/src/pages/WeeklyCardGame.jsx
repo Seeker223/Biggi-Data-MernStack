@@ -60,20 +60,30 @@ const PromoSubtitle = styled.div`
 
 const PromoGridWrap = styled.div`
   margin-top: 16px;
-  display: grid;
-  gap: 12px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  overflow-x: auto;
+  padding: 2px 2px 10px;
+  -webkit-overflow-scrolling: touch;
 `;
 
 const PromoGridGroup = styled.div`
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(3, 54px);
   gap: 10px;
-  padding: 12px;
-  border-radius: 16px;
-  border: 1px solid
-    ${({ $winner }) => ($winner ? "rgba(16,185,129,.35)" : "rgba(15,23,42,.08)")};
-  background: ${({ $winner }) =>
-    $winner ? "rgba(16,185,129,.08)" : "rgba(255,255,255,.65)"};
+  padding: 8px;
+  border-radius: 18px;
+  border: 1px solid transparent;
+  background: transparent;
+
+  ${({ $winner }) =>
+    $winner
+      ? `
+    border-color: rgba(16,185,129,.35);
+    background: rgba(16,185,129,.08);
+  `
+      : ""}
 `;
 
 const PromoGridBox = styled.div`
