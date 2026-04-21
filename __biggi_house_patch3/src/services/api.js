@@ -57,10 +57,14 @@ export async function updateBiggiHouseAdminConfig(payload, token) {
   return data.config || data;
 }
 
-export async function playBiggiHouseMonthlyCardGame(payload, token) {
+// Backward-compat: older UI names
+export const playBiggiHouseMonthlyCardGame = playBiggiHouseWeeklyCardGame;
+export const getBiggiHouseMonthlyCardHistory = getBiggiHouseWeeklyCardHistory;
+
+export async function playBiggiHouseWeeklyCardGame(payload, token) {
   const headers = { "Content-Type": "application/json" };
   if (token) headers.Authorization = `Bearer ${token}`;
-  const res = await fetch(`${API_BASE}/biggihouse/game/monthly-card/play`, {
+  const res = await fetch(`${API_BASE}/biggihouse/game/weekly-card/play`, {
     method: "POST",
     headers,
     body: JSON.stringify(payload || {}),
@@ -74,13 +78,22 @@ export async function playBiggiHouseMonthlyCardGame(payload, token) {
   return data;
 }
 
-export async function getBiggiHouseMonthlyCardHistory(token) {
+export async function getBiggiHouseWeeklyCardHistory(token) {
   const headers = {};
   if (token) headers.Authorization = `Bearer ${token}`;
-  const res = await fetch(`${API_BASE}/biggihouse/game/monthly-card/history`, { headers });
+  const res = await fetch(`${API_BASE}/biggihouse/game/weekly-card/history`, { headers });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || data.message || "Failed to load history");
   return data;
+}
+
+export async function getBiggiHouseWeeklyCard(token) {
+  const headers = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const res = await fetch(`${API_BASE}/biggihouse/game/weekly-card/card`, { headers });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || data.message || "Failed to load weekly card");
+  return data.card || data;
 }
 
 export async function joinBiggiHouseHouse(id, token) {

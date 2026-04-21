@@ -462,7 +462,7 @@ export default function Home() {
   const preview = houses.slice(0, 3);
   const [config, setConfig] = useState(null);
 
-  const isGameEnabled = Boolean(config?.features?.monthlyCardGameEnabled);
+  const isGameEnabled = Boolean(config?.features?.weeklyCardGameEnabled);
 
   useEffect(() => {
     getBiggiHousePublicConfig()
@@ -588,18 +588,18 @@ export default function Home() {
 
       <Section>
         <Container>
-          <Highlight>
+              <Highlight>
             <div>
-              <HighlightTitle>Monthly Card Game</HighlightTitle>
+              <HighlightTitle>Weekly Card Game</HighlightTitle>
               <p style={{ opacity: 0.85 }}>
-                Requires at least 1 data purchase to play Weekly Prediction Game.
+                Requires at least 1 data purchase this week to play.
               </p>
             </div>
             <HighlightButton
               as="button"
               type="button"
               disabled={!isGameEnabled}
-              onClick={() => navigate("/monthly-card-game")}
+              onClick={() => navigate("/weekly-card-game")}
               style={{ opacity: isGameEnabled ? 1 : 0.6 }}
               aria-disabled={!isGameEnabled}
               title={isGameEnabled ? "Open game" : "Admin will enable soon"}

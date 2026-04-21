@@ -404,7 +404,7 @@ export default function CPanel() {
                 </Ghost>
               </PanelHeader>
               <Sub>
-                BiggiHouse wallet is independent. Users need an active weekly subscription and enough wallet balance to join houses. Monthly Card Game is controlled from the Config tab.
+                BiggiHouse wallet is independent. Users need an active weekly subscription and enough wallet balance to join houses. Weekly Card Game is controlled from the Config tab.
               </Sub>
             </Panel>
           </Grid>
@@ -444,19 +444,19 @@ export default function CPanel() {
               </Tools>
             </PanelHeader>
 
-            <div style={{ marginTop: 12, display: "grid", gap: 14 }}>
+              <div style={{ marginTop: 12, display: "grid", gap: 14 }}>
               <div style={{ display: "grid", gap: 8 }}>
-                <div style={{ fontWeight: 900 }}>Monthly Card Game</div>
+                <div style={{ fontWeight: 900 }}>Weekly Card Game</div>
                 <label style={{ display: "flex", gap: 10, alignItems: "center" }}>
                   <input
                     type="checkbox"
-                    checked={Boolean(config?.features?.monthlyCardGameEnabled)}
+                    checked={Boolean(config?.features?.weeklyCardGameEnabled)}
                     onChange={(e) =>
                       setConfig((p) => ({
                         ...(p || {}),
                         features: {
                           ...(p?.features || {}),
-                          monthlyCardGameEnabled: e.target.checked,
+                          weeklyCardGameEnabled: e.target.checked,
                         },
                       }))
                     }
@@ -466,15 +466,15 @@ export default function CPanel() {
                 <label style={{ display: "flex", gap: 10, alignItems: "center" }}>
                   <input
                     type="checkbox"
-                    checked={Boolean(config?.game?.requireDataPurchase)}
+                    checked={Boolean(config?.game?.requireWeeklyDataPurchase)}
                     onChange={(e) =>
                       setConfig((p) => ({
                         ...(p || {}),
-                        game: { ...(p?.game || {}), requireDataPurchase: e.target.checked },
+                        game: { ...(p?.game || {}), requireWeeklyDataPurchase: e.target.checked },
                       }))
                     }
                   />
-                  <span>Require at least 1 data purchase before play</span>
+                  <span>Require at least 1 data purchase this week</span>
                 </label>
               </div>
 

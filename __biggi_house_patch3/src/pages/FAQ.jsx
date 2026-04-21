@@ -105,8 +105,8 @@ export default function FAQ() {
       a: "Yes. BiggiHouse shares the Biggi ecosystem backend services, while keeping its own wallet and house memberships.",
     },
     {
-      q: "What is the Monthly Card Game?",
-      a: "It is a fun weekly prediction game entry page. No tickets are required, but you must have at least 1 data purchase before you can submit an entry. Admin controls when the game is enabled.",
+      q: "What is the Weekly Card Game?",
+      a: "It is a weekly prediction game where you pick 3 letters (A-Z). No tickets are required, but you must have at least 1 data purchase this week before you can submit. Results come out every Sunday.",
     },
   ];
 

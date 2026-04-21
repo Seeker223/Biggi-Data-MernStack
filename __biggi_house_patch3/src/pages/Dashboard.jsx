@@ -197,7 +197,7 @@ export default function Dashboard() {
     });
   }, [weeklyPayout.dayOfWeek, weeklyPayout.hour, weeklyPayout.minute]);
 
-  const gameEnabled = Boolean(config?.features?.monthlyCardGameEnabled);
+  const gameEnabled = Boolean(config?.features?.weeklyCardGameEnabled);
 
   const handleLogout = () => {
     logout();
@@ -266,16 +266,16 @@ export default function Dashboard() {
 
       <Grid style={{ marginTop: "24px" }}>
         <Card>
-          <CardLabel>Monthly Card Game</CardLabel>
+          <CardLabel>Weekly Card Game</CardLabel>
           <CardValue>{gameEnabled ? "Enabled" : "Disabled"}</CardValue>
           <p style={{ color: "#5b6475", marginTop: "10px" }}>
-            Play entries are saved to your account. No tickets required.
+            Predict 3 letters. Results come out every Sunday.
           </p>
           <div style={{ marginTop: 12 }}>
             <Button
               type="button"
               disabled={!gameEnabled}
-              onClick={() => navigate("/monthly-card-game")}
+              onClick={() => navigate("/weekly-card-game")}
               style={{ opacity: gameEnabled ? 1 : 0.6 }}
             >
               Open game

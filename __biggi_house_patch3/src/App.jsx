@@ -14,7 +14,7 @@ import FAQ from "./pages/FAQ";
 import VerifyEmail from "./pages/VerifyEmail";
 import ForgotPassword from "./pages/ForgotPassword";
 import CPanel from "./pages/CPanel";
-import MonthlyCardGame from "./pages/MonthlyCardGame";
+import WeeklyCardGame from "./pages/WeeklyCardGame";
 import { useAuth } from "./utils/AuthContext";
 
 const AppShell = styled.div`
@@ -73,9 +73,10 @@ function App() {
             element={user ? <Wallet /> : <Navigate to="/login" replace />}
           />
           <Route
-            path="/monthly-card-game"
-            element={user ? <MonthlyCardGame /> : <Navigate to="/login" replace />}
+            path="/weekly-card-game"
+            element={user ? <WeeklyCardGame /> : <Navigate to="/login" replace />}
           />
+          <Route path="/monthly-card-game" element={<Navigate to="/weekly-card-game" replace />} />
           <Route
             path="/profile"
             element={user ? <Profile /> : <Navigate to="/login" replace />}

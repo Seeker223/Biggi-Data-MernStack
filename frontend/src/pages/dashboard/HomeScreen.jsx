@@ -368,11 +368,6 @@ const HomeScreen = () => {
 
   const handleTopRandomGameClick = () => {
     if (FEATURE_FLAGS.DISABLE_GAME_AND_REDEEM) return;
-    if (!isMerchantRole && tickets <= 0) {
-      setTicketModalMessage("You need at least 1 ticket to access Top Random Weekly Picks.");
-      setTicketModalVisible(true);
-      return;
-    }
     goToTopRandom();
   };
 
@@ -1020,7 +1015,7 @@ const HomeScreen = () => {
                       }
                       handleTopRandomGameClick();
                     }}
-                    $locked={!hasPurchasedData || tickets <= 0}
+                    $locked={!hasPurchasedData}
                   >
                     <Trophy size={18} />
                     <TopRandomBtnText>Open Top Random Picks</TopRandomBtnText>
