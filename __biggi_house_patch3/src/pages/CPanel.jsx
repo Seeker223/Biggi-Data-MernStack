@@ -190,6 +190,108 @@ const TableWrap = styled.div`
   border: 1px solid rgba(15, 23, 42, 0.08);
 `;
 
+const DesktopOnly = styled.div`
+  @media (max-width: 860px) {
+    display: none;
+  }
+`;
+
+const MobileOnly = styled.div`
+  display: none;
+  @media (max-width: 860px) {
+    display: block;
+  }
+`;
+
+const UserCards = styled.div`
+  margin-top: 12px;
+  display: grid;
+  gap: 12px;
+`;
+
+const UserCard = styled.div`
+  border-radius: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #fff;
+  box-shadow: ${({ theme }) => theme.shadows.card};
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+`;
+
+const UserTop = styled.div`
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+`;
+
+const UserName = styled.div`
+  font-weight: 1000;
+`;
+
+const UserEmail = styled.div`
+  color: #5b6475;
+  font-size: 12px;
+  margin-top: 2px;
+  word-break: break-word;
+`;
+
+const Chips = styled.div`
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+`;
+
+const Chip = styled.span`
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  font-weight: 900;
+  font-size: 12px;
+  background: rgba(15, 23, 42, 0.03);
+  color: #111827;
+`;
+
+const ChipTone = styled(Chip)`
+  border-color: ${({ $tone }) =>
+    $tone === "green"
+      ? "rgba(16,185,129,.35)"
+      : $tone === "red"
+      ? "rgba(239,68,68,.35)"
+      : "rgba(15,23,42,.12)"};
+  background: ${({ $tone }) =>
+    $tone === "green"
+      ? "rgba(16,185,129,.10)"
+      : $tone === "red"
+      ? "rgba(239,68,68,.10)"
+      : "rgba(15,23,42,.03)"};
+  color: ${({ $tone }) =>
+    $tone === "green" ? "#065f46" : $tone === "red" ? "#991b1b" : "#111827"};
+`;
+
+const KV = styled.div`
+  display: grid;
+  gap: 6px;
+`;
+
+const KVRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+`;
+
+const KVKey = styled.span`
+  color: #5b6475;
+  font-weight: 800;
+`;
+
+const KVVal = styled.span`
+  font-weight: 900;
+  text-align: right;
+`;
+
 const Table = styled.table`
   width: 100%;
   border-collapse: collapse;
@@ -255,6 +357,97 @@ export default function CPanel() {
       setBusy(false);
     }
   };
+
+  const renderUserActions = (u) => (
+    <>
+      <Ghost
+        type="button"
+        onClick={() =>
+          load(async () => {
+            const next = await updateBiggiHouseAdminUser(u.id, { isVerified: !u.isVerified }, token);
+            setUsers((prev) => prev.map((x) => (x.id === u.id ? next : x)));
+          })
+        }
+      >
+        Toggle Verify
+      </Ghost>
+      <Ghost
+        type="button"
+        onClick={() => {
+          const raw = window.prompt("Wallet credit amount (NGN):", "0");
+          if (raw === null) return;
+          const amount = Number(raw);
+          if (!Number.isFinite(amount) || amount <= 0) return;
+          load(async () => {
+            const wallet = await adjustBiggiHouseAdminUserWallet(u.id, { amount }, token);
+            setUsers((prev) =>
+              prev.map((x) => (x.id === u.id ? { ...x, walletBalance: wallet.balance } : x))
+            );
+          });
+        }}
+      >
+        Credit Wallet
+      </Ghost>
+      <Ghost
+        type="button"
+        onClick={() => {
+          const raw = window.prompt("Wallet debit amount (NGN):", "0");
+          if (raw === null) return;
+          const amount = Number(raw);
+          if (!Number.isFinite(amount) || amount <= 0) return;
+          load(async () => {
+            const wallet = await adjustBiggiHouseAdminUserWallet(u.id, { amount: -amount }, token);
+            setUsers((prev) =>
+              prev.map((x) => (x.id === u.id ? { ...x, walletBalance: wallet.balance } : x))
+            );
+          });
+        }}
+      >
+        Debit Wallet
+      </Ghost>
+      <Ghost
+        type="button"
+        onClick={() => {
+          const phoneNumber = window.prompt("Set phone number:", u.phoneNumber || "");
+          if (phoneNumber === null) return;
+          load(async () => {
+            const next = await updateBiggiHouseAdminUser(u.id, { phoneNumber }, token);
+            setUsers((prev) => prev.map((x) => (x.id === u.id ? next : x)));
+          });
+        }}
+      >
+        Edit Phone
+      </Ghost>
+      <Ghost
+        type="button"
+        onClick={() => {
+          const userRole = window.prompt("Set userRole (private/merchant):", u.userRole || "private");
+          if (userRole === null) return;
+          load(async () => {
+            const next = await updateBiggiHouseAdminUser(u.id, { userRole }, token);
+            setUsers((prev) => prev.map((x) => (x.id === u.id ? next : x)));
+          });
+        }}
+      >
+        Set Role
+      </Ghost>
+      <Ghost
+        type="button"
+        onClick={() =>
+          load(async () => {
+            const next = await updateBiggiHouseAdminUser(
+              u.id,
+              { weeklyCardGameEnabled: !u.weeklyCardGameEnabled },
+              token
+            );
+            setUsers((prev) => prev.map((x) => (x.id === u.id ? next : x)));
+          })
+        }
+      >
+        Toggle Game
+      </Ghost>
+    </>
+  );
 
   useEffect(() => {
     if (!isAdmin || !token) return;
@@ -547,6 +740,58 @@ export default function CPanel() {
                 </Ghost>
               </Tools>
             </PanelHeader>
+
+            <MobileOnly>
+              <UserCards>
+                {users.map((u) => (
+                  <UserCard key={`m-${u.id}`}>
+                    <UserTop>
+                      <div>
+                        <UserName>{u.username || "—"}</UserName>
+                        <UserEmail>{u.email}</UserEmail>
+                      </div>
+                      <Chips>
+                        <ChipTone $tone={u.isVerified ? "green" : "red"}>
+                          {u.isVerified ? "Verified" : "Unverified"}
+                        </ChipTone>
+                        <Chip>{u.userRole || "private"}</Chip>
+                        <ChipTone $tone={u.weeklyCardGameEnabled ? "green" : "red"}>
+                          Game {u.weeklyCardGameEnabled ? "On" : "Off"}
+                        </ChipTone>
+                      </Chips>
+                    </UserTop>
+
+                    <KV>
+                      <KVRow>
+                        <KVKey>Phone</KVKey>
+                        <KVVal>{u.phoneNumber || "—"}</KVVal>
+                      </KVRow>
+                      <KVRow>
+                        <KVKey>Wallet</KVKey>
+                        <KVVal>{formatMoney(u.walletBalance ?? 0)}</KVVal>
+                      </KVRow>
+                      <KVRow>
+                        <KVKey>Subscription</KVKey>
+                        <KVVal>{u.subscription?.active ? "Active" : "Inactive"}</KVVal>
+                      </KVRow>
+                      {u.subscription?.renewalDate ? (
+                        <KVRow>
+                          <KVKey>Renew</KVKey>
+                          <KVVal>{new Date(u.subscription.renewalDate).toLocaleDateString()}</KVVal>
+                        </KVRow>
+                      ) : null}
+                    </KV>
+
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      {renderUserActions(u)}
+                    </div>
+                  </UserCard>
+                ))}
+                {users.length === 0 && <Sub style={{ marginTop: 4 }}>No users.</Sub>}
+              </UserCards>
+            </MobileOnly>
+
+            <DesktopOnly>
             <TableWrap>
               <Table>
                 <thead>
@@ -586,96 +831,7 @@ export default function CPanel() {
                       </td>
                       <td>{u.weeklyCardGameEnabled ? "Enabled" : "Disabled"}</td>
                       <td style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                        <Ghost
-                          type="button"
-                          onClick={() =>
-                            load(async () => {
-                              const next = await updateBiggiHouseAdminUser(u.id, { isVerified: !u.isVerified }, token);
-                              setUsers((prev) => prev.map((x) => (x.id === u.id ? next : x)));
-                            })
-                          }
-                        >
-                          Toggle Verify
-                        </Ghost>
-                        <Ghost
-                          type="button"
-                          onClick={() => {
-                            const raw = window.prompt("Wallet credit amount (NGN):", "0");
-                            if (raw === null) return;
-                            const amount = Number(raw);
-                            if (!Number.isFinite(amount) || amount <= 0) return;
-                            load(async () => {
-                              const wallet = await adjustBiggiHouseAdminUserWallet(u.id, { amount }, token);
-                              setUsers((prev) =>
-                                prev.map((x) =>
-                                  x.id === u.id ? { ...x, walletBalance: wallet.balance } : x
-                                )
-                              );
-                            });
-                          }}
-                        >
-                          Credit Wallet
-                        </Ghost>
-                        <Ghost
-                          type="button"
-                          onClick={() => {
-                            const raw = window.prompt("Wallet debit amount (NGN):", "0");
-                            if (raw === null) return;
-                            const amount = Number(raw);
-                            if (!Number.isFinite(amount) || amount <= 0) return;
-                            load(async () => {
-                              const wallet = await adjustBiggiHouseAdminUserWallet(u.id, { amount: -amount }, token);
-                              setUsers((prev) =>
-                                prev.map((x) =>
-                                  x.id === u.id ? { ...x, walletBalance: wallet.balance } : x
-                                )
-                              );
-                            });
-                          }}
-                        >
-                          Debit Wallet
-                        </Ghost>
-                        <Ghost
-                          type="button"
-                          onClick={() => {
-                            const phoneNumber = window.prompt("Set phone number:", u.phoneNumber || "");
-                            if (phoneNumber === null) return;
-                            load(async () => {
-                              const next = await updateBiggiHouseAdminUser(u.id, { phoneNumber }, token);
-                              setUsers((prev) => prev.map((x) => (x.id === u.id ? next : x)));
-                            });
-                          }}
-                        >
-                          Edit Phone
-                        </Ghost>
-                        <Ghost
-                          type="button"
-                          onClick={() => {
-                            const userRole = window.prompt("Set userRole (private/merchant):", u.userRole || "private");
-                            if (userRole === null) return;
-                            load(async () => {
-                              const next = await updateBiggiHouseAdminUser(u.id, { userRole }, token);
-                              setUsers((prev) => prev.map((x) => (x.id === u.id ? next : x)));
-                            });
-                          }}
-                        >
-                          Set Role
-                        </Ghost>
-                        <Ghost
-                          type="button"
-                          onClick={() =>
-                            load(async () => {
-                              const next = await updateBiggiHouseAdminUser(
-                                u.id,
-                                { weeklyCardGameEnabled: !u.weeklyCardGameEnabled },
-                                token
-                              );
-                              setUsers((prev) => prev.map((x) => (x.id === u.id ? next : x)));
-                            })
-                          }
-                        >
-                          Toggle Game
-                        </Ghost>
+                        {renderUserActions(u)}
                       </td>
                     </tr>
                   ))}
@@ -689,6 +845,7 @@ export default function CPanel() {
                 </tbody>
               </Table>
             </TableWrap>
+            </DesktopOnly>
           </Panel>
         )}
 
