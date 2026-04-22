@@ -464,9 +464,11 @@ export default function Home() {
   const [config, setConfig] = useState(null);
   const [access, setAccess] = useState(null);
 
-  const isGameEnabled = Boolean(
-    access?.enabled ?? config?.features?.weeklyCardGameEnabled
-  );
+  const isGameEnabled = Boolean(access?.enabled ?? config?.features?.weeklyCardGameEnabled);
+  const requireWeeklyPurchase = Boolean(access?.requireWeeklyDataPurchase);
+  const weeklyPurchaseOk =
+    !user ? true : requireWeeklyPurchase ? Boolean(access?.weeklyPurchaseOk) : true;
+  const isGamePlayable = Boolean(isGameEnabled && (!user || weeklyPurchaseOk));
 
   useEffect(() => {
     getBiggiHousePublicConfig()
@@ -533,13 +535,19 @@ export default function Home() {
                 <HighlightButton
                   as="button"
                   type="button"
-                  disabled={!isGameEnabled}
+                  disabled={!isGamePlayable}
                   onClick={() => navigate("/weekly-card-game")}
-                  style={{ opacity: isGameEnabled ? 1 : 0.6 }}
-                  aria-disabled={!isGameEnabled}
-                  title={isGameEnabled ? "Open game" : "Admin will enable soon"}
+                  style={{ opacity: isGamePlayable ? 1 : 0.6 }}
+                  aria-disabled={!isGamePlayable}
+                  title={
+                    !isGameEnabled
+                      ? "Admin will enable soon"
+                      : user && requireWeeklyPurchase && !weeklyPurchaseOk
+                      ? "Purchase at least 1 data bundle this week to play"
+                      : "Open game"
+                  }
                 >
-                  {isGameEnabled ? "Play now" : "Disabled"}
+                  {!isGameEnabled ? "Disabled" : isGamePlayable ? "Play now" : "Not eligible"}
                 </HighlightButton>
               </Highlight>
             </div>

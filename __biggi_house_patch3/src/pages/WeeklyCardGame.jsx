@@ -39,14 +39,24 @@ const Card = styled.div`
 `;
 
 const PromoCard = styled(Card)`
-  background: linear-gradient(135deg, #0b2f6f 0%, #1d4ed8 45%, #0284c7 100%);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #fff;
+  background: #fff;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  color: ${({ theme }) => theme.colors.ink};
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 6px;
+    background: ${({ theme }) => theme.gradients.brand};
+  }
 `;
 
 const PromoBrand = styled.div`
   font-weight: 900;
-  color: rgba(255, 255, 255, 0.92);
+  color: ${({ theme }) => theme.colors.primary};
   letter-spacing: 0.08em;
   font-size: 12px;
 `;
@@ -55,18 +65,18 @@ const PromoTitle = styled.div`
   font-weight: 1000;
   font-size: 20px;
   margin-top: 6px;
-  color: #fff;
+  color: ${({ theme }) => theme.colors.ink};
 `;
 
 const PromoSubtitle = styled.div`
   margin-top: 6px;
-  color: rgba(255, 255, 255, 0.82);
+  color: ${({ theme }) => theme.colors.muted};
   font-weight: 700;
 `;
 
 const Requirement = styled.div`
   margin-top: 12px;
-  color: rgba(255, 255, 255, 0.82);
+  color: ${({ theme }) => theme.colors.muted};
   font-weight: 800;
   font-size: 13px;
 `;
@@ -89,10 +99,10 @@ const LetterGrid = styled.div`
 const Letter = styled.button`
   border-radius: 14px;
   height: 46px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: ${({ $active }) =>
-    $active ? "rgba(255,255,255,0.95)" : "rgba(255,255,255,0.12)"};
-  color: ${({ $active }) => ($active ? "#0b2f6f" : "#fff")};
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  background: ${({ $active, theme }) =>
+    $active ? theme.gradients.brand : theme.colors.soft};
+  color: ${({ $active }) => ($active ? "#fff" : "#111827")};
   font-weight: 1000;
   font-size: 14px;
   cursor: pointer;
@@ -109,8 +119,8 @@ const Picks = styled.div`
 const PickPill = styled.div`
   padding: 8px 12px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.14);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: ${({ theme }) => theme.colors.soft};
+  border: 1px solid ${({ theme }) => theme.colors.border};
   font-weight: 900;
 `;
 
@@ -125,8 +135,8 @@ const Primary = styled.button`
   padding: 12px 16px;
   border-radius: 14px;
   border: none;
-  background: #fff;
-  color: #0b2f6f;
+  background: ${({ theme }) => theme.gradients.brand};
+  color: #fff;
   font-weight: 1000;
   opacity: ${({ disabled }) => (disabled ? 0.6 : 1)};
   cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
@@ -136,9 +146,9 @@ const Ghost = styled.button`
   width: 100%;
   padding: 12px 16px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  background: transparent;
-  color: #fff;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  background: #fff;
+  color: ${({ theme }) => theme.colors.ink};
   font-weight: 1000;
 `;
 
@@ -151,24 +161,24 @@ const Notice = styled.div`
       $tone === "error" ? "rgba(220,38,38,.25)" : "rgba(16,185,129,.25)"};
   background: ${({ $tone }) =>
     $tone === "error" ? "rgba(220,38,38,.12)" : "rgba(16,185,129,.14)"};
-  color: ${({ $tone }) => ($tone === "error" ? "#fee2e2" : "#bbf7d0")};
+  color: ${({ $tone }) => ($tone === "error" ? "#7f1d1d" : "#065f46")};
   font-weight: 900;
 `;
 
 const ResultRow = styled.div`
   margin-top: 16px;
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: repeat(3, 44px);
   gap: 10px;
-  flex-wrap: wrap;
+  width: fit-content;
 `;
 
 const ResultBox = styled.div`
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  background: ${({ theme }) => theme.colors.soft};
   display: grid;
   place-items: center;
   font-weight: 1000;
@@ -260,13 +270,16 @@ export default function WeeklyCardGame() {
   }, []);
 
   const enabled = Boolean(access?.enabled);
+  const requireWeeklyPurchase = Boolean(access?.requireWeeklyDataPurchase);
+  const weeklyPurchaseOk = requireWeeklyPurchase ? Boolean(access?.weeklyPurchaseOk) : true;
+  const eligibleToPlay = enabled && weeklyPurchaseOk;
   const revealReady = Boolean(card?.revealReady);
   const resultLetters = Array.isArray(card?.letters) ? card.letters : [];
   const currentWeekKey = card?.weekKey || null;
   const playedThisWeek = Boolean(
     currentWeekKey && history.some((p) => String(p.weekKey) === String(currentWeekKey))
   );
-  const canSubmit = enabled && picks.length === 5 && !playedThisWeek;
+  const canSubmit = eligibleToPlay && picks.length === 5 && !playedThisWeek;
 
   const togglePick = (letter) => {
     setNotice(null);
@@ -331,6 +344,12 @@ export default function WeeklyCardGame() {
           <Notice $tone="error">Game is disabled for your account right now.</Notice>
         ) : null}
 
+        {enabled && requireWeeklyPurchase && !weeklyPurchaseOk ? (
+          <Notice $tone="error">
+            Purchase at least 1 data bundle this week to play the weekly prediction.
+          </Notice>
+        ) : null}
+
         {playedThisWeek ? (
           <Notice $tone="error">
             You have already played this week. Come back next week for another round.
@@ -342,7 +361,7 @@ export default function WeeklyCardGame() {
             <Letter
               key={l}
               type="button"
-              disabled={!enabled || busy}
+              disabled={!eligibleToPlay || busy}
               $active={picks.includes(l)}
               onClick={() => togglePick(l)}
               aria-label={`Pick ${l}`}
@@ -357,9 +376,7 @@ export default function WeeklyCardGame() {
           {picks.length ? (
             picks.map((l) => <PickPill key={`pick-${l}`}>{l}</PickPill>)
           ) : (
-            <Sub style={{ color: "rgba(255,255,255,.82)" }}>
-              No picks yet. Select 5 letters.
-            </Sub>
+            <Sub>No picks yet. Select 5 letters.</Sub>
           )}
         </Picks>
 
@@ -377,7 +394,7 @@ export default function WeeklyCardGame() {
         <div style={{ marginTop: 18, fontWeight: 1000 }}>
           Weekly result (9 letters)
         </div>
-        <Small style={{ color: "rgba(255,255,255,.82)" }}>
+        <Small>
           {revealReady
             ? "Revealed. Check your history for win status."
             : card?.revealAt

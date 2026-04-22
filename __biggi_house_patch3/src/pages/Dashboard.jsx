@@ -201,6 +201,9 @@ export default function Dashboard() {
   }, [weeklyPayout.dayOfWeek, weeklyPayout.hour, weeklyPayout.minute]);
 
   const gameEnabled = Boolean(access?.enabled ?? config?.features?.weeklyCardGameEnabled);
+  const requireWeeklyPurchase = Boolean(access?.requireWeeklyDataPurchase);
+  const weeklyPurchaseOk = requireWeeklyPurchase ? Boolean(access?.weeklyPurchaseOk) : true;
+  const gamePlayable = Boolean(gameEnabled && weeklyPurchaseOk);
 
   const handleLogout = () => {
     logout();
@@ -270,16 +273,26 @@ export default function Dashboard() {
       <Grid style={{ marginTop: "24px" }}>
         <Card>
           <CardLabel>Weekly Card Game</CardLabel>
-          <CardValue>{gameEnabled ? "Enabled" : "Disabled"}</CardValue>
+          <CardValue>
+            {!gameEnabled ? "Disabled" : gamePlayable ? "Ready" : "Not eligible"}
+          </CardValue>
           <p style={{ color: "#5b6475", marginTop: "10px" }}>
-            Pick up to 5 letters. Results come out every Sunday.
+            Pick 5 letters (A–Z). If all 5 appear in the 9-letter Sunday (10pm) result, you win a free data bundle.
           </p>
+          <p style={{ color: "#5b6475", marginTop: "8px" }}>
+            Requires at least 1 data purchase this week. One play per week.
+          </p>
+          {gameEnabled && requireWeeklyPurchase && !weeklyPurchaseOk ? (
+            <p style={{ color: "#b91c1c", marginTop: "8px", fontWeight: 600 }}>
+              Purchase at least 1 data bundle this week to unlock the game.
+            </p>
+          ) : null}
           <div style={{ marginTop: 12 }}>
             <Button
               type="button"
-              disabled={!gameEnabled}
+              disabled={!gamePlayable}
               onClick={() => navigate("/weekly-card-game")}
-              style={{ opacity: gameEnabled ? 1 : 0.6 }}
+              style={{ opacity: gamePlayable ? 1 : 0.6 }}
             >
               Open game
             </Button>
