@@ -272,7 +272,7 @@ export default function Dashboard() {
           <CardLabel>Weekly Card Game</CardLabel>
           <CardValue>{gameEnabled ? "Enabled" : "Disabled"}</CardValue>
           <p style={{ color: "#5b6475", marginTop: "10px" }}>
-            Predict 3 letters. Results come out every Sunday.
+            Pick up to 5 letters. Results come out every Sunday.
           </p>
           <div style={{ marginTop: 12 }}>
             <Button

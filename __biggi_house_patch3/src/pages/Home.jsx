@@ -527,7 +527,7 @@ export default function Home() {
                 <div>
                   <HighlightTitle>Weekly Card Game</HighlightTitle>
                   <p style={{ opacity: 0.9 }}>
-                    Requires at least 1 data purchase this week to play weekly prediction to win #100,000
+                    Requires at least 1 data purchase this week to play weekly prediction to free data bundle
                   </p>
                 </div>
                 <HighlightButton

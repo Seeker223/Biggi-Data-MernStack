@@ -106,7 +106,7 @@ export default function FAQ() {
     },
     {
       q: "What is the Weekly Card Game?",
-      a: "It is a weekly prediction game where you pick 3 letters (A-Z). No tickets are required, but you must have at least 1 data purchase this week before you can submit. Results come out every Sunday. Admin can enable the game globally or for specific users from the C-Panel.",
+      a: "It is a weekly prediction game where you pick up to 5 letters (A-Z). If all 5 letters appear in the revealed weekly result (9 letters), you win a free data bundle. No tickets are required, but you must have at least 1 data purchase this week before you can submit, and you can play only once per week. Results come out every Sunday (10pm). Admin can enable the game globally or for specific users from the C-Panel.",
     },
   ];
 

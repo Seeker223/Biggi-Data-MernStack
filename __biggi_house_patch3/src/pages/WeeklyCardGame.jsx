@@ -1,18 +1,17 @@
 import styled from "styled-components";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Container from "../components/Container";
 import { getAuthToken } from "../utils/auth";
 import {
   getBiggiHouseWeeklyCard,
   getBiggiHouseWeeklyCardAccess,
   getBiggiHouseWeeklyCardHistory,
-  getBiggiHousePublicConfig,
   playBiggiHouseWeeklyCardGame,
 } from "../services/api";
 
 const Wrapper = styled(Container)`
   padding: 40px 0 60px;
-  max-width: 760px;
+  max-width: 820px;
 `;
 
 const Header = styled.div`
@@ -65,75 +64,54 @@ const PromoSubtitle = styled.div`
   font-weight: 700;
 `;
 
-const PromoGridWrap = styled.div`
-  margin-top: 16px;
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  overflow-x: auto;
-  padding: 2px 2px 10px;
-  -webkit-overflow-scrolling: touch;
-`;
-
-const PromoGridGroup = styled.div`
-  display: grid;
-  grid-template-columns: repeat(3, 54px);
-  gap: 10px;
-  padding: 8px;
-  border-radius: 18px;
-  border: 1px solid transparent;
-  background: transparent;
-
-  ${({ $winner }) =>
-    $winner
-      ? `
-    border-color: rgba(16,185,129,.35);
-    background: rgba(16,185,129,.08);
-  `
-      : ""}
-`;
-
-const PromoGridBox = styled.div`
-  height: 54px;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.12);
-  display: grid;
-  place-items: center;
-  font-weight: 1000;
-  font-size: 20px;
-  color: ${({ $winner }) => ($winner ? "#a7f3d0" : "#fff")};
-`;
-
-const Hint = styled.div`
+const Requirement = styled.div`
   margin-top: 12px;
-  color: rgba(255, 255, 255, 0.8);
-  font-weight: 700;
+  color: rgba(255, 255, 255, 0.82);
+  font-weight: 800;
   font-size: 13px;
 `;
 
-const PromoBoxes = styled.div`
+const LetterGrid = styled.div`
   margin-top: 16px;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(9, minmax(0, 1fr));
+  gap: 10px;
+
+  @media (max-width: 760px) {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+
+  @media (max-width: 520px) {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
 `;
 
-const PromoInput = styled.input`
-  height: 58px;
-  border-radius: 16px;
+const Letter = styled.button`
+  border-radius: 14px;
+  height: 46px;
   border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.12);
-  text-align: center;
+  background: ${({ $active }) =>
+    $active ? "rgba(255,255,255,0.95)" : "rgba(255,255,255,0.12)"};
+  color: ${({ $active }) => ($active ? "#0b2f6f" : "#fff")};
   font-weight: 1000;
-  font-size: 22px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  opacity: ${({ disabled }) => (disabled ? 0.55 : 1)};
+`;
 
-  &::placeholder {
-    color: rgba(255, 255, 255, 0.55);
-  }
+const Picks = styled.div`
+  margin-top: 14px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+`;
+
+const PickPill = styled.div`
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  font-weight: 900;
 `;
 
 const Actions = styled.div`
@@ -149,7 +127,7 @@ const Primary = styled.button`
   border: none;
   background: #fff;
   color: #0b2f6f;
-  font-weight: 900;
+  font-weight: 1000;
   opacity: ${({ disabled }) => (disabled ? 0.6 : 1)};
   cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
 `;
@@ -161,7 +139,7 @@ const Ghost = styled.button`
   border: 1px solid rgba(255, 255, 255, 0.22);
   background: transparent;
   color: #fff;
-  font-weight: 900;
+  font-weight: 1000;
 `;
 
 const Notice = styled.div`
@@ -174,7 +152,26 @@ const Notice = styled.div`
   background: ${({ $tone }) =>
     $tone === "error" ? "rgba(220,38,38,.12)" : "rgba(16,185,129,.14)"};
   color: ${({ $tone }) => ($tone === "error" ? "#fee2e2" : "#bbf7d0")};
-  font-weight: 800;
+  font-weight: 900;
+`;
+
+const ResultRow = styled.div`
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+`;
+
+const ResultBox = styled.div`
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.12);
+  display: grid;
+  place-items: center;
+  font-weight: 1000;
 `;
 
 const History = styled.div`
@@ -188,43 +185,73 @@ const HistoryItem = styled.div`
   border-radius: 14px;
   border: 1px solid ${({ theme }) => theme.colors.border};
   background: #fff;
+  display: grid;
+  gap: 8px;
+`;
+
+const HistoryTop = styled.div`
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  color: ${({ theme }) => theme.colors.muted};
+  flex-wrap: wrap;
 `;
 
-const normalizeLetter = (value) =>
-  String(value || "")
-    .replace(/[^a-zA-Z]/g, "")
-    .slice(0, 1)
-    .toUpperCase();
+const HistoryLabel = styled.div`
+  font-weight: 1000;
+`;
+
+const Badge = styled.span`
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  font-weight: 900;
+  font-size: 12px;
+  background: rgba(15, 23, 42, 0.03);
+`;
+
+const BadgeTone = styled(Badge)`
+  border-color: ${({ $tone }) =>
+    $tone === "green"
+      ? "rgba(16,185,129,.35)"
+      : $tone === "red"
+      ? "rgba(239,68,68,.35)"
+      : "rgba(15,23,42,.12)"};
+  background: ${({ $tone }) =>
+    $tone === "green"
+      ? "rgba(16,185,129,.10)"
+      : $tone === "red"
+      ? "rgba(239,68,68,.10)"
+      : "rgba(15,23,42,.03)"};
+  color: ${({ $tone }) =>
+    $tone === "green" ? "#065f46" : $tone === "red" ? "#991b1b" : "#111827"};
+`;
+
+const Small = styled.div`
+  color: #5b6475;
+  font-size: 13px;
+`;
 
 export default function WeeklyCardGame() {
-  const [config, setConfig] = useState(null);
   const [access, setAccess] = useState(null);
   const [card, setCard] = useState(null);
-  const [picks, setPicks] = useState(["", "", ""]);
+  const [picks, setPicks] = useState([]);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState(null);
   const [history, setHistory] = useState([]);
 
+  const letters = useMemo(() => "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""), []);
   const token = useMemo(() => getAuthToken(), []);
-  const inputRefs = useRef([]);
 
   const load = async () => {
-    const [cfg, weeklyCard, hist] = await Promise.all([
-      getBiggiHousePublicConfig().catch(() => null),
-      token ? getBiggiHouseWeeklyCard(token).catch(() => null) : null,
-      token ? getBiggiHouseWeeklyCardAccess(token).catch(() => null) : null,
-      token
-        ? getBiggiHouseWeeklyCardHistory(token).catch(() => ({ plays: [] }))
-        : { plays: [] },
+    if (!token) return;
+    const [a, c, h] = await Promise.all([
+      getBiggiHouseWeeklyCardAccess(token).catch(() => null),
+      getBiggiHouseWeeklyCard(token).catch(() => null),
+      getBiggiHouseWeeklyCardHistory(token).catch(() => ({ plays: [] })),
     ]);
-    if (cfg) setConfig(cfg);
-    if (weeklyCard) setCard(weeklyCard);
-    if (access) setAccess(access);
-    setHistory(Array.isArray(hist?.plays) ? hist.plays : []);
+    if (a) setAccess(a);
+    if (c) setCard(c);
+    setHistory(Array.isArray(h?.plays) ? h.plays : []);
   };
 
   useEffect(() => {
@@ -232,149 +259,173 @@ export default function WeeklyCardGame() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const enabled = Boolean(access?.enabled ?? config?.features?.weeklyCardGameEnabled);
-  const canSubmit = enabled && picks.every((v) => Boolean(v)) && picks.length === 3;
+  const enabled = Boolean(access?.enabled);
+  const revealReady = Boolean(card?.revealReady);
+  const resultLetters = Array.isArray(card?.letters) ? card.letters : [];
+  const currentWeekKey = card?.weekKey || null;
+  const playedThisWeek = Boolean(
+    currentWeekKey && history.some((p) => String(p.weekKey) === String(currentWeekKey))
+  );
+  const canSubmit = enabled && picks.length === 5 && !playedThisWeek;
 
-  const onChangePick = (index, value) => {
+  const togglePick = (letter) => {
     setNotice(null);
-    const cleaned = normalizeLetter(value);
     setPicks((prev) => {
-      const next = [...prev];
-      next[index] = cleaned;
-      return next;
+      if (prev.includes(letter)) return prev.filter((x) => x !== letter);
+      if (prev.length >= 5) return prev;
+      return [...prev, letter];
     });
-    if (cleaned && inputRefs.current[index + 1]) {
-      inputRefs.current[index + 1].focus();
-    }
   };
 
   const clear = () => {
-    setPicks(["", "", ""]);
     setNotice(null);
-    inputRefs.current[0]?.focus?.();
+    setPicks([]);
   };
 
   const play = async () => {
     if (!token) return;
+    if (!canSubmit) return;
     setBusy(true);
     setNotice(null);
     try {
       await playBiggiHouseWeeklyCardGame({ letters: picks }, token);
-      setNotice({ tone: "success", text: "Entry submitted successfully." });
+      setNotice({ tone: "success", text: "Entry submitted for this week." });
       clear();
-      const [weeklyCard, hist] = await Promise.all([
-        getBiggiHouseWeeklyCard(token).catch(() => null),
-        getBiggiHouseWeeklyCardHistory(token),
-      ]);
-      if (weeklyCard) setCard(weeklyCard);
-      setHistory(Array.isArray(hist?.plays) ? hist.plays : []);
+      await load();
     } catch (e) {
-      setNotice({ tone: "error", text: e?.message || "Unable to submit." });
+      if (e?.code === "ALREADY_PLAYED_THIS_WEEK") {
+        setNotice({
+          tone: "error",
+          text: "You have already played this week. Check history for your entry.",
+        });
+      } else {
+        setNotice({ tone: "error", text: e?.message || "Unable to submit." });
+      }
     } finally {
       setBusy(false);
     }
   };
 
-  const letters = Array.isArray(card?.letters) ? card.letters : [];
-  const revealReady = Boolean(card?.revealReady);
-  const winningGroupIndex =
-    revealReady && Number.isInteger(card?.winningGroupIndex)
-      ? Number(card.winningGroupIndex)
-      : null;
-
-  const groupLetters = (group) => letters.slice(group * 3, group * 3 + 3);
+  const winCount = useMemo(
+    () =>
+      history.filter((p) => p?.status === "won" || p?.won === true).length,
+    [history]
+  );
 
   return (
     <Wrapper>
       <Header>
         <Title>Weekly Card Game</Title>
-        <Sub>
-          Predict three (3) letters from A - Z. Results come out every Sunday.
-        </Sub>
+        <Sub>Pick exactly 5 letters. Results come out every Sunday.</Sub>
       </Header>
 
       <PromoCard>
         <PromoBrand>BIGGI HOUSE</PromoBrand>
-        <PromoTitle>PROMO CARD</PromoTitle>
-        <PromoSubtitle>Predict three (3) letters from A - Z</PromoSubtitle>
-
-        <PromoGridWrap aria-label="Weekly card reveal">
-          {[0, 1, 2].map((group) => {
-            const winner = revealReady && winningGroupIndex === group;
-            const groupValues = groupLetters(group);
-            return (
-              <PromoGridGroup key={`group-${group}`} $winner={winner}>
-                {[0, 1, 2].map((idx) => (
-                  <PromoGridBox
-                    key={`box-${group}-${idx}`}
-                    $winner={winner}
-                    aria-hidden="true"
-                  >
-                    {revealReady ? String(groupValues[idx] || "").toUpperCase() : "?"}
-                  </PromoGridBox>
-                ))}
-              </PromoGridGroup>
-            );
-          })}
-        </PromoGridWrap>
-
-        <Hint>
-          {revealReady
-            ? "Winning set revealed for this week."
-            : card?.revealAt
-            ? `Reveal on ${new Date(card.revealAt).toLocaleString()}`
-            : "Reveal on Sunday"}
-        </Hint>
+        <PromoTitle>WEEKLY PREDICTION</PromoTitle>
+        <PromoSubtitle>Select maximum of 5 letters from A - Z</PromoSubtitle>
+        <Requirement>
+          Requires at least 1 data purchase this week to play weekly prediction to free data bundle. You can play only once per week.
+        </Requirement>
 
         {!enabled ? (
-          <Notice $tone="error">Game is currently disabled. Check back later.</Notice>
+          <Notice $tone="error">Game is disabled for your account right now.</Notice>
         ) : null}
 
-        <PromoBoxes aria-label="Your prediction">
-          {picks.map((value, index) => (
-            <PromoInput
-              key={`pick-${index}`}
-              ref={(el) => {
-                inputRefs.current[index] = el;
-              }}
-              value={value}
-              onChange={(e) => onChangePick(index, e.target.value)}
+        {playedThisWeek ? (
+          <Notice $tone="error">
+            You have already played this week. Come back next week for another round.
+          </Notice>
+        ) : null}
+
+        <LetterGrid aria-label="Letter picker">
+          {letters.map((l) => (
+            <Letter
+              key={l}
+              type="button"
               disabled={!enabled || busy}
-              inputMode="text"
-              placeholder="-"
-              aria-label={`Pick letter ${index + 1}`}
-            />
+              $active={picks.includes(l)}
+              onClick={() => togglePick(l)}
+              aria-label={`Pick ${l}`}
+              title={picks.includes(l) ? "Remove" : "Pick"}
+            >
+              {l}
+            </Letter>
           ))}
-        </PromoBoxes>
+        </LetterGrid>
+
+        <Picks aria-label="Selected picks">
+          {picks.length ? (
+            picks.map((l) => <PickPill key={`pick-${l}`}>{l}</PickPill>)
+          ) : (
+            <Sub style={{ color: "rgba(255,255,255,.82)" }}>
+              No picks yet. Select 5 letters.
+            </Sub>
+          )}
+        </Picks>
 
         <Actions>
           <Primary type="button" disabled={!canSubmit || busy} onClick={play}>
             {busy ? "Submitting..." : "Submit Entry"}
           </Primary>
-          <Ghost type="button" onClick={clear} disabled={busy}>
+          <Ghost type="button" onClick={clear} disabled={busy || picks.length === 0}>
             Clear picks
           </Ghost>
         </Actions>
 
         {notice ? <Notice $tone={notice.tone}>{notice.text}</Notice> : null}
+
+        <div style={{ marginTop: 18, fontWeight: 1000 }}>
+          Weekly result (9 letters)
+        </div>
+        <Small style={{ color: "rgba(255,255,255,.82)" }}>
+          {revealReady
+            ? "Revealed. Check your history for win status."
+            : card?.revealAt
+            ? `Reveals on ${new Date(card.revealAt).toLocaleString()}`
+            : "Reveals on Sunday."}
+        </Small>
+        <ResultRow aria-label="Weekly result letters">
+          {(revealReady ? resultLetters : Array.from({ length: 9 }).map(() => "?"))
+            .slice(0, 9)
+            .map((l, idx) => (
+              <ResultBox key={`r-${idx}`}>{String(l || "?").toUpperCase()}</ResultBox>
+            ))}
+        </ResultRow>
       </PromoCard>
 
       <History>
-        <Title style={{ fontSize: 18 }}>My Entries</Title>
+        <Title style={{ fontSize: 18 }}>My Weekly Plays</Title>
+        {history.length ? (
+          <Small style={{ marginTop: -4 }}>
+            Total wins: <strong style={{ color: "#111827" }}>{winCount}</strong>
+          </Small>
+        ) : null}
         {history.length ? (
           history.slice(0, 10).map((p) => (
             <HistoryItem key={p.id}>
-              <span>{(p.letters || []).join(", ")}</span>
-              <span>
+              <HistoryTop>
+                <HistoryLabel>{p.weekKey || "Weekly Play"}</HistoryLabel>
+                {p.status === "won" || p.won === true ? (
+                  <BadgeTone $tone="green">Won</BadgeTone>
+                ) : p.status === "lost" || p.won === false ? (
+                  <BadgeTone $tone="red">Lost</BadgeTone>
+                ) : (
+                  <Badge>Pending</Badge>
+                )}
+              </HistoryTop>
+              <Small>Picks: {(p.letters || []).join(", ")}</Small>
+              {Array.isArray(p.resultLetters) && p.resultLetters.length ? (
+                <Small>Result: {p.resultLetters.join(", ")}</Small>
+              ) : (
+                <Small>Result: Pending (Sunday reveal)</Small>
+              )}
+              <Small>
                 {p.createdAt ? new Date(p.createdAt).toLocaleString() : ""}
-                {typeof p.matched === "boolean"
-                  ? ` · ${p.matched ? "Matched" : "Not matched"}`
-                  : ""}
-              </span>
+              </Small>
             </HistoryItem>
           ))
         ) : (
-          <Sub>No entries yet.</Sub>
+          <Sub>No plays yet.</Sub>
         )}
       </History>
     </Wrapper>
