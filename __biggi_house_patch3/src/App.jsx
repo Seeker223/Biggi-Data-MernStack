@@ -52,7 +52,7 @@ function App() {
   return (
     <AppShell>
       {!hideNav && <Navbar />}
-      {showBanner && <Banner>Welcome to Biggi House</Banner>}
+      {showBanner && <Banner>WELCOME TO BIGGI HOUSE</Banner>}
       <Main>
         <Routes>
           <Route path="/" element={<Home />} />
