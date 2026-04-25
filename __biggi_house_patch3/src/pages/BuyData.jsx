@@ -1,12 +1,11 @@
 import styled from "styled-components";
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import Container from "../components/Container";
 import { useAuth } from "../utils/AuthContext";
 import { getAuthToken } from "../utils/auth";
 import {
   buyData,
-  getDataPlans,
   getTransactionSecurityStatus,
   setTransactionPin,
 } from "../services/api";
@@ -61,11 +60,23 @@ const Input = styled.input`
   outline: none;
 `;
 
-const Select = styled.select`
+const Dropdown = styled.button`
   padding: 12px 12px;
   border-radius: 12px;
   border: 1px solid rgba(15, 23, 42, 0.14);
   background: #fff;
+  text-align: left;
+  font-weight: 800;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  opacity: ${({ disabled }) => (disabled ? 0.7 : 1)};
+`;
+
+const DropdownText = styled.span`
+  color: ${({ $placeholder, theme }) => ($placeholder ? theme.colors.muted : "#111827")};
 `;
 
 const HelperRow = styled.div`
@@ -175,17 +186,16 @@ const normalizePhone = (value) => {
 
 export default function BuyData() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const token = useMemo(() => getAuthToken(), []);
 
-  const [plans, setPlans] = useState([]);
-  const [loadingPlans, setLoadingPlans] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState(null);
 
   const [phone, setPhone] = useState("");
-  const [network, setNetwork] = useState("");
-  const [planId, setPlanId] = useState("");
+  const [selectedNetwork, setSelectedNetwork] = useState(null);
+  const [selectedPlan, setSelectedPlan] = useState(null);
 
   const [pinModalOpen, setPinModalOpen] = useState(false);
   const [pinEnabled, setPinEnabled] = useState(false);
@@ -198,38 +208,21 @@ export default function BuyData() {
   }, [user?.phoneNumber]);
 
   useEffect(() => {
-    if (!token) return;
-    setLoadingPlans(true);
-    getDataPlans(token)
-      .then((rows) => setPlans(Array.isArray(rows) ? rows : []))
-      .catch((e) => setNotice({ tone: "error", text: e?.message || "Failed to load plans." }))
-      .finally(() => setLoadingPlans(false));
-  }, [token]);
-
-  const networks = useMemo(() => {
-    const set = new Set();
-    (plans || []).forEach((p) => {
-      if (p?.network) set.add(String(p.network).toUpperCase());
-    });
-    return Array.from(set).sort();
-  }, [plans]);
-
-  const filteredPlans = useMemo(() => {
-    const net = String(network || "").toUpperCase();
-    return (plans || [])
-      .filter((p) => (net ? String(p.network || "").toUpperCase() === net : true))
-      .sort((a, b) => Number(a.amount || 0) - Number(b.amount || 0));
-  }, [plans, network]);
-
-  const selectedPlan = useMemo(() => {
-    const id = String(planId || "").trim().toLowerCase();
-    return filteredPlans.find((p) => String(p.plan_id || "").toLowerCase() === id) || null;
-  }, [filteredPlans, planId]);
+    if (location.state?.selectedNetwork) {
+      setSelectedNetwork(location.state.selectedNetwork);
+    }
+    if (location.state?.selectedPlan) {
+      setSelectedPlan(location.state.selectedPlan);
+    }
+    if (location.state?.phone) {
+      setPhone((p) => p || normalizePhone(location.state.phone));
+    }
+  }, [location.state]);
 
   const validate = () => {
     const p = normalizePhone(phone);
     if (!p || p.length !== 11) return "Enter a valid 11-digit phone number.";
-    if (!network) return "Select a network.";
+    if (!selectedNetwork?.code) return "Select a network.";
     if (!selectedPlan?.plan_id) return "Select a data plan.";
     return null;
   };
@@ -341,10 +334,6 @@ export default function BuyData() {
       </Header>
 
       <Card>
-        {loadingPlans ? (
-          <Notice>Loading data plans...</Notice>
-        ) : null}
-
         <Row>
           <Label>Phone Number</Label>
           <Input
@@ -373,46 +362,53 @@ export default function BuyData() {
 
         <Row>
           <Label>Select Network</Label>
-          <Select
-            value={network}
-            onChange={(e) => {
-              setNetwork(e.target.value);
-              setPlanId("");
-              setNotice(null);
-            }}
+          <Dropdown
+            type="button"
+            onClick={() =>
+              navigate("/select-network", {
+                state: { returnTo: "/buy-data", phone: normalizePhone(phone) },
+              })
+            }
             disabled={busy}
           >
-            <option value="">Choose network</option>
-            {networks.map((n) => (
-              <option key={`net-${n}`} value={n}>
-                {n}
-              </option>
-            ))}
-          </Select>
+            <DropdownText $placeholder={!selectedNetwork?.label}>
+              {selectedNetwork?.label || selectedNetwork?.network || "Choose network"}
+            </DropdownText>
+            <span>›</span>
+          </Dropdown>
         </Row>
 
         <Row>
           <Label>Select Data Plan</Label>
-          <Select
-            value={planId}
-            onChange={(e) => {
-              setPlanId(e.target.value);
-              setNotice(null);
+          <Dropdown
+            type="button"
+            onClick={() => {
+              if (!selectedNetwork?.code) {
+                navigate("/select-network", { state: { returnTo: "/buy-data", phone: normalizePhone(phone) } });
+                return;
+              }
+              navigate("/select-plan", {
+                state: {
+                  selectedNetwork,
+                  returnTo: "/buy-data",
+                  phone: normalizePhone(phone),
+                },
+              });
             }}
-            disabled={busy || !network}
+            disabled={busy}
           >
-            <option value="">Choose data plan</option>
-            {filteredPlans.map((p) => (
-              <option key={p.plan_id} value={p.plan_id}>
-                {p.name || p.plan_name || p.plan_id} — ₦{Number(p.amount || 0).toLocaleString()}
-              </option>
-            ))}
-          </Select>
+            <DropdownText $placeholder={!selectedPlan?.plan_id}>
+              {selectedPlan ? `${selectedPlan.name || selectedPlan.plan_name || selectedPlan.plan_id}` : "Choose data plan"}
+            </DropdownText>
+            <span>›</span>
+          </Dropdown>
         </Row>
 
         {selectedPlan?.amount ? (
           <Price>
-            <PriceLabel>Plan Amount</PriceLabel>
+            <PriceLabel>
+              Plan Amount {selectedPlan?.validity ? `· ${selectedPlan.validity}` : ""}
+            </PriceLabel>
             <PriceValue>₦{Number(selectedPlan.amount || 0).toLocaleString()}</PriceValue>
           </Price>
         ) : null}

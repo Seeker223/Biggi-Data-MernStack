@@ -16,6 +16,8 @@ import ForgotPassword from "./pages/ForgotPassword";
 import CPanel from "./pages/CPanel";
 import WeeklyCardGame from "./pages/WeeklyCardGame";
 import BuyData from "./pages/BuyData";
+import SelectNetwork from "./pages/SelectNetwork";
+import SelectPlan from "./pages/SelectPlan";
 import { useAuth } from "./utils/AuthContext";
 
 const AppShell = styled.div`
@@ -76,6 +78,14 @@ function App() {
           <Route
             path="/buy-data"
             element={user ? <BuyData /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/select-network"
+            element={user ? <SelectNetwork /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/select-plan"
+            element={user ? <SelectPlan /> : <Navigate to="/login" replace />}
           />
           <Route
             path="/weekly-card-game"
