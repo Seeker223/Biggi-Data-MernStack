@@ -82,7 +82,23 @@ export default function FAQ() {
     },
     {
       q: "What do I need before I can join a house?",
-      a: "You need an active subscription and enough BiggiHouse wallet balance to pay the house minimum contribution.",
+      a: "You need an active subscription, at least 1 data purchase this week (weekly eligibility), and enough BiggiHouse wallet balance to pay the house minimum contribution.",
+    },
+    {
+      q: "What is weekly eligibility?",
+      a: "Weekly eligibility means you have purchased at least 1 data bundle within the last 7 days (this week window). It qualifies you to join a house and to play the Weekly Card Game.",
+    },
+    {
+      q: "How do I buy data on BiggiHouse?",
+      a: "Go to Buy Data, select your network and plan, then complete payment. Data plans show their validity (days) such as 7 days or 30 days.",
+    },
+    {
+      q: "What does data plan validity (days) mean?",
+      a: "Validity is how long the bundle lasts on your line after delivery. For example, a 7-day plan expires after 7 days, while a 30-day plan expires after 30 days.",
+    },
+    {
+      q: "Do I need a transaction PIN to buy data?",
+      a: "Some accounts require a 4-digit transaction PIN for purchases. If your account has PIN enabled, you will be prompted to enter it during checkout (or to create one if none exists).",
     },
     {
       q: "How are payouts handled?",
@@ -106,7 +122,15 @@ export default function FAQ() {
     },
     {
       q: "What is the Weekly Card Game?",
-      a: "It is a weekly prediction game where you pick up to 5 letters (A-Z). If all 5 letters appear in the revealed weekly result (9 letters), you win a free data bundle. No tickets are required, but you must have at least 1 data purchase this week before you can submit, and you can play only once per week. Results come out every Sunday (10pm). Admin can enable the game globally or for specific users from the C-Panel.",
+      a: "It is a weekly prediction game where you pick up to 5 letters (A-Z). If all 5 letters appear in the revealed weekly result (9 letters), you win a free data bundle. No tickets are required, but you must have at least 1 data purchase this week before you can submit, and you can play only once per week. Results come out every Sunday (10pm). Admin can enable/disable the game from the C-Panel Config.",
+    },
+    {
+      q: "Why does the app ask me to buy data before joining a house or playing the game?",
+      a: "BiggiHouse uses weekly data purchase eligibility as a participation requirement. Once you buy at least 1 data bundle this week, the restriction is removed for the week.",
+    },
+    {
+      q: "I bought data but I am still not eligible—what should I do?",
+      a: "First, confirm the phone number you used for the purchase matches your profile number. Then refresh your eligibility status and try again. If the issue persists, contact support with your purchase time and phone number.",
     },
   ];
 
