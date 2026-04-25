@@ -10,6 +10,7 @@ import {
   getBiggiHouseMemberships,
   getBiggiHouseWallet,
   joinBiggiHouseHouse,
+  getBiggiHouseWeeklyCardAccess,
   getSubscriptionStatus,
 } from "../services/api";
 
@@ -163,6 +164,8 @@ export default function Houses() {
   const [memberships, setMemberships] = useState([]);
   const [subscriptionOpen, setSubscriptionOpen] = useState(false);
   const [subscriptionStatus, setSubscriptionStatus] = useState(null);
+  const [access, setAccess] = useState(null);
+  const [purchaseOpen, setPurchaseOpen] = useState(false);
 
   const filtered = useMemo(() => {
     let result = [...list];
@@ -197,6 +200,7 @@ export default function Houses() {
       }),
       getBiggiHouseMemberships(token).then((items) => setMemberships(items || [])),
       getSubscriptionStatus(token).then((data) => setSubscriptionStatus(data)),
+      getBiggiHouseWeeklyCardAccess(token).then((data) => setAccess(data)).catch(() => null),
     ])
       .catch((err) => {
         setError(err.message || "Unable to load houses right now.");
@@ -207,6 +211,14 @@ export default function Houses() {
   const joinedHouseIds = useMemo(() => {
     return new Set((memberships || []).map((m) => String(m?.house?.id || "")));
   }, [memberships]);
+
+  const refreshAccess = () => {
+    const token = getAuthToken();
+    if (!token) return;
+    getBiggiHouseWeeklyCardAccess(token)
+      .then((data) => setAccess(data))
+      .catch(() => setAccess(null));
+  };
 
   const handleJoin = (house) => {
     if (!user) {
@@ -223,6 +235,14 @@ export default function Houses() {
 
     if (joinedHouseIds.has(String(house.id))) {
       setError(`You have already joined House ${house.number}.`);
+      return;
+    }
+
+    const requireWeeklyPurchase = Boolean(access?.requireWeeklyDataPurchase);
+    const weeklyPurchaseOk = requireWeeklyPurchase ? Boolean(access?.weeklyPurchaseOk) : true;
+    if (requireWeeklyPurchase && !weeklyPurchaseOk) {
+      setSelected(house);
+      setPurchaseOpen(true);
       return;
     }
 
@@ -260,7 +280,11 @@ export default function Houses() {
         ]);
       })
       .catch((err) => {
-        setError(err?.message || "Unable to join house. Please try again.");
+        const msg = err?.message || "Unable to join house. Please try again.";
+        setError(msg);
+        if (err?.code === "DATA_PURCHASE_REQUIRED" || /purchase at least 1 data/i.test(msg)) {
+          setPurchaseOpen(true);
+        }
       })
       .finally(() => setLoading(false));
   };
@@ -273,6 +297,29 @@ export default function Houses() {
           <Sub>
             Select a weekly minimum and join a cycle that fits your budget.
           </Sub>
+          {Boolean(access?.requireWeeklyDataPurchase) ? (
+            <InfoCard>
+              <InfoTitle>Weekly eligibility</InfoTitle>
+              <InfoText>
+                Buy at least 1 data bundle this week to qualify to join a house and play the Weekly Card Game.
+              </InfoText>
+              <InfoText>
+                Status:{" "}
+                <strong>{access?.weeklyPurchaseOk ? "Eligible" : "Not eligible"}</strong>
+                {typeof access?.weeklyPurchaseCount === "number"
+                  ? ` (purchases this week: ${access.weeklyPurchaseCount})`
+                  : ""}
+              </InfoText>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <PrimaryButton type="button" onClick={() => navigate("/buy-data")}>
+                  Buy Data
+                </PrimaryButton>
+                <GhostButton type="button" onClick={refreshAccess}>
+                  Refresh status
+                </GhostButton>
+              </div>
+            </InfoCard>
+          ) : null}
           <Controls>
             <Filters>
               <Chip $active={range === "all"} onClick={() => { setRange("all"); setError(""); }} aria-label="Show all houses">
@@ -420,6 +467,37 @@ export default function Houses() {
                 aria-label="Go to subscription page"
               >
                 Subscribe Now
+              </PrimaryButton>
+            </ModalActions>
+          </ModalCard>
+        </ModalBackdrop>
+      )}
+
+      {purchaseOpen && (
+        <ModalBackdrop>
+          <ModalCard>
+            <h2>Buy Data Required</h2>
+            <p style={{ color: "#5b6475" }}>
+              To join a house, you must purchase at least 1 data bundle this week. After buying data, refresh your status and try again.
+            </p>
+            <ModalActions>
+              <GhostButton
+                type="button"
+                onClick={() => {
+                  setPurchaseOpen(false);
+                  refreshAccess();
+                }}
+              >
+                Close
+              </GhostButton>
+              <PrimaryButton
+                type="button"
+                onClick={() => {
+                  setPurchaseOpen(false);
+                  navigate("/buy-data");
+                }}
+              >
+                Buy Data
               </PrimaryButton>
             </ModalActions>
           </ModalCard>

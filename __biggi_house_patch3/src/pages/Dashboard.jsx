@@ -204,6 +204,7 @@ export default function Dashboard() {
   const requireWeeklyPurchase = Boolean(access?.requireWeeklyDataPurchase);
   const weeklyPurchaseOk = requireWeeklyPurchase ? Boolean(access?.weeklyPurchaseOk) : true;
   const gamePlayable = Boolean(gameEnabled && weeklyPurchaseOk);
+  const needsWeeklyPurchase = Boolean(gameEnabled && requireWeeklyPurchase && !weeklyPurchaseOk);
 
   const handleLogout = () => {
     logout();
@@ -290,11 +291,11 @@ export default function Dashboard() {
           <div style={{ marginTop: 12 }}>
             <Button
               type="button"
-              disabled={!gamePlayable}
-              onClick={() => navigate("/weekly-card-game")}
-              style={{ opacity: gamePlayable ? 1 : 0.6 }}
+              disabled={!gameEnabled}
+              onClick={() => navigate(needsWeeklyPurchase ? "/buy-data" : "/weekly-card-game")}
+              style={{ opacity: gameEnabled ? 1 : 0.6 }}
             >
-              Open game
+              {needsWeeklyPurchase ? "Buy Data" : "Open game"}
             </Button>
           </div>
         </Card>

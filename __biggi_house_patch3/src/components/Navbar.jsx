@@ -213,6 +213,7 @@ export default function Navbar() {
             <>
               <NavItem to="/houses">Houses</NavItem>
               <NavItem to="/subscription">Subscription</NavItem>
+              <NavItem to="/buy-data">Buy Data</NavItem>
               <NavItem to="/wallet">Wallet</NavItem>
               <NavItem to="/profile">Profile</NavItem>
               <NavItem to="/dashboard">Dashboard</NavItem>
@@ -259,6 +260,9 @@ export default function Navbar() {
                 </NavItem>
                 <NavItem to="/subscription" onClick={() => setOpen(false)}>
                   Subscription
+                </NavItem>
+                <NavItem to="/buy-data" onClick={() => setOpen(false)}>
+                  Buy Data
                 </NavItem>
                 <NavItem to="/wallet" onClick={() => setOpen(false)}>
                   Wallet

@@ -667,7 +667,7 @@ export default function CPanel() {
                       }))
                     }
                   />
-                  <span>Require at least 1 data purchase this week</span>
+                  <span>Require at least 1 data purchase this week (join house + weekly game)</span>
                 </label>
               </div>
 

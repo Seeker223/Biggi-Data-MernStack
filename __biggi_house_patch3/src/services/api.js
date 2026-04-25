@@ -625,3 +625,42 @@ export async function buyData(payload, token) {
   if (!res.ok) throw new Error(data.error || data.message || "Purchase failed");
   return data;
 }
+
+export async function getTransactionSecurityStatus(token) {
+  const res = await fetch(`${API_BASE}/profile/transaction-security`, {
+    headers: { Authorization: `Bearer ${token}`, "X-Client-App": "biggi-house" },
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || data.message || "Failed to load security status");
+  return data.security || data;
+}
+
+export async function setTransactionPin(pin, token) {
+  const res = await fetch(`${API_BASE}/profile/transaction-pin`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+      "X-Client-App": "biggi-house",
+    },
+    body: JSON.stringify({ pin }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || data.message || "Failed to set transaction PIN");
+  return data;
+}
+
+export async function verifyTransactionPin(pin, token) {
+  const res = await fetch(`${API_BASE}/profile/transaction-pin/verify`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+      "X-Client-App": "biggi-house",
+    },
+    body: JSON.stringify({ pin }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || data.message || "Invalid transaction PIN");
+  return data;
+}
