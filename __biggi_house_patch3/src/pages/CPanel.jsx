@@ -6,8 +6,11 @@ import { getAuthToken } from "../utils/auth";
 import {
   adjustBiggiHouseAdminUserWallet,
   createBiggiHouseAdminHouse,
+  createAdminDataPlan,
   deleteBiggiHouseAdminHouse,
   deleteBiggiHouseAdminMembership,
+  deactivateAdminDataPlan,
+  getAdminDataPlans,
   getBiggiHouseAdminHouses,
   getBiggiHouseAdminMemberships,
   getBiggiHouseAdminWinners,
@@ -16,6 +19,7 @@ import {
   getBiggiHousePublicConfig,
   triggerBiggiHouseWinnerPayouts,
   triggerBiggiHouseWinnerSelection,
+  updateAdminDataPlan,
   updateBiggiHouseAdminConfig,
   updateBiggiHouseAdminHouse,
   updateBiggiHouseAdminUser,
@@ -337,6 +341,24 @@ export default function CPanel() {
   const [config, setConfig] = useState(null);
   const [users, setUsers] = useState([]);
   const [userQuery, setUserQuery] = useState("");
+  const [plans, setPlans] = useState([]);
+  const [planQuery, setPlanQuery] = useState("");
+  const [planNetwork, setPlanNetwork] = useState("");
+  const [planCategory, setPlanCategory] = useState("");
+  const [planActive, setPlanActive] = useState("");
+  const [planApp, setPlanApp] = useState("biggi_house");
+  const [newPlan, setNewPlan] = useState({
+    plan_id: "",
+    name: "",
+    network: "",
+    category: "",
+    validity: "30 days",
+    zenipoint_code: "",
+    provider_amount: "",
+    markup: "100",
+    active: true,
+    shareWithBiggiData: false,
+  });
   const [houses, setHouses] = useState([]);
   const [newHouse, setNewHouse] = useState({ number: "", minimum: "" });
   const [memberships, setMemberships] = useState([]);
@@ -361,6 +383,17 @@ export default function CPanel() {
   const refreshOverview = async () => {
     const data = await getBiggiHouseAdminOverview(token);
     setOverview(data);
+  };
+
+  const loadPlans = async () => {
+    const rows = await getAdminDataPlans(token, {
+      q: planQuery || undefined,
+      network: planNetwork || undefined,
+      category: planCategory || undefined,
+      active: planActive === "" ? undefined : planActive,
+      app: planApp || undefined,
+    });
+    setPlans(Array.isArray(rows) ? rows : []);
   };
 
   const renderUserActions = (u) => (
@@ -474,6 +507,10 @@ export default function CPanel() {
       load(async () => setConfig(await getBiggiHousePublicConfig()));
       return;
     }
+    if (tab === "plans") {
+      load(loadPlans);
+      return;
+    }
     if (tab === "users") {
       load(async () => setUsers((await getBiggiHouseAdminUsers(token, { q: userQuery })).users || []));
       return;
@@ -542,6 +579,9 @@ export default function CPanel() {
           </Tab>
           <Tab $active={tab === "config"} onClick={() => setTab("config")} type="button">
             Config
+          </Tab>
+          <Tab $active={tab === "plans"} onClick={() => setTab("plans")} type="button">
+            Data Plans
           </Tab>
           <Tab $active={tab === "users"} onClick={() => setTab("users")} type="button">
             Users
@@ -730,6 +770,263 @@ export default function CPanel() {
                 <Sub>Default: Sunday (0) at 22:00.</Sub>
               </div>
             </div>
+          </Panel>
+        )}
+
+        {tab === "plans" && (
+          <Panel>
+            <PanelHeader>
+              <span>Data Plans (BiggiHouse)</span>
+              <Tools>
+                <Input
+                  value={planQuery}
+                  onChange={(e) => setPlanQuery(e.target.value)}
+                  placeholder="Search plan_id/name/zenipoint..."
+                />
+                <Select value={planApp} onChange={(e) => setPlanApp(e.target.value)}>
+                  <option value="biggi_house">Biggi House</option>
+                  <option value="biggi_data">Biggi Data</option>
+                  <option value="">All (shared)</option>
+                </Select>
+                <Select value={planActive} onChange={(e) => setPlanActive(e.target.value)}>
+                  <option value="">All</option>
+                  <option value="true">Active</option>
+                  <option value="false">Inactive</option>
+                </Select>
+                <Primary type="button" disabled={busy} onClick={() => load(loadPlans)}>
+                  Search
+                </Primary>
+                <Ghost type="button" disabled={busy} onClick={() => load(loadPlans)}>
+                  Refresh
+                </Ghost>
+              </Tools>
+            </PanelHeader>
+
+            <div style={{ marginTop: 12, display: "grid", gap: 12 }}>
+              <div style={{ fontWeight: 900 }}>Create Plan</div>
+              <div
+                style={{
+                  display: "grid",
+                  gap: 10,
+                  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+                }}
+              >
+                <Input
+                  value={newPlan.plan_id}
+                  onChange={(e) => setNewPlan((p) => ({ ...p, plan_id: e.target.value }))}
+                  placeholder="plan_id (unique)"
+                />
+                <Input
+                  value={newPlan.name}
+                  onChange={(e) => setNewPlan((p) => ({ ...p, name: e.target.value }))}
+                  placeholder="Name"
+                />
+                <Input
+                  value={newPlan.network}
+                  onChange={(e) => setNewPlan((p) => ({ ...p, network: e.target.value }))}
+                  placeholder="network (mtn/glo/airtel)"
+                />
+                <Input
+                  value={newPlan.category}
+                  onChange={(e) => setNewPlan((p) => ({ ...p, category: e.target.value }))}
+                  placeholder="category (sme/gifting)"
+                />
+                <Input
+                  value={newPlan.validity}
+                  onChange={(e) => setNewPlan((p) => ({ ...p, validity: e.target.value }))}
+                  placeholder="validity (e.g. 30 days)"
+                />
+                <Input
+                  value={newPlan.zenipoint_code}
+                  onChange={(e) => setNewPlan((p) => ({ ...p, zenipoint_code: e.target.value }))}
+                  placeholder="zenipoint_code"
+                />
+                <Input
+                  value={newPlan.provider_amount}
+                  onChange={(e) => setNewPlan((p) => ({ ...p, provider_amount: e.target.value }))}
+                  placeholder="provider_amount"
+                  inputMode="numeric"
+                />
+                <Input
+                  value={newPlan.markup}
+                  onChange={(e) => setNewPlan((p) => ({ ...p, markup: e.target.value }))}
+                  placeholder="markup"
+                  inputMode="numeric"
+                />
+              </div>
+
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(newPlan.active)}
+                    onChange={(e) => setNewPlan((p) => ({ ...p, active: e.target.checked }))}
+                  />
+                  <span>Active</span>
+                </label>
+                <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(newPlan.shareWithBiggiData)}
+                    onChange={(e) =>
+                      setNewPlan((p) => ({ ...p, shareWithBiggiData: e.target.checked }))
+                    }
+                  />
+                  <span>Share with Biggi Data</span>
+                </label>
+                <Primary
+                  type="button"
+                  disabled={busy}
+                  onClick={() =>
+                    load(async () => {
+                      const apps = newPlan.shareWithBiggiData
+                        ? ["biggi_house", "biggi_data"]
+                        : ["biggi_house"];
+                      await createAdminDataPlan(
+                        {
+                          plan_id: String(newPlan.plan_id || "").trim(),
+                          name: String(newPlan.name || "").trim(),
+                          network: String(newPlan.network || "").trim(),
+                          category: String(newPlan.category || "").trim(),
+                          validity: String(newPlan.validity || "30 days").trim(),
+                          zenipoint_code: String(newPlan.zenipoint_code || "").trim(),
+                          provider_amount: Number(newPlan.provider_amount || 0),
+                          markup: Number(newPlan.markup || 0),
+                          active: Boolean(newPlan.active),
+                          apps,
+                        },
+                        token
+                      );
+                      setNewPlan({
+                        plan_id: "",
+                        name: "",
+                        network: "",
+                        category: "",
+                        validity: "30 days",
+                        zenipoint_code: "",
+                        provider_amount: "",
+                        markup: "100",
+                        active: true,
+                        shareWithBiggiData: false,
+                      });
+                      await loadPlans();
+                    })
+                  }
+                >
+                  Create Plan
+                </Primary>
+              </div>
+            </div>
+
+            <TableWrap>
+              <Table>
+                <thead>
+                  <tr>
+                    <th>Plan</th>
+                    <th>Network</th>
+                    <th>Category</th>
+                    <th>Validity</th>
+                    <th>Price</th>
+                    <th>Provider</th>
+                    <th>Markup</th>
+                    <th>Apps</th>
+                    <th>Active</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {plans.map((p) => (
+                    <tr key={p.plan_id}>
+                      <td>
+                        <div style={{ fontWeight: 900 }}>{p.name}</div>
+                        <div style={{ color: "#5b6475", fontSize: 12 }}>{p.plan_id}</div>
+                        <div style={{ color: "#5b6475", fontSize: 12 }}>
+                          Zenipoint: {p.zenipoint_code || "—"}
+                        </div>
+                      </td>
+                      <td>{String(p.network || "").toUpperCase()}</td>
+                      <td>{String(p.category || "").toUpperCase()}</td>
+                      <td>{p.validity || "30 days"}</td>
+                      <td style={{ fontWeight: 900 }}>{formatMoney(p.amount || 0)}</td>
+                      <td>{formatMoney(p.provider_amount || 0)}</td>
+                      <td>{formatMoney(p.markup || 0)}</td>
+                      <td>{Array.isArray(p.apps) ? p.apps.join(", ") : "shared"}</td>
+                      <td>{p.active ? "Yes" : "No"}</td>
+                      <td style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        <Ghost
+                          type="button"
+                          onClick={() => {
+                            const name = window.prompt("Name:", p.name || "");
+                            if (name === null) return;
+                            const validity = window.prompt("Validity (e.g. 30 days):", p.validity || "30 days");
+                            if (validity === null) return;
+                            const zenipoint_code = window.prompt("Zenipoint code:", p.zenipoint_code || "");
+                            if (zenipoint_code === null) return;
+                            const provider_amount = window.prompt("Provider amount:", String(p.provider_amount ?? ""));
+                            if (provider_amount === null) return;
+                            const markup = window.prompt("Markup:", String(p.markup ?? ""));
+                            if (markup === null) return;
+                            const share = window.confirm("Share this plan with Biggi Data?");
+                            load(async () => {
+                              await updateAdminDataPlan(
+                                p.plan_id,
+                                {
+                                  name,
+                                  validity,
+                                  zenipoint_code,
+                                  provider_amount: Number(provider_amount),
+                                  markup: Number(markup),
+                                  apps: share ? ["biggi_house", "biggi_data"] : ["biggi_house"],
+                                },
+                                token
+                              );
+                              await loadPlans();
+                            });
+                          }}
+                        >
+                          Edit
+                        </Ghost>
+                        <Ghost
+                          type="button"
+                          onClick={() =>
+                            load(async () => {
+                              await updateAdminDataPlan(p.plan_id, { active: !p.active }, token);
+                              await loadPlans();
+                            })
+                          }
+                        >
+                          {p.active ? "Disable" : "Enable"}
+                        </Ghost>
+                        <Danger
+                          type="button"
+                          onClick={() => {
+                            const ok = window.confirm(`Deactivate ${p.plan_id}?`);
+                            if (!ok) return;
+                            load(async () => {
+                              await deactivateAdminDataPlan(p.plan_id, token);
+                              await loadPlans();
+                            });
+                          }}
+                        >
+                          Deactivate
+                        </Danger>
+                      </td>
+                    </tr>
+                  ))}
+                  {plans.length === 0 && (
+                    <tr>
+                      <td colSpan="10" style={{ color: "#5b6475" }}>
+                        No plans.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </Table>
+            </TableWrap>
+
+            <Sub style={{ marginTop: 10 }}>
+              BiggiHouse plans can be managed independently using the Apps field. Shared plans (missing apps) are visible in all apps.
+            </Sub>
           </Panel>
         )}
 

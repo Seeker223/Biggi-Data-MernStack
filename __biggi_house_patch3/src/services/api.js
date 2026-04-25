@@ -354,6 +354,70 @@ export async function getBiggiHouseAdminWinners(token, params = {}) {
   return data;
 }
 
+// -----------------------
+// Data Plans (Admin CRUD)
+// -----------------------
+
+export async function getAdminDataPlans(token, params = {}) {
+  const headers = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const q = new URLSearchParams();
+  if (params.q) q.set("q", params.q);
+  if (params.network) q.set("network", params.network);
+  if (params.category) q.set("category", params.category);
+  if (params.active !== undefined && params.active !== null && params.active !== "") {
+    q.set("active", String(params.active));
+  }
+  if (params.app) q.set("app", params.app);
+
+  const res = await fetch(`${API_BASE}/plans/admin/plans${q.toString() ? `?${q}` : ""}`, {
+    headers,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.msg || data.error || data.message || "Failed to load plans");
+  return data.plans || [];
+}
+
+export async function createAdminDataPlan(payload, token) {
+  const headers = { "Content-Type": "application/json" };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const res = await fetch(`${API_BASE}/plans/admin/plans`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(payload || {}),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.msg || data.error || data.message || "Failed to create plan");
+  return data.plan;
+}
+
+export async function updateAdminDataPlan(planId, payload, token) {
+  const headers = { "Content-Type": "application/json" };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const id = encodeURIComponent(String(planId || "").trim().toLowerCase());
+  const res = await fetch(`${API_BASE}/plans/admin/plans/${id}`, {
+    method: "PUT",
+    headers,
+    body: JSON.stringify(payload || {}),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.msg || data.error || data.message || "Failed to update plan");
+  return data.plan;
+}
+
+export async function deactivateAdminDataPlan(planId, token) {
+  const headers = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const id = encodeURIComponent(String(planId || "").trim().toLowerCase());
+  const res = await fetch(`${API_BASE}/plans/admin/plans/${id}`, {
+    method: "DELETE",
+    headers,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.msg || data.error || data.message || "Failed to deactivate plan");
+  return data.plan;
+}
+
 export async function triggerBiggiHouseWinnerSelection(token) {
   const headers = { "Content-Type": "application/json" };
   if (token) headers.Authorization = `Bearer ${token}`;
