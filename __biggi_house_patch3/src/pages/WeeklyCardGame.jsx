@@ -337,7 +337,7 @@ export default function WeeklyCardGame() {
         <PromoTitle>WEEKLY PREDICTION</PromoTitle>
         <PromoSubtitle>Select maximum of 5 letters from A - Z</PromoSubtitle>
         <Requirement>
-          Requires at least 1 data purchase this week to play weekly prediction to free data bundle. You can play only once per week.
+          Requires at least 1 data purchase this week to win weekly prediction to win free data bundle. You can play only once per week.
         </Requirement>
 
         {!enabled ? (
