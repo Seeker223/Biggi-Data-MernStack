@@ -358,6 +358,11 @@ export default function CPanel() {
     }
   };
 
+  const refreshOverview = async () => {
+    const data = await getBiggiHouseAdminOverview(token);
+    setOverview(data);
+  };
+
   const renderUserActions = (u) => (
     <>
       <Ghost
@@ -383,6 +388,7 @@ export default function CPanel() {
             setUsers((prev) =>
               prev.map((x) => (x.id === u.id ? { ...x, walletBalance: wallet.balance } : x))
             );
+            await refreshOverview();
           });
         }}
       >
@@ -400,6 +406,7 @@ export default function CPanel() {
             setUsers((prev) =>
               prev.map((x) => (x.id === u.id ? { ...x, walletBalance: wallet.balance } : x))
             );
+            await refreshOverview();
           });
         }}
       >

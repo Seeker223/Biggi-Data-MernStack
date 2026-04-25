@@ -554,6 +554,24 @@ export default function Home() {
                   {!isGameEnabled ? "Disabled" : needsWeeklyPurchase ? "Buy Data" : "Play now"}
                 </HighlightButton>
               </Highlight>
+
+              <Highlight style={{ marginTop: 12 }}>
+                <div>
+                  <HighlightTitle>Buy Data</HighlightTitle>
+                  <p style={{ opacity: 0.9 }}>
+                    Buy at least 1 data bundle weekly to qualify to join a house and play the Weekly Card Game.
+                  </p>
+                </div>
+                <HighlightButton
+                  as="button"
+                  type="button"
+                  disabled={false}
+                  onClick={() => navigate(user ? "/buy-data" : "/login")}
+                  title={user ? "Buy data" : "Login to continue"}
+                >
+                  Buy Data
+                </HighlightButton>
+              </Highlight>
             </div>
           </HeroCopy>
           <HeroCard>
