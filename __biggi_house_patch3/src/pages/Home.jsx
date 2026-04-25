@@ -457,18 +457,79 @@ const SocialChip = styled.span`
   font-size: 13px;
 `;
 
+const ModalBackdrop = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 12, 24, 0.35);
+  display: grid;
+  place-items: center;
+  z-index: 60;
+  padding: 20px;
+`;
+
+const ModalCard = styled.div`
+  width: min(520px, 100%);
+  background: #fff;
+  border-radius: 20px;
+  padding: 22px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  box-shadow: ${({ theme }) => theme.shadows.soft};
+  display: grid;
+  gap: 12px;
+`;
+
+const ModalTitle = styled.h2`
+  margin: 0;
+  font-size: 18px;
+`;
+
+const ModalText = styled.p`
+  margin: 0;
+  color: ${({ theme }) => theme.colors.muted};
+  line-height: 1.5;
+`;
+
+const ModalActions = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+`;
+
+const ModalGhost = styled.button`
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  background: #fff;
+  font-weight: 900;
+  cursor: pointer;
+`;
+
+const ModalPrimary = styled.button`
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: none;
+  background: ${({ theme }) => theme.gradients.brand};
+  color: #fff;
+  font-weight: 900;
+  cursor: pointer;
+`;
+
 export default function Home() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const preview = houses.slice(0, 3);
   const [config, setConfig] = useState(null);
   const [access, setAccess] = useState(null);
+  const [modal, setModal] = useState(null);
 
   const isGameEnabled = Boolean(access?.enabled ?? config?.features?.weeklyCardGameEnabled);
   const requireWeeklyPurchase = Boolean(access?.requireWeeklyDataPurchase);
   const weeklyPurchaseOk =
     !user ? true : requireWeeklyPurchase ? Boolean(access?.weeklyPurchaseOk) : true;
   const needsWeeklyPurchase = Boolean(user && requireWeeklyPurchase && !weeklyPurchaseOk);
+  const hasPhoneNumber = Boolean(String(user?.phoneNumber || "").trim());
 
   useEffect(() => {
     getBiggiHousePublicConfig()
@@ -490,6 +551,49 @@ export default function Home() {
 
   const joinHouseHref = user ? "/houses" : "/login";
   const onJoinHouse = useMemo(() => () => navigate(joinHouseHref), [navigate, joinHouseHref]);
+
+  const openWeeklyGame = () => {
+    if (!user) {
+      setModal({
+        title: "Login required",
+        text: "Please log in to play the Weekly Card Game.",
+        primaryLabel: "Login",
+        primaryTo: "/login",
+      });
+      return;
+    }
+
+    if (!isGameEnabled) {
+      setModal({
+        title: "Game disabled",
+        text: "Weekly Card Game is currently disabled. Please check back later.",
+        primaryLabel: "Close",
+      });
+      return;
+    }
+
+    if (needsWeeklyPurchase) {
+      if (!hasPhoneNumber) {
+        setModal({
+          title: "Add phone number",
+          text: "Please add your phone number in Profile so we can validate your weekly data purchase eligibility.",
+          primaryLabel: "Go to Profile",
+          primaryTo: "/profile",
+        });
+        return;
+      }
+
+      setModal({
+        title: "Buy data required",
+        text: "To play the Weekly Card Game, you must purchase at least 1 data bundle this week.",
+        primaryLabel: "Buy Data",
+        primaryTo: "/buy-data",
+      });
+      return;
+    }
+
+    navigate("/weekly-card-game");
+  };
 
   return (
     <>
@@ -529,19 +633,15 @@ export default function Home() {
                 <div>
                   <HighlightTitle>Weekly Card Game</HighlightTitle>
                   <p style={{ opacity: 0.9 }}>
-                    Requires at least 1 data purchase this week to play weekly prediction to free data bundle
+                    Requires at least 1 data purchase this week to win weekly prediction to win free data bundle
                   </p>
                 </div>
                 <HighlightButton
                   as="button"
                   type="button"
-                  disabled={!isGameEnabled}
-                  onClick={() => {
-                    if (!user) return navigate("/login");
-                    if (needsWeeklyPurchase) return navigate("/buy-data");
-                    return navigate("/weekly-card-game");
-                  }}
-                  style={{ opacity: isGameEnabled ? 1 : 0.6 }}
+                  disabled={false}
+                  onClick={openWeeklyGame}
+                  style={{ opacity: isGameEnabled ? 1 : 0.9 }}
                   aria-disabled={!isGameEnabled}
                   title={
                     !isGameEnabled
@@ -551,7 +651,7 @@ export default function Home() {
                       : "Open game"
                   }
                 >
-                  {!isGameEnabled ? "Disabled" : needsWeeklyPurchase ? "Buy Data" : "Play now"}
+                  Play now
                 </HighlightButton>
               </Highlight>
 
@@ -723,6 +823,37 @@ export default function Home() {
           </Socials>
         </FooterGrid>
       </Footer>
+
+      {modal ? (
+        <ModalBackdrop
+          role="dialog"
+          aria-modal="true"
+          aria-label={modal.title || "Notice"}
+          onClick={() => setModal(null)}
+        >
+          <ModalCard onClick={(e) => e.stopPropagation()}>
+            <ModalTitle>{modal.title || "Notice"}</ModalTitle>
+            <ModalText>{modal.text || ""}</ModalText>
+            <ModalActions>
+              <ModalGhost type="button" onClick={() => setModal(null)}>
+                Close
+              </ModalGhost>
+              {modal.primaryLabel ? (
+                <ModalPrimary
+                  type="button"
+                  onClick={() => {
+                    const to = modal.primaryTo;
+                    setModal(null);
+                    if (to) navigate(to);
+                  }}
+                >
+                  {modal.primaryLabel}
+                </ModalPrimary>
+              ) : null}
+            </ModalActions>
+          </ModalCard>
+        </ModalBackdrop>
+      ) : null}
     </>
   );
 }
