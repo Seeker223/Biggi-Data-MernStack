@@ -41,14 +41,14 @@ const Signup = () => {
     e.preventDefault();
     const { username, email, password, phoneNumber, birthDate, confirmPassword, state, referralCode, nin } = form;
 
-    if (!username || !email || !password || !confirmPassword) {
-      showModal('Please fill all required fields.', 'error');
-      return;
-    }
-    if (!state) {
-      showModal('Please select your state.', 'error');
-      return;
-    }
+    if (!username?.trim()) return showModal('Full Name is required.', 'error');
+    if (!email?.trim()) return showModal('Email is required.', 'error');
+    if (!phoneNumber?.trim()) return showModal('Phone Number is required.', 'error');
+    if (!birthDate?.trim()) return showModal('Date of Birth is required.', 'error');
+    if (!state) return showModal('State is required.', 'error');
+    if (!nin?.trim()) return showModal('NIN is required.', 'error');
+    if (!password) return showModal('Password is required.', 'error');
+    if (!confirmPassword) return showModal('Confirm Password is required.', 'error');
 
     const phoneDigits = String(phoneNumber || "").replace(/\D/g, "");
     if (phoneDigits.length < 10) {
@@ -56,9 +56,26 @@ const Signup = () => {
       return;
     }
 
-    const birthDateRegex = /^\d{2}-\d{2}-\d{2}$/;
+    const birthDateRegex = /^\d{2}-\d{2}-\d{4}$/;
     if (!birthDateRegex.test(birthDate)) {
-      showModal('Date of Birth must be in DD-MM-YY format.', 'error');
+      showModal('Date of Birth must be in DD-MM-YYYY format.', 'error');
+      return;
+    }
+
+    const [dd, mm, yyyy] = birthDate.split('-').map((v) => Number(v));
+    const nowYear = new Date().getFullYear();
+    const validDate =
+      Number.isInteger(dd) &&
+      Number.isInteger(mm) &&
+      Number.isInteger(yyyy) &&
+      dd >= 1 &&
+      dd <= 31 &&
+      mm >= 1 &&
+      mm <= 12 &&
+      yyyy >= 1900 &&
+      yyyy <= nowYear;
+    if (!validDate) {
+      showModal('Please enter a valid Date of Birth.', 'error');
       return;
     }
 
@@ -141,14 +158,17 @@ const Signup = () => {
   };
 
   const formatDate = (text) => {
-    let cleaned = text.replace(/\D/g, '');
-    if (cleaned.length >= 2) {
-      cleaned = cleaned.substring(0, 2) + '-' + cleaned.substring(2);
+    const digits = String(text || "").replace(/\D/g, "").slice(0, 8);
+    let formatted = digits;
+
+    if (digits.length >= 3) {
+      formatted = `${digits.slice(0, 2)}-${digits.slice(2)}`;
     }
-    if (cleaned.length >= 5) {
-      cleaned = cleaned.substring(0, 5) + '-' + cleaned.substring(5, 7);
+    if (digits.length >= 5) {
+      formatted = `${digits.slice(0, 2)}-${digits.slice(2, 4)}-${digits.slice(4)}`;
     }
-    setForm({ ...form, birthDate: cleaned.substring(0, 8) });
+
+    setForm({ ...form, birthDate: formatted.slice(0, 10) });
   };
 
   const formatPhoneNumber = (text) => {
@@ -222,10 +242,10 @@ const Signup = () => {
               <Label>Date of Birth *</Label>
               <TextInput
                 type="text"
-                placeholder="DD-MM-YY"
+                placeholder="DD-MM-YYYY"
                 value={form.birthDate}
                 onChange={(e) => formatDate(e.target.value)}
-                maxLength={8}
+                maxLength={10}
               />
             </InputWrapper>
 

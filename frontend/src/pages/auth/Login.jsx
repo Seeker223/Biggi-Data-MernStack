@@ -42,20 +42,29 @@ const Login = () => {
   };
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      showModal('Please enter your credentials.', 'error');
-      return;
+    const emailValue = String(email || "").trim();
+    const passwordValue = String(password || "");
+
+    if (!emailValue && !passwordValue) return showModal('Email/username and password are required.', 'error');
+    if (!emailValue) return showModal('Email/username is required.', 'error');
+    if (!passwordValue) return showModal('Password is required.', 'error');
+
+    if (emailValue.includes("@")) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(emailValue)) {
+        return showModal('Please enter a valid email address.', 'error');
+      }
     }
 
     setLoading(true);
-    const res = await login(email, password, { rememberMe });
+    const res = await login(emailValue, passwordValue, { rememberMe });
     setLoading(false);
 
     if (res.success) {
       if (rememberMe) {
         localStorage.setItem(REMEMBER_LOGIN_KEY, '1');
-        localStorage.setItem(REMEMBER_LOGIN_EMAIL_KEY, email);
-        localStorage.setItem(REMEMBER_LOGIN_PASSWORD_KEY, password);
+        localStorage.setItem(REMEMBER_LOGIN_EMAIL_KEY, emailValue);
+        localStorage.setItem(REMEMBER_LOGIN_PASSWORD_KEY, passwordValue);
       } else {
         localStorage.removeItem(REMEMBER_LOGIN_KEY);
         localStorage.removeItem(REMEMBER_LOGIN_EMAIL_KEY);
@@ -70,7 +79,7 @@ const Login = () => {
       showModal(res.error || 'Please verify your email.', 'info');
       setTimeout(() => {
         setModalVisible(false);
-        navigate('/verify-email', { state: { email } });
+        navigate('/verify-email', { state: { email: emailValue } });
       }, 600);
     } else {
       showModal(res.error || 'Invalid email or password.', 'error');

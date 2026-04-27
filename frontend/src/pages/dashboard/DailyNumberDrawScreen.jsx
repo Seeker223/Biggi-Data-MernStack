@@ -10,30 +10,29 @@ import { DRAW_LETTERS, letterToNumber, numberToLetter } from "../../utils/drawLe
 import { isBiggiHouseMember } from "../../utils/biggiHouse";
 
 const REQUIRED_PICKS = 5;
-const PROMO_PICKS = 3;
+const MONTHLY_TICKET_CAP = 8;
 
 const DailyNumberDrawScreen = () => {
   const navigate = useNavigate();
   const { user, refreshUser } = useContext(AuthContext);
   const [selectedLetters, setSelectedLetters] = useState([]);
-  const [promoLetters, setPromoLetters] = useState(Array(PROMO_PICKS).fill(""));
-  const [promoGridLetters, setPromoGridLetters] = useState([]);
-  const [promoRevealReady, setPromoRevealReady] = useState(false);
-  const [promoWinningGroup, setPromoWinningGroup] = useState(null);
-  const [promoRevealAt, setPromoRevealAt] = useState("");
-  const [promoGridLoading, setPromoGridLoading] = useState(false);
-  const [promoGridError, setPromoGridError] = useState("");
+  const [resultLetters, setResultLetters] = useState([]);
+  const [resultRevealReady, setResultRevealReady] = useState(false);
+  const [resultRevealAt, setResultRevealAt] = useState("");
+  const [resultLoading, setResultLoading] = useState(false);
+  const [resultError, setResultError] = useState("");
+  const [monthlyPurchases, setMonthlyPurchases] = useState(0);
+  const [monthlyRequired, setMonthlyRequired] = useState(25);
   const [submitting, setSubmitting] = useState(false);
   const [successModal, setSuccessModal] = useState(false);
   const [noTicketModal, setNoTicketModal] = useState(false);
   const [toast, setToast] = useState("");
   const [showConfetti, setShowConfetti] = useState(false);
   const toastTimeoutRef = useRef(null);
-  const promoInputRefs = useRef([]);
 
   const tickets = Number(user?.tickets || 0);
   const historyCount = Array.isArray(user?.dailyNumberDraw) ? user.dailyNumberDraw.length : 0;
-  const letters = useMemo(() => DRAW_LETTERS, []);
+  const letters = useMemo(() => DRAW_LETTERS.slice(0, 26), []);
   const isMerchantRole = isBiggiHouseMember(user);
   const isPrivateRole = !isMerchantRole;
   const isMonthlyCardRole = isMerchantRole || isPrivateRole;
@@ -77,7 +76,6 @@ const DailyNumberDrawScreen = () => {
       if (res?.data?.success) {
         await refreshUser?.();
         setSelectedLetters([]);
-        setPromoLetters(Array(PROMO_PICKS).fill(""));
         setSuccessModal(true);
         setShowConfetti(true);
         window.setTimeout(() => setShowConfetti(false), 1800);
@@ -92,66 +90,49 @@ const DailyNumberDrawScreen = () => {
   };
 
   const handleSubmit = () => submitLetters(selectedLetters, REQUIRED_PICKS);
+  const handleClear = () => setSelectedLetters([]);
 
-  const handlePromoSubmit = () => {
-    const lettersOnly = promoLetters.map((l) => l.trim().toUpperCase()).filter(Boolean);
-    if (lettersOnly.length !== PROMO_PICKS || promoLetters.some((l) => !l.trim())) {
-      showToast("Enter exactly 3 letters");
-      return;
-    }
-    submitLetters(lettersOnly, PROMO_PICKS);
-  };
-
-  const handlePromoChange = (index, value) => {
-    const cleaned = value.replace(/[^a-zA-Z]/g, "").slice(0, 1).toUpperCase();
-    setPromoLetters((prev) => {
-      const next = [...prev];
-      next[index] = cleaned;
-      return next;
-    });
-    if (cleaned && promoInputRefs.current[index + 1]) {
-      promoInputRefs.current[index + 1].focus();
-    }
-  };
-
-  const handlePromoKeyDown = (index, event) => {
-    if (event.key === "Backspace" && !promoLetters[index] && promoInputRefs.current[index - 1]) {
-      promoInputRefs.current[index - 1].focus();
-    }
-  };
-
-  const fallbackPromoLetters = useMemo(() => ["a", "c", "e", "g", "i", "k", "m", "o", "q"], []);
-  const displayPromoGridLetters = promoGridLetters.length ? promoGridLetters : fallbackPromoLetters;
+  const fallbackResultLetters = useMemo(() => ["A", "C", "E", "G", "I", "K", "M", "O", "Q"], []);
+  const displayResultLetters = resultLetters.length ? resultLetters : fallbackResultLetters;
+  const monthlyTowardNext = monthlyRequired > 0 ? monthlyPurchases % monthlyRequired : 0;
+  const monthlyToNextTicket =
+    monthlyRequired > 0 ? (monthlyTowardNext === 0 ? monthlyRequired : monthlyRequired - monthlyTowardNext) : 0;
 
   useEffect(() => {
     if (!isMonthlyCardRole) return;
     let mounted = true;
-    setPromoGridLoading(true);
-    setPromoGridError("");
-    api
-      .get("/daily-game/merchant-card")
-      .then((res) => {
+    setResultLoading(true);
+    setResultError("");
+
+    Promise.allSettled([api.get("/daily-game/merchant-card"), api.get("/monthly-game/eligibility")])
+      .then((results) => {
         if (!mounted) return;
-        const payload = res?.data || {};
+
+        const merchantCardRes = results?.[0]?.status === "fulfilled" ? results[0].value : null;
+        const eligibilityRes = results?.[1]?.status === "fulfilled" ? results[1].value : null;
+
+        const payload = merchantCardRes?.data || {};
         const letters = Array.isArray(payload.letters)
           ? payload.letters
               .map((value) => numberToLetter(value))
-              .map((letter) => String(letter || "").toLowerCase())
+              .map((letter) => String(letter || "").toUpperCase())
           : [];
-        setPromoGridLetters(letters);
-        setPromoRevealReady(Boolean(payload.revealReady));
-        setPromoWinningGroup(
-          Number.isInteger(payload.winningGroupIndex) ? payload.winningGroupIndex : null
-        );
-        setPromoRevealAt(payload.revealAt || "");
+
+        setResultLetters(letters);
+        setResultRevealReady(Boolean(payload.revealReady));
+        setResultRevealAt(payload.revealAt || "");
+
+        const eligibility = eligibilityRes?.data?.eligibility || {};
+        setMonthlyPurchases(Number(eligibility.purchases || 0));
+        setMonthlyRequired(25);
       })
       .catch((err) => {
         if (!mounted) return;
-        setPromoGridError(err?.response?.data?.message || "Unable to load weekly card");
+        setResultError(err?.response?.data?.message || "Unable to load monthly card");
       })
       .finally(() => {
         if (!mounted) return;
-        setPromoGridLoading(false);
+        setResultLoading(false);
       });
     return () => {
       mounted = false;
@@ -190,72 +171,71 @@ const DailyNumberDrawScreen = () => {
         <PromoBody>
           <PromoCard>
             <PromoBrand>BIGGI DATA BUNDLE SERVICES</PromoBrand>
-            <PromoTitle>PROMO TICKET</PromoTitle>
-            <PromoSubtitle>Predict three (3) letters from A - Z</PromoSubtitle>
+            <PromoTitle>MONTHLY CARD GAME</PromoTitle>
+            <PromoSubtitle>
+              Select exactly 5 letters (A - Z). Uses 1 ticket per play. Results are released at month end.
+            </PromoSubtitle>
+            <PromoSubtitle>
+              Tickets available: {MONTHLY_TICKET_CAP}. Earn 1 ticket per 25 purchases • {monthlyToNextTicket} to next
+              ticket.
+            </PromoSubtitle>
 
-            <PromoGridWrap>
-              {[0, 1, 2].map((group) => (
-                <PromoGridGroup
-                  key={`group-${group}`}
-                  $winner={promoRevealReady && promoWinningGroup === group}
-                >
-                  {[0, 1, 2].map((col) => {
-                    const idx = group * 3 + col;
-                    return (
-                      <PromoGridBox
-                        key={`grid-${idx}`}
-                        aria-hidden="true"
-                        $winner={promoRevealReady && promoWinningGroup === group}
-                      >
-                        {promoRevealReady ? displayPromoGridLetters[idx] : "?"}
-                      </PromoGridBox>
-                    );
-                  })}
-                </PromoGridGroup>
+            <ResultTitle>Monthly result (9 letters)</ResultTitle>
+            <ResultGrid aria-label="Monthly result letters">
+              {Array.from({ length: 9 }, (_, idx) => (
+                <ResultBox key={`result-${idx}`} aria-hidden="true">
+                  {resultRevealReady ? displayResultLetters[idx] : "?"}
+                </ResultBox>
               ))}
-            </PromoGridWrap>
-            {promoGridLoading ? (
+            </ResultGrid>
+
+            {resultLoading ? (
               <PromoHint>Loading monthly card...</PromoHint>
-            ) : promoGridError ? (
-              <PromoHint role="button" onClick={() => setPromoGridError("")}>
-                {promoGridError}
+            ) : resultError ? (
+              <PromoHint role="button" onClick={() => setResultError("")}>
+                {resultError}
               </PromoHint>
             ) : (
               <PromoHint>
-                {promoRevealReady
-                  ? "Winning set revealed for this month."
-                  : promoRevealAt
-                  ? `Reveal on ${new Date(promoRevealAt).toLocaleDateString()}`
-                  : "Reveal at month end"}
+                {resultRevealReady
+                  ? "Result revealed for this month."
+                  : resultRevealAt
+                  ? `Reveals on ${new Date(resultRevealAt).toLocaleDateString()}`
+                  : "Reveals at month end"}
               </PromoHint>
             )}
 
-            <PromoBoxes>
-              {promoLetters.map((value, index) => (
-                <PromoInput
-                  key={`promo-${index}`}
-                  ref={(el) => {
-                    promoInputRefs.current[index] = el;
-                  }}
-                  value={value}
-                  onChange={(e) => handlePromoChange(index, e.target.value)}
-                  onKeyDown={(e) => handlePromoKeyDown(index, e)}
-                  maxLength={1}
-                  inputMode="text"
-                  aria-label={`Promo letter ${index + 1}`}
-                />
-              ))}
-            </PromoBoxes>
-
-            <PromoDate>Promo date: April - June 2026</PromoDate>
+            <ChooseText $promo>Choose 5 letters</ChooseText>
+            <Grid>
+              {letters.map((letter) => {
+                const selected = selectedLetters.includes(letter);
+                return (
+                  <LetterBox key={letter} $selected={selected} onClick={() => toggleLetter(letter)}>
+                    {letter}
+                  </LetterBox>
+                );
+              })}
+            </Grid>
 
             <PromoActions>
               <PromoTicketRow>
                 <Ticket size={18} color="#f7c59f" />
                 <span>{tickets} Tickets Left</span>
               </PromoTicketRow>
-              <PromoSubmit onClick={handlePromoSubmit} disabled={submitting || promoLetters.some((l) => !l.trim())}>
-                {submitting ? "Submitting..." : "Submit Ticket"}
+              <PromoSelectedRow>
+                <span>
+                  Selected ({selectedLetters.length}/{REQUIRED_PICKS}):{" "}
+                  {selectedLetters.length ? selectedLetters.join(" ") : "-"}
+                </span>
+                <PromoClear type="button" onClick={handleClear} disabled={!selectedLetters.length || submitting}>
+                  Clear
+                </PromoClear>
+              </PromoSelectedRow>
+              <PromoSubmit
+                onClick={handleSubmit}
+                disabled={submitting || selectedLetters.length !== REQUIRED_PICKS}
+              >
+                {submitting ? "Submitting..." : "Submit Entry"}
               </PromoSubmit>
             </PromoActions>
           </PromoCard>
@@ -301,7 +281,7 @@ const DailyNumberDrawScreen = () => {
           <ModalCard>
             <CheckCircle2 size={64} color="#4cd964" />
             <ModalTitle>Submitted</ModalTitle>
-            <ModalMessage>Your letters were entered. Weekly results are released at month end.</ModalMessage>
+            <ModalMessage>Your entry was submitted. Monthly results are released at month end.</ModalMessage>
             <ModalButton onClick={() => setSuccessModal(false)}>OK</ModalButton>
           </ModalCard>
         </Overlay>
@@ -451,58 +431,32 @@ const PromoSubtitle = styled.p`
   font-size: 14px;
 `;
 
-const PromoBoxes = styled.div`
+const ResultTitle = styled.p`
+  margin: 0 0 10px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 13px;
+  font-weight: 700;
+`;
+
+const ResultGrid = styled.div`
+  width: min(250px, 100%);
+  margin: 0 auto 14px;
   display: grid;
-  grid-template-columns: repeat(3, minmax(48px, 1fr));
+  grid-template-columns: repeat(3, minmax(44px, 1fr));
   gap: 10px;
-  margin-bottom: 18px;
 `;
 
-const PromoGridWrap = styled.div`
-  display: flex;
-  justify-content: center;
-  gap: 18px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-
-  @media (max-width: 420px) {
-    gap: 10px;
-  }
-`;
-
-const PromoGridGroup = styled.div`
-  display: grid;
-  grid-template-columns: repeat(3, minmax(40px, 1fr));
-  gap: 6px;
-  padding: 4px;
+const ResultBox = styled.div`
+  height: 48px;
   border-radius: 12px;
-  background: ${(p) => (p.$winner ? "rgba(241, 182, 122, 0.2)" : "transparent")};
-  box-shadow: ${(p) =>
-    p.$winner ? "0 0 0 1px rgba(241, 182, 122, 0.45)" : "none"};
-
-  @media (max-width: 420px) {
-    grid-template-columns: repeat(3, minmax(34px, 1fr));
-    gap: 4px;
-    padding: 3px;
-  }
-`;
-
-const PromoGridBox = styled.div`
-  height: 44px;
-  border-radius: 10px;
-  background: #ffffff;
-  color: ${(p) => (p.$winner ? "#9a3412" : "#111")};
+  background: rgba(255, 255, 255, 0.92);
+  color: #111;
   display: grid;
   place-items: center;
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: lowercase;
+  font-size: 16px;
+  font-weight: 900;
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
-
-  @media (max-width: 420px) {
-    height: 36px;
-    font-size: 11px;
-  }
 `;
 
 const PromoHint = styled.p`
@@ -510,32 +464,6 @@ const PromoHint = styled.p`
   text-align: center;
   color: rgba(255, 255, 255, 0.7);
   font-size: 12px;
-`;
-
-const PromoInput = styled.input`
-  height: 48px;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
-  text-align: center;
-  font-size: 18px;
-  font-weight: 700;
-  text-transform: uppercase;
-  outline: none;
-
-  &:focus {
-    border-color: #7ac5d8;
-    box-shadow: 0 0 0 2px rgba(122, 197, 216, 0.3);
-  }
-`;
-
-const PromoDate = styled.p`
-  margin: 6px 0 18px;
-  text-align: center;
-  color: #f7c59f;
-  font-size: 13px;
-  font-weight: 600;
 `;
 
 const PromoActions = styled.div`
@@ -551,6 +479,33 @@ const PromoTicketRow = styled.div`
   gap: 8px;
   color: rgba(255, 255, 255, 0.86);
   font-size: 13px;
+`;
+
+const PromoSelectedRow = styled.div`
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 12px;
+
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+`;
+
+const PromoClear = styled.button`
+  border: none;
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.9);
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-weight: 700;
+  cursor: ${(p) => (p.disabled ? "not-allowed" : "pointer")};
+  opacity: ${(p) => (p.disabled ? 0.55 : 1)};
 `;
 
 const PromoSubmit = styled.button`

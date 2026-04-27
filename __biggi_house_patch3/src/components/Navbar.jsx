@@ -172,8 +172,68 @@ const MobileLogout = styled.button`
   text-align: left;
 `;
 
+const ModalBackdrop = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 12, 24, 0.35);
+  display: grid;
+  place-items: center;
+  z-index: 80;
+  padding: 20px;
+`;
+
+const ModalCard = styled.div`
+  width: min(520px, 100%);
+  background: #fff;
+  border-radius: 20px;
+  padding: 22px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  box-shadow: ${({ theme }) => theme.shadows.soft};
+  display: grid;
+  gap: 12px;
+`;
+
+const ModalTitle = styled.h2`
+  margin: 0;
+  font-size: 18px;
+`;
+
+const ModalText = styled.p`
+  margin: 0;
+  color: ${({ theme }) => theme.colors.muted};
+  line-height: 1.5;
+`;
+
+const ModalActions = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+`;
+
+const ModalGhost = styled.button`
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  background: #fff;
+  font-weight: 900;
+  cursor: pointer;
+`;
+
+const ModalPrimary = styled.button`
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: none;
+  background: ${({ theme }) => theme.gradients.brand};
+  color: #fff;
+  font-weight: 900;
+  cursor: pointer;
+`;
+
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const { user, logout } = useAuth();
   const isAdmin = String(user?.role || "").toLowerCase() === "admin";
   const navigate = useNavigate();
@@ -190,6 +250,7 @@ export default function Navbar() {
   const handleLogout = () => {
     logout();
     setOpen(false);
+    setConfirmOpen(false);
     navigate("/");
   };
 
@@ -232,7 +293,11 @@ export default function Navbar() {
           ) : (
             <>
               <SolidButton to="/dashboard">Dashboard</SolidButton>
-              <OutlineButton as="button" type="button" onClick={handleLogout}>
+              <OutlineButton
+                as="button"
+                type="button"
+                onClick={() => setConfirmOpen(true)}
+              >
                 Logout
               </OutlineButton>
             </>
@@ -304,12 +369,36 @@ export default function Navbar() {
                 >
                   Dashboard
                 </MobileButton>
-                <MobileLogout onClick={handleLogout}>Logout</MobileLogout>
+                <MobileLogout onClick={() => setConfirmOpen(true)}>
+                  Logout
+                </MobileLogout>
               </>
             )}
           </MobileActions>
         </Container>
       </MobileMenu>
+
+      {confirmOpen ? (
+        <ModalBackdrop
+          role="dialog"
+          aria-modal="true"
+          aria-label="Confirm logout"
+          onClick={() => setConfirmOpen(false)}
+        >
+          <ModalCard onClick={(e) => e.stopPropagation()}>
+            <ModalTitle>Confirm logout</ModalTitle>
+            <ModalText>Are you sure you want to log out?</ModalText>
+            <ModalActions>
+              <ModalGhost type="button" onClick={() => setConfirmOpen(false)}>
+                Cancel
+              </ModalGhost>
+              <ModalPrimary type="button" onClick={handleLogout}>
+                Logout
+              </ModalPrimary>
+            </ModalActions>
+          </ModalCard>
+        </ModalBackdrop>
+      ) : null}
     </NavWrap>
   );
 }

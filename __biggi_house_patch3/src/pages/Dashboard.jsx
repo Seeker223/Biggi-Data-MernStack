@@ -120,6 +120,65 @@ const ActivityItem = styled.li`
   border-radius: ${({ theme }) => theme.radius.sm};
 `;
 
+const ModalBackdrop = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 12, 24, 0.35);
+  display: grid;
+  place-items: center;
+  z-index: 60;
+  padding: 20px;
+`;
+
+const ModalCard = styled.div`
+  width: min(520px, 100%);
+  background: #fff;
+  border-radius: 20px;
+  padding: 22px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  box-shadow: ${({ theme }) => theme.shadows.soft};
+  display: grid;
+  gap: 12px;
+`;
+
+const ModalTitle = styled.h2`
+  margin: 0;
+  font-size: 18px;
+`;
+
+const ModalText = styled.p`
+  margin: 0;
+  color: ${({ theme }) => theme.colors.muted};
+  line-height: 1.5;
+`;
+
+const ModalActions = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+`;
+
+const ModalGhost = styled.button`
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  background: #fff;
+  font-weight: 900;
+  cursor: pointer;
+`;
+
+const ModalPrimary = styled.button`
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: none;
+  background: ${({ theme }) => theme.gradients.brand};
+  color: #fff;
+  font-weight: 900;
+  cursor: pointer;
+`;
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -129,6 +188,7 @@ export default function Dashboard() {
   const [access, setAccess] = useState(null);
   const [loadingData, setLoadingData] = useState(false);
   const [error, setError] = useState("");
+  const [logoutOpen, setLogoutOpen] = useState(false);
 
   const token = useMemo(() => getAuthToken(), []);
 
@@ -207,6 +267,7 @@ export default function Dashboard() {
   const needsWeeklyPurchase = Boolean(gameEnabled && requireWeeklyPurchase && !weeklyPurchaseOk);
 
   const handleLogout = () => {
+    setLogoutOpen(false);
     logout();
     navigate("/");
   };
@@ -239,7 +300,7 @@ export default function Dashboard() {
           {memberships.length > 0 && (
             <WarningButton onClick={handleLeaveHouse}>View houses</WarningButton>
           )}
-          <GhostButton onClick={handleLogout}>Logout</GhostButton>
+          <GhostButton onClick={() => setLogoutOpen(true)}>Logout</GhostButton>
         </div>
       </Header>
 
@@ -363,6 +424,28 @@ export default function Dashboard() {
           )}
         </Card>
       </Grid>
+
+      {logoutOpen ? (
+        <ModalBackdrop
+          role="dialog"
+          aria-modal="true"
+          aria-label="Confirm logout"
+          onClick={() => setLogoutOpen(false)}
+        >
+          <ModalCard onClick={(e) => e.stopPropagation()}>
+            <ModalTitle>Confirm logout</ModalTitle>
+            <ModalText>Are you sure you want to log out?</ModalText>
+            <ModalActions>
+              <ModalGhost type="button" onClick={() => setLogoutOpen(false)}>
+                Cancel
+              </ModalGhost>
+              <ModalPrimary type="button" onClick={handleLogout}>
+                Logout
+              </ModalPrimary>
+            </ModalActions>
+          </ModalCard>
+        </ModalBackdrop>
+      ) : null}
     </Wrapper>
   );
 }

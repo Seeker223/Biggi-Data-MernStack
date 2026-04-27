@@ -78,6 +78,18 @@ const Button = styled.button`
   cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
 `;
 
+const ButtonLink = styled(Link)`
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: none;
+  background: ${({ theme }) => theme.gradients.brand};
+  color: #fff;
+  font-weight: 600;
+  text-align: center;
+  display: inline-block;
+`;
+
 const ButtonStack = styled.div`
   margin-top: 10px;
   display: grid;
@@ -249,9 +261,7 @@ export default function Signup() {
             <Button type="submit" disabled={loading}>
               {loading ? "Creating account..." : "Create account"}
             </Button>
-            <Button as={Link} to="/login" type="button">
-              Login
-            </Button>
+            <ButtonLink to="/login">Login</ButtonLink>
           </ButtonStack>
         </form>
       </Card>

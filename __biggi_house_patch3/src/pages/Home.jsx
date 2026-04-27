@@ -595,6 +595,19 @@ export default function Home() {
     navigate("/weekly-card-game");
   };
 
+  const confirmLogout = () => {
+    if (!user) return;
+    setModal({
+      title: "Confirm logout",
+      text: "Are you sure you want to log out?",
+      primaryLabel: "Logout",
+      primaryAction: () => {
+        logout();
+        navigate("/");
+      },
+    });
+  };
+
   return (
     <>
       <HeroSection>
@@ -621,7 +634,7 @@ export default function Home() {
               ) : (
                 <>
                   <PrimaryButton to="/houses">Join a House</PrimaryButton>
-                  <GhostActionButton type="button" onClick={logout}>
+                  <GhostActionButton type="button" onClick={confirmLogout}>
                     Sign out
                   </GhostActionButton>
                 </>
@@ -843,7 +856,9 @@ export default function Home() {
                   type="button"
                   onClick={() => {
                     const to = modal.primaryTo;
+                    const act = modal.primaryAction;
                     setModal(null);
+                    if (typeof act === "function") return act();
                     if (to) navigate(to);
                   }}
                 >
