@@ -1,0 +1,1106 @@
+import axios from "axios";
+import mongoose from "mongoose";
+import User from "../models/User.js";
+import Deposit from "../models/Deposit.js";
+import WebhookHealth from "../models/WebhookHealth.js";
+import DepositCreditLog from "../models/DepositCreditLog.js";
+import BiggiHouseWallet from "../models/BiggiHouseWallet.js";
+import {
+  logWalletTransaction,
+  updateWalletTransactionStatus,
+} from "../utils/wallet.js";
+import { logPlatformDepositFee } from "../utils/platformLedger.js";
+import { verifyTransactionAuthorization } from "../utils/transactionAuth.js";
+import { getDepositFeeSettings, computeDepositFee } from "../utils/depositFee.js";
+import { sendUserEmail } from "../utils/transactionalEmail.js";
+/* =====================================================
+   VERIFY FLUTTERWAVE PAYMENT (SDK → BACKEND)
+===================================================== */
+export const verifyFlutterwavePayment = async (req, res) => {
+  let tx_ref; // Declare here for catch block access
+  
+  try {
+    const { tx_ref: txRefFromBody, biometricProof: biometricProofFromBody, transactionPin: txPinFromBody } = req.body;
+    tx_ref = txRefFromBody;
+    const biometricProof = String(biometricProofFromBody || "").trim();
+    const transactionPin = String(txPinFromBody || "").trim();
+    const userId = req.user.id;
+    const requestedAmount = Number(req.body?.amount || 0);
+    if (!Number.isFinite(requestedAmount) || requestedAmount <= 0) {
+      return res.status(400).json({ success: false, message: "Amount is required" });
+    }
+
+    if (!tx_ref) {
+      return res.status(400).json({ success: false, message: "tx_ref required" });
+    }
+
+    const response = await axios.get(
+      `https://api.flutterwave.com/v3/transactions/verify_by_reference?tx_ref=${tx_ref}`,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`,
+        },
+      }
+    );
+
+    const payment = response.data?.data;
+
+    if (!payment) {
+      return res.status(400).json({
+        success: false,
+        message: "Payment verification failed",
+      });
+    }
+
+    const existingDeposit = await Deposit.findOne({ reference: tx_ref, user: userId });
+    
+    if (existingDeposit && existingDeposit.status === "successful") {
+      if (existingDeposit.credited) {
+        console.warn("⚠️ Deposit already credited (verify):", {
+          reference: tx_ref,
+          user: userId,
+          amount: Number(existingDeposit.amount || 0),
+        });
+        await DepositCreditLog.create({
+          user: userId,
+          reference: tx_ref,
+          amount: Number(existingDeposit.amount || 0),
+          source: "verify",
+          note: "already_credited",
+        });
+      }
+      return res.json({
+        success: true,
+        message: "Payment already processed",
+        tx_ref: payment.tx_ref,
+        amount: Number(existingDeposit.amount || payment.amount || 0),
+        serviceCharge: Number(existingDeposit.serviceCharge || 0),
+        totalAmount: Number(existingDeposit.totalAmount || payment.amount || 0),
+        balance: await getCurrentBalance(userId),
+      });
+    }
+
+    if (payment.status === "successful") {
+      const user = await User.findById(userId).select("+transactionPinHash");
+      
+      if (!user) {
+        return res.status(404).json({ success: false, message: "User not found" });
+      }
+
+      const authCheck = await verifyTransactionAuthorization({
+        user,
+        expectedAction: "deposit",
+        expectedAmount: Number(payment.amount || 0),
+        biometricProof,
+        transactionPin,
+      });
+      if (!authCheck.ok) {
+        return res.status(400).json({
+          success: false,
+          message: authCheck.message,
+        });
+      }
+
+      const feeSettings = await getDepositFeeSettings();
+      const serviceCharge = computeDepositFee(requestedAmount, feeSettings);
+      const expectedTotal = Number(requestedAmount) + Number(serviceCharge || 0);
+      const paidAmount = Number(payment.amount || 0);
+      if (Math.round(paidAmount) !== Math.round(expectedTotal)) {
+        return res.status(400).json({
+          success: false,
+          message: "Payment amount does not match expected total",
+          expectedTotal,
+          paidAmount,
+        });
+      }
+
+      let deposit;
+      if (existingDeposit && existingDeposit.status === "successful" && existingDeposit.credited) {
+        existingDeposit.status = "successful";
+        existingDeposit.flutterwaveTransactionId = payment.id;
+        existingDeposit.gatewayResponse = payment;
+        await existingDeposit.save();
+        deposit = existingDeposit;
+      } else {
+        deposit = await Deposit.create({
+          user: userId,
+          amount: requestedAmount,
+          serviceCharge,
+          totalAmount: paidAmount,
+          reference: tx_ref,
+          status: "successful",
+          channel: "flutterwave",
+          flutterwaveTransactionId: payment.id,
+          gatewayResponse: payment,
+          credited: true,
+          creditedAt: new Date(),
+        });
+      }
+
+      user.mainBalance += Number(requestedAmount);
+      user.totalDeposits += Number(requestedAmount);
+      await user.save();
+
+      if (deposit && !deposit.credited) {
+        deposit.credited = true;
+        deposit.creditedAt = new Date();
+        await deposit.save();
+      }
+
+      const updated = await updateWalletTransactionStatus(
+        userId,
+        tx_ref,
+        "success",
+        { action: "deposit", channel: "flutterwave" }
+      );
+      if (!updated) {
+        await logWalletTransaction(
+          userId,
+          "deposit",
+          requestedAmount,
+          tx_ref,
+          "success"
+        );
+      }
+
+      if (serviceCharge > 0) {
+        await logPlatformDepositFee({ userId, reference: tx_ref, revenue: serviceCharge });
+      }
+
+      await sendUserEmail({
+        userId,
+        type: "deposit",
+        email: user.email,
+        subject: "Deposit Successful",
+        title: "Deposit Successful",
+        bodyLines: [
+          "Your deposit has been credited to your wallet.",
+          `Amount credited: ${formatNaira(requestedAmount)}.`,
+          `Service charge: ${formatNaira(serviceCharge || 0)}.`,
+          `Total paid: ${formatNaira(paidAmount)}.`,
+          `Reference: ${tx_ref}.`,
+        ],
+      });
+
+      console.log("✅ Wallet credited via verification API:", tx_ref);
+
+      return res.json({
+        success: true,
+        message: "Payment verified and wallet credited",
+        tx_ref: payment.tx_ref,
+        amount: requestedAmount,
+        serviceCharge,
+        totalAmount: paidAmount,
+        balance: user.mainBalance,
+      });
+    } else {
+      await Deposit.findOneAndUpdate(
+        { reference: tx_ref },
+        {
+          user: userId,
+          amount: payment.amount || 0,
+          reference: tx_ref,
+          status: "failed",
+          channel: "flutterwave",
+          flutterwaveTransactionId: payment.id,
+          gatewayResponse: payment,
+        },
+        { upsert: true, new: true }
+      );
+
+      return res.status(400).json({
+        success: false,
+        message: `Payment ${payment.status}`,
+        tx_ref: payment.tx_ref,
+      });
+    }
+  } catch (err) {
+    console.error("Verify error:", err.response?.data || err.message);
+    
+    if (tx_ref) {
+      const deposit = await Deposit.findOne({ reference: tx_ref });
+      if (deposit && deposit.status === "successful") {
+        const userId = req.user?.id;
+        return res.json({
+          success: true,
+          message: "Payment already processed",
+          balance: userId ? await getCurrentBalance(userId) : 0,
+        });
+      }
+    }
+    
+    return res.status(500).json({ 
+      success: false, 
+      message: "Verification failed",
+      error: err.message 
+    });
+  }
+};
+
+/* =====================================================
+   HELPER: GET CURRENT BALANCE
+===================================================== */
+const getCurrentBalance = async (userId) => {
+  try {
+    const user = await User.findById(userId).select("mainBalance");
+    return user ? user.mainBalance : 0;
+  } catch (error) {
+    console.error("Balance fetch error:", error);
+    return 0;
+  }
+};
+
+const deriveWalletCreditFromTotal = (totalAmount, feeSettings) => {
+  const total = Number(totalAmount || 0);
+  if (!Number.isFinite(total) || total <= 0) return 0;
+  if (!feeSettings || feeSettings.enabled === false) return Math.round(total);
+
+  const flat = Number(feeSettings.flatFee || 0);
+  const pct = Number(feeSettings.percentFee || 0);
+
+  if (pct <= 0) {
+    return Math.max(0, Math.round(total - flat));
+  }
+
+  let estimate = Math.max(0, Math.round((total - flat) / (1 + pct / 100)));
+  for (let i = 0; i < 3; i += 1) {
+    const fee = computeDepositFee(estimate, feeSettings);
+    const recomputed = Math.max(0, Math.round(total - fee));
+    if (recomputed === estimate) break;
+    estimate = recomputed;
+  }
+
+  return Math.max(0, estimate);
+};
+
+const formatNaira = (value) => `N${Number(value || 0).toLocaleString()}`;
+/* =====================================================
+   FLUTTERWAVE WEBHOOK (PRIMARY WALLET CREDITING) - FIXED
+===================================================== */
+export const flutterwaveWebhook = async (req, res) => {
+  try {
+    const signature = req.headers["verif-hash"];
+    const debugEnabled =
+      process.env.NODE_ENV !== "production" ||
+      String(process.env.ENABLE_DEBUG_ROUTES || "false").toLowerCase() === "true";
+    const allowDebugBypass = debugEnabled && String(req.query?.debug || "") === "1";
+
+    if (!allowDebugBypass) {
+      if (!signature || signature !== process.env.FLUTTERWAVE_WEBHOOK_SECRET) {
+        console.error("Invalid webhook signature");
+        return res.sendStatus(401);
+      }
+    }
+
+    let payload;
+    try {
+      if (Buffer.isBuffer(req.body)) {
+        const rawBodyString = req.body.toString("utf8");
+        payload = JSON.parse(rawBodyString);
+      } else if (typeof req.body === "string") {
+        payload = JSON.parse(req.body);
+      } else if (req.body && typeof req.body === "object") {
+        payload = req.body;
+      } else {
+        throw new Error("Unsupported webhook body");
+      }
+    } catch (parseError) {
+      console.error("Failed to parse webhook body:", parseError.message);
+      return res.sendStatus(400);
+    }
+
+    const { event, data } = payload || {};
+
+    let healthRecord = null;
+    const updateHealth = async (patch) => {
+      if (!healthRecord?._id) return;
+      try {
+        await WebhookHealth.findByIdAndUpdate(healthRecord._id, { $set: patch });
+      } catch (err) {
+        console.error("WebhookHealth update failed:", err.message);
+      }
+    };
+
+    try {
+      healthRecord = await WebhookHealth.create({
+        provider: "flutterwave",
+        event: event || "",
+        reference: data?.tx_ref || data?.reference || "",
+        amount: Number(data?.amount || 0),
+        accountNumber:
+          data?.meta?.virtual_account?.account_number ||
+          data?.meta?.account_number ||
+          data?.account_number ||
+          "",
+        customerEmail: data?.customer?.email || "",
+        status: data?.status || "",
+        raw: payload,
+        resolvedUserId: "",
+        resolutionMethod: "",
+        walletCredit: 0,
+        serviceCharge: 0,
+        processed: false,
+        note: "",
+      });
+    } catch (healthError) {
+      console.error("WebhookHealth write failed:", healthError.message);
+    }
+
+    if (event !== "charge.completed") {
+      await updateHealth({ note: "ignored_event" });
+      return res.sendStatus(200);
+    }
+
+    const { tx_ref, status, amount, id, currency } = data || {};
+    const reference = String(
+      tx_ref ||
+        data?.reference ||
+        data?.flw_ref ||
+        data?.flwRef ||
+        data?.FlwRef ||
+        data?.id ||
+        ""
+    ).trim();
+
+    if (!reference || !amount) {
+      await updateHealth({ note: "missing_reference_or_amount" });
+      return res.sendStatus(200);
+    }
+
+    const accountNumber =
+      data?.meta?.virtual_account?.account_number ||
+      data?.meta?.account_number ||
+      data?.account_number ||
+      data?.accountNumber ||
+      "";
+
+    const accountId =
+      data?.account_id ||
+      data?.accountId ||
+      data?.AccountId ||
+      data?.account?.id ||
+      "";
+
+    const resolveUserIdFromRef = (ref) => {
+      const parts = String(ref || "").split("_");
+      const candidate = parts.find((part) => mongoose.Types.ObjectId.isValid(part));
+      return candidate || null;
+    };
+
+    let resolutionMethod = "";
+    let userId = null;
+    let creditTarget = "biggidata"; // or "biggihouse"
+
+    if (accountNumber) {
+      const userByBiggiHouseAccount = await User.findOne({
+        "biggiHouseVirtualAccount.accountNumber": accountNumber,
+      }).select("_id");
+      userId = userByBiggiHouseAccount?._id?.toString() || null;
+      if (userId) {
+        resolutionMethod = "biggiHouseAccountNumber";
+        creditTarget = "biggihouse";
+      } else {
+        const userByAccount = await User.findOne({
+          "flutterwaveVirtualAccount.accountNumber": accountNumber,
+        }).select("_id");
+        userId = userByAccount?._id?.toString() || null;
+        if (userId) resolutionMethod = "accountNumber";
+      }
+    }
+
+    if (!userId && accountId) {
+      const userByBiggiHouseAccountId = await User.findOne({
+        $or: [
+          { "biggiHouseVirtualAccount.meta.account_id": accountId },
+          { "biggiHouseVirtualAccount.meta.accountId": accountId },
+          { "biggiHouseVirtualAccount.meta.AccountId": accountId },
+          { "biggiHouseVirtualAccount.meta.id": accountId },
+        ],
+      }).select("_id");
+      userId = userByBiggiHouseAccountId?._id?.toString() || null;
+      if (userId) {
+        resolutionMethod = "biggiHouseAccountId";
+        creditTarget = "biggihouse";
+      } else {
+        const userByAccountId = await User.findOne({
+          $or: [
+            { "flutterwaveVirtualAccount.meta.account_id": accountId },
+            { "flutterwaveVirtualAccount.meta.accountId": accountId },
+            { "flutterwaveVirtualAccount.meta.AccountId": accountId },
+            { "flutterwaveVirtualAccount.meta.id": accountId },
+          ],
+        }).select("_id");
+        userId = userByAccountId?._id?.toString() || null;
+        if (userId) resolutionMethod = "accountId";
+      }
+    }
+
+    if (!userId) {
+      userId = resolveUserIdFromRef(reference);
+      if (userId) resolutionMethod = "reference";
+    }
+
+    // Fallback: BiggiHouse static VA transfers sometimes arrive without account_number in webhook payload.
+    // Our BiggiHouse tx_ref is generated as `bhva_<userId>_<timestamp>` so we can route credit correctly.
+    if (creditTarget !== "biggihouse" && String(reference || "").startsWith("bhva_")) {
+      creditTarget = "biggihouse";
+      if (!resolutionMethod) resolutionMethod = "reference_prefix_bhva";
+    }
+
+    if (!userId && data?.customer?.email) {
+      const userByEmail = await User.findOne({
+        email: String(data.customer.email).toLowerCase(),
+      }).select("_id");
+      userId = userByEmail?._id?.toString() || null;
+      if (userId) resolutionMethod = "email";
+    }
+
+    if (userId) {
+      await updateHealth({ resolvedUserId: userId, resolutionMethod });
+    }
+
+    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+      await updateHealth({ note: "user_not_found" });
+      return res.sendStatus(200);
+    }
+
+    let walletCredit = 0;
+    let serviceCharge = 0;
+    const totalPaid = Number(amount || 0);
+
+    let session = null;
+    try {
+      session = await mongoose.startSession();
+      session.startTransaction();
+    } catch (txnError) {
+      session = null;
+    }
+
+    const runWebhookCredit = async (activeSession = null) => {
+      const userQuery = User.findById(userId);
+      const user = activeSession ? await userQuery.session(activeSession) : await userQuery;
+      if (!user) {
+        if (activeSession) await activeSession.abortTransaction();
+        await updateHealth({ note: "user_not_found" });
+        return res.sendStatus(200);
+      }
+
+      // BiggiHouse static virtual account deposits should credit the BiggiHouse wallet only (independent ledger).
+      if (creditTarget === "biggihouse") {
+        const walletQuery = BiggiHouseWallet.findOne({ userId });
+        let bhWallet = activeSession ? await walletQuery.session(activeSession) : await walletQuery;
+        if (!bhWallet) {
+          const created = await BiggiHouseWallet.create(
+            [{ userId, balance: 0, currency: "NGN" }],
+            activeSession ? { session: activeSession } : {}
+          );
+          bhWallet = created?.[0] || null;
+        }
+
+        const already = (bhWallet.transactions || []).find((t) => t.reference === reference);
+        if (already) {
+          if (activeSession) await activeSession.abortTransaction();
+          await updateHealth({ processed: true, note: "biggihouse_already_processed" });
+          return res.sendStatus(200);
+        }
+
+        // BiggiHouse static VA deposits use an app-specific fee (2%).
+        walletCredit = deriveWalletCreditFromTotal(totalPaid, {
+          enabled: true,
+          flatFee: 0,
+          percentFee: 2,
+          minFee: 0,
+          maxFee: 0,
+        });
+        serviceCharge = Math.max(0, Math.round(totalPaid - walletCredit));
+
+        if (String(status || "").toLowerCase() !== "successful") {
+          if (activeSession) await activeSession.abortTransaction();
+          await updateHealth({ processed: false, note: "biggihouse_payment_failed" });
+          return res.sendStatus(200);
+        }
+
+        if (walletCredit <= 0) {
+          if (activeSession) await activeSession.abortTransaction();
+          await updateHealth({
+            note: "biggihouse_wallet_credit_zero",
+            walletCredit: walletCredit || 0,
+            serviceCharge: serviceCharge || 0,
+          });
+          return res.sendStatus(200);
+        }
+
+        const previousBalance = Number(bhWallet.balance || 0);
+        bhWallet.balance = previousBalance + walletCredit;
+        bhWallet.lastUpdated = new Date();
+        bhWallet.transactions.unshift({
+          type: "deposit",
+          amount: walletCredit,
+          status: "completed",
+          reference,
+          meta: {
+            action: "biggihouse_deposit",
+            channel: "flutterwave_webhook",
+            serviceCharge,
+            totalPaid,
+            previousBalance,
+            newBalance: bhWallet.balance,
+          },
+        });
+        bhWallet.transactions = (bhWallet.transactions || []).slice(0, 100);
+        await bhWallet.save(activeSession ? { session: activeSession } : {});
+
+        if (activeSession) {
+          await activeSession.commitTransaction();
+        }
+
+        await updateHealth({
+          processed: true,
+          walletCredit,
+          serviceCharge,
+          note: `biggihouse_credited_${resolutionMethod || "webhook"}`,
+        });
+
+        return res.sendStatus(200);
+      }
+
+      const depositQuery = Deposit.findOne({ reference });
+      const existingDeposit = activeSession ? await depositQuery.session(activeSession) : await depositQuery;
+
+      if (existingDeposit && existingDeposit.status === "successful" && existingDeposit.credited) {
+        console.warn("⚠️ Webhook already credited:", {
+          reference,
+          user: userId,
+          amount: Number(existingDeposit.amount || 0),
+        });
+        await DepositCreditLog.create({
+          user: userId,
+          reference,
+          amount: Number(existingDeposit.amount || 0),
+          source: "webhook",
+          note: "already_credited",
+        });
+        if (activeSession) await activeSession.abortTransaction();
+        await updateHealth({
+          processed: true,
+          note: "already_processed",
+          walletCredit: Number(existingDeposit.amount || 0),
+          serviceCharge: Number(existingDeposit.serviceCharge || 0),
+        });
+        return res.sendStatus(200);
+      }
+
+      const feeSettings = await getDepositFeeSettings();
+      walletCredit = deriveWalletCreditFromTotal(totalPaid, feeSettings);
+      serviceCharge = Math.max(0, Math.round(totalPaid - walletCredit));
+
+      if (walletCredit <= 0) {
+        if (activeSession) await activeSession.abortTransaction();
+        await updateHealth({
+          note: "wallet_credit_zero",
+          walletCredit: walletCredit || 0,
+          serviceCharge: serviceCharge || 0,
+        });
+        return res.sendStatus(200);
+      }
+
+      await Deposit.findOneAndUpdate(
+        { reference },
+        {
+          user: userId,
+          amount: walletCredit,
+          serviceCharge,
+          totalAmount: totalPaid,
+          currency: currency || "NGN",
+          reference,
+          status: status === "successful" ? "successful" : "failed",
+          channel: "flutterwave",
+          flutterwaveTransactionId: id,
+          gatewayResponse: data,
+          credited: status === "successful",
+          creditedAt: status === "successful" ? new Date() : null,
+        },
+        activeSession ? { upsert: true, new: true, session: activeSession } : { upsert: true, new: true }
+      );
+
+      if (status === "successful") {
+        user.mainBalance = Number(user.mainBalance || 0) + walletCredit;
+        user.totalDeposits = Number(user.totalDeposits || 0) + walletCredit;
+        await user.save(activeSession ? { session: activeSession } : {});
+        const creditedNote = resolutionMethod ? `credited_${resolutionMethod}` : "credited";
+        await updateHealth({ processed: true, walletCredit, serviceCharge, note: creditedNote });
+      } else {
+        await updateHealth({ processed: false, note: "payment_failed" });
+      }
+
+      if (activeSession) {
+        await activeSession.commitTransaction();
+      }
+
+      if (status === "successful") {
+        const updated = await updateWalletTransactionStatus(
+          userId,
+          reference,
+          "success",
+          { action: "deposit", channel: "flutterwave", webhook: true }
+        );
+        if (!updated) {
+          await logWalletTransaction(userId, "deposit", walletCredit, reference, "success");
+        }
+
+        if (serviceCharge > 0) {
+          await logPlatformDepositFee({ userId, reference, revenue: serviceCharge });
+        }
+
+        await sendUserEmail({
+          userId,
+          type: "deposit",
+          email: user.email,
+          subject: "Deposit Successful",
+          title: "Deposit Successful",
+          bodyLines: [
+            "Your deposit has been credited to your wallet.",
+            `Amount credited: ${formatNaira(walletCredit)}.`,
+            `Service charge: ${formatNaira(serviceCharge || 0)}.`,
+            `Total paid: ${formatNaira(totalPaid)}.`,
+            `Reference: ${reference}.`,
+          ],
+        });
+      }
+
+      return res.sendStatus(200);
+    };
+
+    const tryRunWithRetry = async (activeSession) => {
+      const retryable = /write conflict|yielding is disabled/i;
+      const maxAttempts = 3;
+      const delays = [150, 300, 500];
+
+      for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+        try {
+          return await runWebhookCredit(activeSession);
+        } catch (err) {
+          const message = String(err?.message || "unknown_error");
+          const isRetryable = retryable.test(message);
+          if (!isRetryable || attempt === maxAttempts) {
+            throw err;
+          }
+          const delayMs = delays[Math.min(attempt - 1, delays.length - 1)];
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+        }
+      }
+      return res.sendStatus(200);
+    };
+
+    try {
+      return await tryRunWithRetry(session);
+    } catch (sessionError) {
+      if (session) {
+        await session.abortTransaction();
+      }
+      const message = String(sessionError?.message || "unknown_error");
+      const shouldRetryWithoutSession =
+        Boolean(session) &&
+        /Transaction numbers are only allowed|replica set|mongos|not supported by this topology/i.test(message);
+      if (shouldRetryWithoutSession) {
+        try {
+          session = null;
+          return await tryRunWithRetry(null);
+        } catch (fallbackError) {
+          await updateHealth({ note: `transaction_failed:${String(fallbackError?.message || "unknown_error")}` });
+          return res.sendStatus(200);
+        }
+      }
+      await updateHealth({ note: `transaction_failed:${message}` });
+      return res.sendStatus(200);
+    } finally {
+      if (session) session.endSession();
+    }
+
+    return res.sendStatus(200);
+  } catch (err) {
+    console.error("Webhook processing error:", err);
+    return res.sendStatus(200);
+  }
+};
+
+/* =====================================================
+   ENHANCED DEPOSIT STATUS CHECK
+===================================================== */
+export const getDepositStatus = async (req, res) => {
+  try {
+    const { tx_ref } = req.params;
+    const userId = req.user.id;
+
+    if (!tx_ref) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Transaction reference required" 
+      });
+    }
+
+    // Find deposit for this user
+    const deposit = await Deposit.findOne({ 
+      reference: tx_ref,
+      user: userId 
+    });
+
+    if (deposit) {
+      const user = await User.findById(userId);
+      return res.json({ 
+        success: true,
+        status: deposit.status,
+        amount: deposit.amount,
+        serviceCharge: deposit.serviceCharge || 0,
+        totalAmount: deposit.totalAmount || deposit.amount,
+        createdAt: deposit.createdAt,
+        credited: Boolean(deposit.credited),
+        creditedAt: deposit.creditedAt || null,
+        alreadyCredited: Boolean(deposit.credited && deposit.status === "successful"),
+        balance: user?.mainBalance || 0
+      });
+    }
+
+    // If no deposit record exists, check with Flutterwave for display only (no auto-credit)
+    try {
+      const response = await axios.get(
+        `https://api.flutterwave.com/v3/transactions/verify_by_reference?tx_ref=${tx_ref}`,
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`,
+          },
+          timeout: 10000,
+        }
+      );
+
+      const payment = response.data?.data;
+      
+      if (payment && payment.status === "successful") {
+        const paidAmount = Number(payment.amount || 0);
+        const feeSettings = await getDepositFeeSettings();
+        const serviceCharge = computeDepositFee(paidAmount, feeSettings);
+        await Deposit.findOneAndUpdate(
+          { reference: tx_ref },
+          {
+            user: userId,
+            amount: paidAmount,
+            serviceCharge,
+            totalAmount: paidAmount,
+            reference: tx_ref,
+            status: "pending",
+            channel: "flutterwave",
+            flutterwaveTransactionId: payment.id,
+            gatewayResponse: payment,
+          },
+          { upsert: true, new: true }
+        );
+
+        return res.json({
+          success: true,
+          status: "pending",
+          amount: paidAmount,
+          serviceCharge,
+          totalAmount: paidAmount,
+          message: "Payment received. Authorization required to credit wallet.",
+          credited: false,
+          alreadyCredited: false,
+          balance: 0,
+        });
+      } else if (payment) {
+        const paidAmount = Number(payment.amount || 0);
+        const feeSettings = await getDepositFeeSettings();
+        const serviceCharge = computeDepositFee(paidAmount, feeSettings);
+        return res.json({ 
+          success: true,
+          status: payment.status || "pending",
+          amount: paidAmount,
+          serviceCharge,
+          totalAmount: paidAmount,
+          credited: false,
+          alreadyCredited: false,
+          balance: 0
+        });
+      }
+    } catch (verifyError) {
+      console.log("Auto-verify failed:", verifyError.message);
+    }
+    
+    return res.json({ 
+      success: true,
+      status: "pending",
+      balance: 0
+    });
+  } catch (error) {
+    console.error("Deposit status error:", error);
+    return res.status(500).json({ 
+      success: false,
+      status: "error",
+      message: "Failed to check deposit status" 
+    });
+  }
+};
+
+/* =====================================================
+   MANUAL PAYMENT RECONCILIATION
+===================================================== */
+export const reconcilePayment = async (req, res) => {
+  try {
+    const { tx_ref, biometricProof: biometricProofFromBody, transactionPin: txPinFromBody } = req.body;
+    const biometricProof = String(biometricProofFromBody || "").trim();
+    const transactionPin = String(txPinFromBody || "").trim();
+    const userId = req.user.id;
+    const requestedAmount = Number(req.body?.amount || 0);
+    if (!Number.isFinite(requestedAmount) || requestedAmount <= 0) {
+      return res.status(400).json({ success: false, message: "Amount is required" });
+    }
+
+    if (!tx_ref) {
+      return res.status(400).json({ success: false, message: "tx_ref required" });
+    }
+
+    const existingDeposit = await Deposit.findOne({
+      reference: tx_ref,
+      user: userId,
+    });
+
+    if (existingDeposit && existingDeposit.status === "successful") {
+      if (existingDeposit.credited) {
+        console.warn("⚠️ Deposit already credited (reconcile):", {
+          reference: tx_ref,
+          user: userId,
+          amount: Number(existingDeposit.amount || 0),
+        });
+        await DepositCreditLog.create({
+          user: userId,
+          reference: tx_ref,
+          amount: Number(existingDeposit.amount || 0),
+          source: "reconcile",
+          note: "already_credited",
+        });
+      }
+      return res.json({
+        success: true,
+        message: "Payment already processed",
+        tx_ref: payment.tx_ref,
+        amount: Number(existingDeposit.amount || payment.amount || 0),
+        serviceCharge: Number(existingDeposit.serviceCharge || 0),
+        totalAmount: Number(existingDeposit.totalAmount || payment.amount || 0),
+        balance: await getCurrentBalance(userId),
+      });
+    }
+
+    const response = await axios.get(
+      `https://api.flutterwave.com/v3/transactions/verify_by_reference?tx_ref=${tx_ref}`,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.FLUTTERWAVE_SECRET_KEY}`,
+        },
+      }
+    );
+
+    const payment = response.data?.data;
+
+    if (!payment) {
+      return res.status(400).json({
+        success: false,
+        message: "Payment not found",
+      });
+    }
+
+    if (payment.status !== "successful") {
+      return res.status(400).json({
+        success: false,
+        message: `Payment is ${payment.status}`,
+        status: payment.status,
+      });
+    }
+
+    const user = await User.findById(userId).select("+transactionPinHash");
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    const authCheck = await verifyTransactionAuthorization({
+      user,
+      expectedAction: "deposit",
+      expectedAmount: Number(payment.amount || 0),
+      biometricProof,
+      transactionPin,
+    });
+    if (!authCheck.ok) {
+      return res.status(400).json({
+        success: false,
+        message: authCheck.message,
+      });
+    }
+
+    const feeSettings = await getDepositFeeSettings();
+    const serviceCharge = computeDepositFee(requestedAmount, feeSettings);
+    const expectedTotal = Number(requestedAmount) + Number(serviceCharge || 0);
+    const paidAmount = Number(payment.amount || 0);
+    if (Math.round(paidAmount) !== Math.round(expectedTotal)) {
+      return res.status(400).json({
+        success: false,
+        message: "Payment amount does not match expected total",
+        expectedTotal,
+        paidAmount,
+      });
+    }
+
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      const deposit = await Deposit.findOneAndUpdate(
+        { reference: tx_ref },
+        {
+          user: userId,
+          amount: requestedAmount,
+          serviceCharge,
+          totalAmount: paidAmount,
+          reference: tx_ref,
+          status: "successful",
+          channel: "flutterwave",
+          flutterwaveTransactionId: payment.id,
+          gatewayResponse: payment,
+          credited: true,
+          creditedAt: new Date(),
+        },
+        { upsert: true, new: true, session }
+      );
+
+      const previousBalance = user.mainBalance;
+      user.mainBalance += Number(requestedAmount);
+      user.totalDeposits += Number(requestedAmount);
+      await user.save({ session });
+
+      await session.commitTransaction();
+
+      try {
+        const updated = await updateWalletTransactionStatus(
+          userId,
+          tx_ref,
+          "success",
+          { action: "deposit", channel: "flutterwave", reconcile: true }
+        );
+        if (!updated) {
+          await logWalletTransaction(
+            userId,
+            "deposit",
+            requestedAmount,
+            tx_ref,
+            "success"
+          );
+        }
+
+        if (serviceCharge > 0) {
+          await logPlatformDepositFee({ userId, reference: tx_ref, revenue: serviceCharge });
+        }
+
+        await sendUserEmail({
+          userId,
+          type: "deposit",
+          email: user.email,
+          subject: "Deposit Successful",
+          title: "Deposit Successful",
+          bodyLines: [
+            "Your deposit has been credited to your wallet.",
+            `Amount credited: ${formatNaira(requestedAmount)}.`,
+            `Service charge: ${formatNaira(serviceCharge || 0)}.`,
+            `Total paid: ${formatNaira(paidAmount)}.`,
+            `Reference: ${tx_ref}.`,
+          ],
+        });
+      } catch (logError) {
+        console.error("Wallet log error:", logError);
+      }
+
+      console.log("✅ Manual reconciliation successful:", {
+        tx_ref,
+        amount: requestedAmount,
+          serviceCharge,
+          totalAmount: paidAmount,
+        previousBalance,
+        newBalance: user.mainBalance,
+      });
+
+      return res.json({
+        success: true,
+        message: "Payment reconciled successfully",
+        balance: user.mainBalance,
+        deposit: {
+          id: deposit._id,
+          amount: deposit.amount,
+          serviceCharge: deposit.serviceCharge || 0,
+          totalAmount: deposit.totalAmount || deposit.amount,
+          status: deposit.status,
+          createdAt: deposit.createdAt,
+        },
+      });
+    } catch (txError) {
+      await session.abortTransaction();
+      throw txError;
+    } finally {
+      session.endSession();
+    }
+  } catch (error) {
+    console.error("Reconciliation error:", error);
+    
+    if (error.response) {
+      return res.status(error.response.status).json({
+        success: false,
+        message: `Flutterwave API error: ${error.response.status}`,
+        error: error.response.data?.message || "API request failed",
+      });
+    }
+    
+    return res.status(500).json({
+      success: false,
+      message: "Reconciliation failed",
+      error: error.message,
+    });
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
