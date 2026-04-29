@@ -6,6 +6,7 @@ import { useAuth } from "../utils/AuthContext";
 import { getAuthToken } from "../utils/auth";
 import {
   generateBiggiHouseTxRef,
+  getBiggiHousePublicConfig,
   getBiggiHouseDepositFeeSettings,
   getBiggiHouseVirtualAccount,
   getBiggiHouseWallet,
@@ -160,6 +161,7 @@ const formatCurrency = (value) =>
 export default function Wallet() {
   const { user } = useAuth();
   const userId = user?.id || user?._id || user?.userId;
+  const [config, setConfig] = useState(null);
   const [wallet, setWallet] = useState(null);
   const [loadingWallet, setLoadingWallet] = useState(false);
   const [error, setError] = useState("");
@@ -180,6 +182,10 @@ export default function Wallet() {
       .catch((err) => setError(err?.message || "Unable to load wallet."))
       .finally(() => setLoadingWallet(false));
 
+    getBiggiHousePublicConfig()
+      .then((data) => setConfig(data))
+      .catch(() => null);
+
     // Optional: older backends may not expose the VA endpoint yet.
     getBiggiHouseVirtualAccount(token)
       .then((data) => setVa(data))
@@ -188,6 +194,14 @@ export default function Wallet() {
 
   const walletBalance = Number(wallet?.balance || 0);
   const latestJoin = (wallet?.transactions || []).find((item) => item.type === "house_join");
+  const weeklyPayout = config?.weeklyPayout || { dayOfWeek: 0, hour: 22, minute: 0 };
+  const weeklyPayoutTime = (() => {
+    const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const dayLabel = days[Number(weeklyPayout.dayOfWeek) % 7] || "Sunday";
+    const hh = String(Number(weeklyPayout.hour || 0)).padStart(2, "0");
+    const mm = String(Number(weeklyPayout.minute || 0)).padStart(2, "0");
+    return `${dayLabel} · ${hh}:${mm}`;
+  })();
   const recentTransactions = (wallet?.transactions || []).slice(0, 4).map((item) => ({
     id: item._id || item.reference || String(item.date || Date.now()),
     label:
@@ -228,6 +242,7 @@ export default function Wallet() {
               balance={walletBalance}
               currentHouse={latestJoin?.meta?.houseNumber ? `House ${latestJoin.meta.houseNumber}` : "Not joined"}
               lastBalance={latestJoin?.meta?.previousBalance ?? walletBalance}
+              weeklyPayoutTime={weeklyPayoutTime}
             />
             <Actions>
               <PrimaryButton

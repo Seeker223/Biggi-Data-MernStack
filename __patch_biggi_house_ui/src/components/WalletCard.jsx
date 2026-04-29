@@ -74,7 +74,7 @@ export default function WalletCard({
   balance = 0,
   currentHouse = "Not joined",
   lastBalance = 0,
-  weeklyPayoutTime = "Fridays · 6:00 PM",
+  weeklyPayoutTime = "Sunday · 22:00",
 }) {
   return (
     <Card>
