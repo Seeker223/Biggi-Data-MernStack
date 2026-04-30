@@ -162,7 +162,9 @@ const AdminScreen = () => {
     try {
       setUsersLoading(true);
       setUsersError("");
-      const res = await getAdminUsers({
+      // Use the admin dashboard endpoint so user cards include live balances/tickets/purchase + game stats.
+      const res = await getAdminDashboard({
+        historyLimit: 8,
         page,
         limit: 20,
         search: appliedFilters.search?.trim() || undefined,
