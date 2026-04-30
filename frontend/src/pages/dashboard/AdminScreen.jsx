@@ -164,7 +164,7 @@ const AdminScreen = () => {
       setUsersError("");
       // Use the lightweight users endpoint for the list (dashboard is heavy and can time out in production).
       // We still normalize into the same UI shape so cards show live balances/tickets/etc.
-      const res = await getAdminUsers({
+      const params = {
         page,
         limit: 20,
         search: appliedFilters.search?.trim() || undefined,
@@ -173,7 +173,17 @@ const AdminScreen = () => {
         verified: appliedFilters.verified || undefined,
         userAge: appliedFilters.userAge || undefined,
         state: appliedFilters.stateFilter || undefined,
-      });
+      };
+
+      let res;
+      try {
+        res = await getAdminUsers(params);
+      } catch (err) {
+        const timedOut = err?.code === "ECONNABORTED" || /timeout/i.test(String(err?.message || ""));
+        if (!timedOut) throw err;
+        // Retry once on cold-start/timeouts.
+        res = await getAdminUsers(params, { timeout: 70000 });
+      }
       const payload = res?.data || {};
       const rawUsers = Array.isArray(payload.users) ? payload.users : [];
       const normalizedUsers = rawUsers.map((u) => ({
