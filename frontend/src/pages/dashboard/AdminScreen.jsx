@@ -239,6 +239,7 @@ const AdminScreen = () => {
       setInsightsLoading(true);
       setInsightsError("");
       const res = await getAdminDashboard({
+        lite: 1,
         historyLimit: 8,
         search: appliedFilters.search?.trim() || undefined,
         role: appliedFilters.role || undefined,
