@@ -162,9 +162,9 @@ const AdminScreen = () => {
     try {
       setUsersLoading(true);
       setUsersError("");
-      // Use the admin dashboard endpoint so user cards include live balances/tickets/purchase + game stats.
-      const res = await getAdminDashboard({
-        historyLimit: 8,
+      // Use the lightweight users endpoint for the list (dashboard is heavy and can time out in production).
+      // We still normalize into the same UI shape so cards show live balances/tickets/etc.
+      const res = await getAdminUsers({
         page,
         limit: 20,
         search: appliedFilters.search?.trim() || undefined,
@@ -175,8 +175,46 @@ const AdminScreen = () => {
         state: appliedFilters.stateFilter || undefined,
       });
       const payload = res?.data || {};
+      const rawUsers = Array.isArray(payload.users) ? payload.users : [];
+      const normalizedUsers = rawUsers.map((u) => ({
+        id: u._id || u.id,
+        personal: {
+          username: u.username,
+          email: u.email,
+          phoneNumber: u.phoneNumber,
+          state: u.state,
+          birthDate: u.birthDate,
+          photo: u.photo,
+          isVerified: Boolean(u.isVerified),
+          verifiedAt: u.verifiedAt,
+          role: u.role,
+          userRole: u.userRole,
+          referralCode: u.referralCode,
+          referredByCode: u.referredByCode,
+          referredUsersCount: Array.isArray(u.referralRewardedUsers)
+            ? u.referralRewardedUsers.length
+            : 0,
+          lastLogin: u.lastLogin,
+          lastLogout: u.lastLogout,
+          createdAt: u.createdAt,
+          updatedAt: u.updatedAt,
+        },
+        balances: {
+          mainBalance: Number(u.mainBalance || 0),
+          previousMainBalance: null,
+          rewardBalance: Number(u.rewardBalance || 0),
+          totalDeposits: Number(u.totalDeposits || 0),
+          dataBundleCount: Number(u.dataBundleCount || 0),
+          tickets: Number(u.tickets || 0),
+        },
+        games: {
+          totalGameWins: Number(u.totalWins || 0),
+          totalGameLosses: 0,
+          totalGamePlays: Array.isArray(u.dailyNumberDraw) ? u.dailyNumberDraw.length : 0,
+        },
+      }));
       setUsersData({
-        users: Array.isArray(payload.users) ? payload.users : [],
+        users: normalizedUsers,
         pagination: payload.pagination || { page, totalPages: 1 },
       });
     } catch (err) {
