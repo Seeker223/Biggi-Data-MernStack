@@ -307,12 +307,10 @@ const TextInput = styled.input`
   }
 
   @media (max-width: 480px) {
-    font-size: 15px;
     padding: 11px 16px;
   }
 
   @media (max-width: 360px) {
-    font-size: 14px;
     padding: 10px 14px;
   }
 `;

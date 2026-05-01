@@ -17,8 +17,8 @@
   }
 }
 
-@layer components {
-  .btn {
+@layer components { 
+  .btn { 
     @apply px-6 py-3 rounded-full font-bold transition-all duration-200 
            disabled:opacity-50 disabled:cursor-not-allowed;
   }
@@ -44,7 +44,16 @@
     @apply bg-white rounded-2xl shadow-lg p-6;
   }
   
-  .loading-spinner {
-    @apply animate-spin rounded-full border-4 border-gray-300 border-t-orange-500;
+  .loading-spinner { 
+    @apply animate-spin rounded-full border-4 border-gray-300 border-t-orange-500; 
+  } 
+}
+
+/* Prevent iOS Safari input-focus zoom (font-size < 16px). */
+@media (max-width: 768px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: 16px !important;
   }
 }

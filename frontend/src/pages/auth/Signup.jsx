@@ -537,37 +537,35 @@ const Label = styled.label`
   line-height: 1.4;
 `;
 
-const TextInput = styled.input`
-  width: 100%;
-  background-color: #F9FAFB;
-  border: 1px solid #E5E7EB;
-  border-radius: 12px;
-  padding: 14px 16px;
-  font-size: 16px;
-  color: #111827;
-  font-family: inherit;
-  transition: all 0.2s ease;
-  
-  &::placeholder {
-    color: #9CA3AF;
-  }
-  
-  &:focus {
-    outline: none;
-    border-color: #FF8000;
-    background-color: #FFFFFF;
-  }
-
-  @media (max-width: 480px) {
-    font-size: 15px;
-    padding: 13px 16px;
-  }
-
-  @media (max-width: 360px) {
-    font-size: 14px;
-    padding: 12px 14px;
-  }
-`;
+const TextInput = styled.input` 
+  width: 100%; 
+  background-color: #F9FAFB; 
+  border: 1px solid #E5E7EB; 
+  border-radius: 12px; 
+  padding: 14px 16px; 
+  font-size: 16px; 
+  color: #111827; 
+  font-family: inherit; 
+  transition: all 0.2s ease; 
+   
+  &::placeholder { 
+    color: #9CA3AF; 
+  } 
+   
+  &:focus { 
+    outline: none; 
+    border-color: #FF8000; 
+    background-color: #FFFFFF; 
+  } 
+ 
+  @media (max-width: 480px) { 
+    padding: 13px 16px; 
+  } 
+ 
+  @media (max-width: 360px) { 
+    padding: 12px 14px; 
+  } 
+`; 
 
 const PasswordContainer = styled.div`
   display: flex;
@@ -923,12 +921,10 @@ const SelectInput = styled.select`
   }
 
   @media (max-width: 480px) {
-    font-size: 15px;
     padding: 13px 16px;
   }
 
   @media (max-width: 360px) {
-    font-size: 14px;
     padding: 12px 14px;
   }
 `;
