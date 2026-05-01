@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import {
@@ -65,7 +65,10 @@ const NotificationScreen = () => {
     }
   }, []);
 
+  const didInitRef = useRef(false);
   useEffect(() => {
+    if (didInitRef.current) return;
+    didInitRef.current = true;
     markNotificationsAsSeen();
     fetchData();
   }, [markNotificationsAsSeen, fetchData]);
@@ -406,6 +409,7 @@ const Page = styled.div`
   padding: 16px;
   display: flex;
   justify-content: center;
+  overflow-x: hidden;
 `;
 
 const Container = styled.div`
@@ -569,6 +573,10 @@ const CardTitle = styled.h3`
   margin: 0;
   font-size: 15px;
   color: #111;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 const Amount = styled.div`
@@ -581,6 +589,8 @@ const CardMessage = styled.p`
   margin: 4px 0 0;
   color: #444;
   font-size: 13px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 `;
 
 const CardTime = styled.p`
