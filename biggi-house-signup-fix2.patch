@@ -1,0 +1,98 @@
+diff --git a/frontend/src/pages/Signup.jsx b/frontend/src/pages/Signup.jsx
+index 7e5c1ad..a9b3c2f 100644
+--- a/frontend/src/pages/Signup.jsx
++++ b/frontend/src/pages/Signup.jsx
+@@ -107,6 +107,7 @@ export default function Signup() {
+     birthDate: "",
+     state: "",
+     nin: "",
++    referralCode: "",
+   });
+   const [loading, setLoading] = useState(false);
+   const [error, setError] = useState("");
+@@ -123,22 +124,54 @@ export default function Signup() {
+   const handleSubmit = (event) => {
+     event.preventDefault();
+     setError("");
+-    if (
+-      !form.username ||
+-      !form.email ||
+-      !form.password ||
+-      !form.phoneNumber ||
+-      !form.birthDate ||
+-      !form.state ||
+-      !form.nin
+-    ) {
+-      setError(
+-        "Username, email, password, phone number, state, birth date, and NIN are required."
+-      );
+-      return;
+-    }
++    const username = String(form.username || "").trim();
++    const email = String(form.email || "").trim().toLowerCase();
++    const password = String(form.password || "");
++    const phoneNumber = String(form.phoneNumber || "").trim();
++    const birthDate = String(form.birthDate || "").trim();
++    const state = String(form.state || "").trim();
++    const ninDigits = String(form.nin || "").replace(/\\D/g, "");
++
++    if (!username) {
++      setError("Username is required.");
++      return;
++    }
++    if (!email) {
++      setError("Email is required.");
++      return;
++    }
++    const emailRegex = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
++    if (!emailRegex.test(email)) {
++      setError("Please enter a valid email address.");
++      return;
++    }
++    if (!phoneNumber) {
++      setError("Phone number is required.");
++      return;
++    }
++    if (!birthDate) {
++      setError("Birth date is required.");
++      return;
++    }
++    if (!state) {
++      setError("State is required.");
++      return;
++    }
++    if (!ninDigits) {
++      setError("NIN is required.");
++      return;
++    }
++    if (ninDigits.length !== 11) {
++      setError("Please enter a valid 11-digit NIN.");
++      return;
++    }
++    if (!password) {
++      setError("Password is required.");
++      return;
++    }
++    if (password.length < 6) {
++      setError("Password must be at least 6 characters.");
++      return;
++    }
+     setLoading(true);
+     registerUser({
+-      username: form.username,
+-      email: form.email,
+-      password: form.password,
+-      phoneNumber: form.phoneNumber,
+-      birthDate: form.birthDate,
+-      state: form.state,
+-      nin: form.nin,
++      username,
++      email,
++      password,
++      phoneNumber,
++      birthDate,
++      state,
++      nin: ninDigits,
+       referralCode: form.referralCode ? String(form.referralCode).trim() : undefined, 
+     })
+       .then((data) => {

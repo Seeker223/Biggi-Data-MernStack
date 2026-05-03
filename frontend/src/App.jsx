@@ -7,7 +7,8 @@ import GlobalStyle from './globalStyles';
 import SplashScreen from './components/SplashScreen';
 import AlertModalHost from './components/AlertModalHost';
 import ConfirmModalHost from './components/ConfirmModalHost';
-import BalanceUpdateModalHost from './components/BalanceUpdateModalHost';
+import BalanceUpdateModalHost from './components/BalanceUpdateModalHost'; 
+import WhatsAppSupportGate from "./components/WhatsAppSupportGate";
 
 // Import pages
 import Login from './pages/auth/Login';
@@ -70,9 +71,10 @@ function App() {
       <AuthProvider>
         <AlertModalHost />
         <ConfirmModalHost />
-        <BalanceUpdateModalHost />
-        <Router>
-          <Routes>
+        <BalanceUpdateModalHost /> 
+        <Router> 
+          <WhatsAppSupportGate />
+          <Routes> 
             {/* Public Routes */}
             <Route path="/launch" element={<LaunchScreen />} />
             <Route path="/login" element={<Login />} />

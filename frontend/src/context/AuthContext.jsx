@@ -32,11 +32,20 @@ const persistAuthTokens = ({ token, refreshToken, rememberMe }) => {
   localStorage.setItem(AUTH_REMEMBER_KEY, shouldRemember ? "1" : "0");
 };
 
-const getAuthErrorMessage = (error, fallbackMessage) => {
-  if (error?.response?.data?.error) return error.response.data.error;
-  if (error?.code === "ERR_NETWORK") {
-    return "Network error: API request failed from this browser. Open /api/v1/auth/ping on this same domain to verify routing.";
-  }
+const getAuthErrorMessage = (error, fallbackMessage) => { 
+  const data = error?.response?.data; 
+  if (typeof data?.error === "string" && data.error.trim()) return data.error; 
+  if (typeof data?.message === "string" && data.message.trim()) return data.message; 
+  if (typeof data?.msg === "string" && data.msg.trim()) return data.msg; 
+  if (Array.isArray(data?.errors) && data.errors.length) { 
+    const first = data.errors.find((e) => typeof e === "string" && e.trim()); 
+    if (first) return first; 
+    const firstMsg = data.errors.find((e) => typeof e?.msg === "string" && e.msg.trim()); 
+    if (firstMsg) return firstMsg.msg; 
+  } 
+  if (error?.code === "ERR_NETWORK") { 
+    return "Network error: API request failed from this browser. Open /api/v1/auth/ping on this same domain to verify routing."; 
+  } 
   if (error?.code === "ECONNABORTED") {
     return "Request timeout: server took too long to respond.";
   }

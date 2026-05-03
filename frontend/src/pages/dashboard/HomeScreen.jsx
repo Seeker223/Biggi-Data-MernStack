@@ -1,5 +1,5 @@
 ﻿// frontend/src/pages/dashboard/HomeScreen.jsx
-import React, { useContext, useCallback, useState, useRef, useEffect } from 'react';
+import React, { useContext, useCallback, useMemo, useState, useRef, useEffect } from 'react'; 
 import { useNavigate } from 'react-router-dom';
 import styled, { keyframes, css } from 'styled-components';
 import { 
@@ -56,7 +56,7 @@ const HomeScreen = () => {
     logout
   } = useContext(AuthContext);
 
-  const [ticketModalVisible, setTicketModalVisible] = useState(false);
+  const [ticketModalVisible, setTicketModalVisible] = useState(false); 
   const [ticketModalMessage, setTicketModalMessage] = useState(
     "You need at least 1 ticket to play this game."
   );
@@ -100,6 +100,42 @@ const HomeScreen = () => {
   const [referralModalVisible, setReferralModalVisible] = useState(false);
   const [referralWinModalVisible, setReferralWinModalVisible] = useState(false);
   const [referralWinModalData, setReferralWinModalData] = useState({ message: "", amount: null, id: null });
+
+  const referralCode = useMemo(() => {
+    const direct = String(user?.referralCode || "").trim();
+    if (direct) return direct;
+    const id = user?.id || user?._id || "";
+    const suffix = String(id).slice(-6).toUpperCase();
+    return suffix ? `BD-${suffix}` : "";
+  }, [user]);
+
+  const referralLink = useMemo(() => {
+    if (!referralCode) return "";
+    try {
+      return `${window.location.origin}/signup?ref=${encodeURIComponent(referralCode)}`;
+    } catch {
+      return `/signup?ref=${encodeURIComponent(referralCode)}`;
+    }
+  }, [referralCode]);
+
+  const copyText = useCallback(async (value) => {
+    const text = String(value || "").trim();
+    if (!text) return;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        return;
+      }
+    } catch {}
+    try {
+      const input = document.createElement("input");
+      input.value = text;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand("copy");
+      document.body.removeChild(input);
+    } catch {}
+  }, []);
   const [referralGameModalVisible, setReferralGameModalVisible] = useState(false);
   const [topPurchaseModalVisible, setTopPurchaseModalVisible] = useState(false);
   const [topRandomModalVisible, setTopRandomModalVisible] = useState(false);
@@ -623,12 +659,29 @@ const HomeScreen = () => {
                       </ActionBtn>
                     ) : null}
                   </ActionButtons>
-                </BalanceRow>
-                <Divider />
-                <BalanceRow>
-                  <div>
-                    <BalanceLabel>Redeem Balance</BalanceLabel>
-                    <Balance>N{rewardBalance.toLocaleString()}</Balance>
+                </BalanceRow> 
+                {referralCode ? (
+                  <ReferralBlock aria-label="Referral">
+                    <ReferralTitle>Referral</ReferralTitle>
+                    <ReferralRow>
+                      <ReferralValue title={referralCode}>{referralCode}</ReferralValue>
+                      <MiniButton type="button" onClick={() => copyText(referralCode)}>
+                        Copy
+                      </MiniButton>
+                    </ReferralRow>
+                    <ReferralRow>
+                      <ReferralValue title={referralLink}>{referralLink}</ReferralValue>
+                      <MiniButton type="button" onClick={() => copyText(referralLink)}>
+                        Copy
+                      </MiniButton>
+                    </ReferralRow>
+                  </ReferralBlock>
+                ) : null}
+                <Divider /> 
+                <BalanceRow> 
+                  <div> 
+                    <BalanceLabel>Redeem Balance</BalanceLabel> 
+                    <Balance>N{rewardBalance.toLocaleString()}</Balance> 
                   </div>
                   {/* Redeem disabled/hidden */}
                 </BalanceRow>
@@ -1615,21 +1668,64 @@ const WalletCard = styled.div`
   }
 `;
 
-const BalanceRow = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
+const BalanceRow = styled.div` 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  margin-bottom: 12px; 
+ 
+  &:last-of-type { 
+    margin-bottom: 0; 
+  } 
+`; 
 
-  &:last-of-type {
-    margin-bottom: 0;
-  }
+const ReferralBlock = styled.div`
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
 `;
 
-const BalanceLabel = styled.div`
-  color: #222;
-  font-weight: 600;
-  font-size: 14px;
+const ReferralTitle = styled.div`
+  font-size: 13px;
+  font-weight: 900;
+  color: #111;
+`;
+
+const ReferralRow = styled.div`
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+`;
+
+const ReferralValue = styled.div`
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: rgba(255, 255, 255, 0.95);
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #111;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const MiniButton = styled.button`
+  border: none;
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: #111;
+  color: #fff;
+  font-weight: 900;
+  cursor: pointer;
+  white-space: nowrap;
+`;
+ 
+const BalanceLabel = styled.div` 
+  color: #222; 
+  font-weight: 600; 
+  font-size: 14px; 
   margin-bottom: 4px;
 
   @media (max-width: 480px) {

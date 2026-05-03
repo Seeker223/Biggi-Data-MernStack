@@ -133,13 +133,16 @@ const Signup = () => {
           navigate('/');
         }, 1500);
       } else {
-        const msg = res.error || 'Registration failed. Please try again.';
+        const msg = res.error || 'Please check your details and try again.';
         showModal(msg, 'error');
         setErrorToast(msg);
       }
     } catch (error) {
       console.error('Registration error:', error);
-      const msg = error?.response?.data?.error || 'An unexpected error occurred. Please try again.';
+      const msg =
+        error?.response?.data?.error ||
+        error?.response?.data?.message ||
+        'An unexpected error occurred. Please try again.';
       showModal(msg, 'error');
       setErrorToast(msg);
     } finally {
