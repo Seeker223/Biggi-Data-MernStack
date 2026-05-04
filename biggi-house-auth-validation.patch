@@ -1,0 +1,125 @@
+diff --git a/frontend/src/pages/Login.jsx b/frontend/src/pages/Login.jsx
+index 3d0a54d..4d0d1a0 100644
+--- a/frontend/src/pages/Login.jsx
++++ b/frontend/src/pages/Login.jsx
+@@ -119,20 +119,22 @@ export default function Login() {
+ 
+   const handleSubmit = (event) => {
+     event.preventDefault();
+     setError("");
+-    if (!form.identifier || !form.password) {
+-      setError("Please enter email/username and password.");
+-      return;
+-    }
++    const identifier = String(form.identifier || "").trim();
++    const password = String(form.password || "");
++    if (!identifier) return setError("Email or username is required.");
++    if (!password) return setError("Password is required.");
++
+     setLoading(true);
+     loginUser({
+-      email: form.identifier,
+-      password: form.password,
++      email: identifier,
++      password,
+       rememberMe: form.rememberMe,
+     })
+       .then((data) => {
+         login(data.user, data.token, data.refreshToken);
+         navigate("/");
+       })
+       .catch(async (err) => {
+         if (err.requiresVerification) {
+           navigate("/verify-email", { state: { email: err.email } });
+           return;
+         }
+         setError(err.message || "Invalid email or password.");
+       })
+       .finally(() => setLoading(false));
+   };
+diff --git a/frontend/src/pages/Signup.jsx b/frontend/src/pages/Signup.jsx
+index 7e5c1ad..7780b8b 100644
+--- a/frontend/src/pages/Signup.jsx
++++ b/frontend/src/pages/Signup.jsx
+@@ -109,6 +109,7 @@ export default function Signup() {
+     birthDate: "",
+     state: "",
+     nin: "",
++    referralCode: "",
+   });
+   const [loading, setLoading] = useState(false);
+   const [error, setError] = useState("");
+@@ -126,31 +127,65 @@ export default function Signup() {
+   const handleSubmit = (event) => {
+     event.preventDefault();
+     setError("");
+-    if (
+-      !form.username ||
+-      !form.email ||
+-      !form.password ||
+-      !form.phoneNumber ||
+-      !form.birthDate ||
+-      !form.state ||
+-      !form.nin
+-    ) {
+-      setError(
+-        "Username, email, password, phone number, state, birth date, and NIN are required."
+-      );
+-      return;
+-    }
++
++    const username = String(form.username || "").trim();
++    const email = String(form.email || "").trim().toLowerCase();
++    const password = String(form.password || "");
++    const phoneNumber = String(form.phoneNumber || "").trim();
++    const birthDate = String(form.birthDate || "").trim();
++    const state = String(form.state || "").trim();
++    const ninDigits = String(form.nin || "").replace(/\\D/g, "");
++
++    if (!username) return setError("Username is required.");
++    if (!email) return setError("Email is required.");
++
++    const emailRegex = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
++    if (!emailRegex.test(email)) return setError("Please enter a valid email address.");
++
++    if (!phoneNumber) return setError("Phone number is required.");
++    if (!birthDate) return setError("Birth date is required.");
++    if (!state) return setError("State is required.");
++
++    if (!ninDigits) return setError("NIN is required.");
++    if (ninDigits.length !== 11) return setError("Please enter a valid 11-digit NIN.");
++
++    if (!password) return setError("Password is required.");
++    if (password.length < 6) return setError("Password must be at least 6 characters.");
++
+     setLoading(true);
+     registerUser({
+-      username: form.username,
+-      email: form.email,
+-      password: form.password,
+-      phoneNumber: form.phoneNumber,
+-      birthDate: form.birthDate,
+-      state: form.state,
+-      nin: form.nin,
++      username,
++      email,
++      password,
++      phoneNumber,
++      birthDate,
++      state,
++      nin: ninDigits,
+       referralCode: form.referralCode ? String(form.referralCode).trim() : undefined, 
+     })
+       .then((data) => {
+         if (data.requiresVerification) {
+           navigate("/verify-email", { state: { email: data.email } });
+           return;
+         }
+         login(data.user, data.token, data.refreshToken);
+         navigate("/dashboard");
+       })
+       .catch((err) => {
+         setError(err.message || "Unable to create account.");
+       })
+       .finally(() => setLoading(false));
+   };
