@@ -2394,6 +2394,7 @@ const MonthlyGameCard = styled.div`
   background: #070707;
   border-radius: 18px;
   padding: 20px;
+  margin: 0 0 20px 0;
   animation: ${fadeInUp} 0.7s ease-out 0.3s both;
   ${props => props.$pulse && css`
     animation: ${pulse} 1.5s ease-in-out infinite, ${fadeInUp} 0.7s ease-out 0.3s both;
@@ -2697,7 +2698,7 @@ const StatLabel = styled.div`
 `;
 
 const TopRandomCard = styled.div`
-  margin-top: 16px;
+  margin: 0 0 20px 0;
   position: relative;
   background: linear-gradient(180deg, #1b1b1b 0%, #0f0f0f 100%);
   border-radius: 18px;
