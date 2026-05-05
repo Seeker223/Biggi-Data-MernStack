@@ -660,23 +660,6 @@ const HomeScreen = () => {
                     ) : null}
                   </ActionButtons>
                 </BalanceRow> 
-                {referralCode ? (
-                  <ReferralBlock aria-label="Referral">
-                    <ReferralTitle>Referral</ReferralTitle>
-                    <ReferralRow>
-                      <ReferralValue title={referralCode}>{referralCode}</ReferralValue>
-                      <MiniButton type="button" onClick={() => copyText(referralCode)}>
-                        Copy
-                      </MiniButton>
-                    </ReferralRow>
-                    <ReferralRow>
-                      <ReferralValue title={referralLink}>{referralLink}</ReferralValue>
-                      <MiniButton type="button" onClick={() => copyText(referralLink)}>
-                        Copy
-                      </MiniButton>
-                    </ReferralRow>
-                  </ReferralBlock>
-                ) : null}
                 <Divider /> 
                 <BalanceRow> 
                   <div> 
@@ -686,6 +669,24 @@ const HomeScreen = () => {
                   {/* Redeem disabled/hidden */}
                 </BalanceRow>
               </WalletCard>
+
+              {referralCode ? (
+                <ReferralCard aria-label="Referral">
+                  <ReferralTitle>Referral</ReferralTitle>
+                  <ReferralRow>
+                    <ReferralValue title={referralCode}>{referralCode}</ReferralValue>
+                    <MiniButton type="button" onClick={() => copyText(referralCode)}>
+                      Copy
+                    </MiniButton>
+                  </ReferralRow>
+                  <ReferralRow>
+                    <ReferralValue title={referralLink}>{referralLink}</ReferralValue>
+                    <MiniButton type="button" onClick={() => copyText(referralLink)}>
+                      Copy
+                    </MiniButton>
+                  </ReferralRow>
+                </ReferralCard>
+              ) : null}
             </MosaicLeft>
 
             <MosaicRight>
@@ -1678,6 +1679,18 @@ const BalanceRow = styled.div`
     margin-bottom: 0; 
   } 
 `; 
+
+const ReferralCard = styled.div`
+  margin-top: 12px;
+  width: 100%;
+  padding: 14px 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.06);
+  display: grid;
+  gap: 8px;
+`;
 
 const ReferralBlock = styled.div`
   margin-top: 10px;
