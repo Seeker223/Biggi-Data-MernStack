@@ -599,7 +599,7 @@ const HomeScreen = () => {
                             </AccountLineRow>
                             <AccountMuted>{virtualAccount.accountName}</AccountMuted>
                             
-                            <AccountMuted>Service charge: N50</AccountMuted>
+                            <AccountMuted>Service charge: N20</AccountMuted>
                             <AccountMetaRow>
                               <AccountUpdated>
                                 Updated:{" "}
