@@ -44,7 +44,11 @@ const SelectPlanScreen = () => {
             ...plan,
             uiId: String(plan.plan_id || plan._id || plan.id || idx),
           }))
-          .filter((plan) => plan.plan_id && plan.amount !== undefined);
+          .filter((plan) => {
+            const planKey = plan.plan_id || plan.code || plan.id || plan._id;
+            const amountValue = plan.amount;
+            return Boolean(planKey) && amountValue !== undefined && amountValue !== null;
+          });
 
         // IMPORTANT: Use live backend plans directly to avoid price/validity mismatches.
         // Hard-coded presets can cause wrong Zenipoint plan codes to be purchased.

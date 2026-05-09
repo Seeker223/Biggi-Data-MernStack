@@ -94,13 +94,13 @@ const BuyDataScreen = () => {
     let live = true;
 
     const resolvePlan = async () => {
-      const planId = String(plan?.plan_id || "").trim();
+      const planId = String(plan?.plan_id || plan?.code || plan?.id || plan?._id || "").trim();
       if (!planId) return;
 
       try {
         const res = await api.get(`/plans/single/${encodeURIComponent(planId)}`);
         const backendPlan = res?.data?.plan;
-        if (!live || !backendPlan?.plan_id) return;
+        if (!live || !backendPlan) return;
 
         // Keep local state consistent with backend pricing.
         setPlan((prev) => ({ ...(prev || {}), ...backendPlan }));
