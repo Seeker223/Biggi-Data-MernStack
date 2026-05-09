@@ -45,7 +45,9 @@ const NETWORKS = [
     logoBg: "#ebfaee",
   },
   {
-    code: "9mobile",
+    // Backend uses "etisalat" for 9mobile plans.
+    // Keep label as "9mobile" for users, but send "etisalat" to API routes.
+    code: "etisalat",
     label: "9mobile",
     description: "Reliable network service",
     categories: ["SME", "GIFTING"],

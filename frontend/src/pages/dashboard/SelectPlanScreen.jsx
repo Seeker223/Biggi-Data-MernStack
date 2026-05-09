@@ -36,7 +36,27 @@ const SelectPlanScreen = () => {
       setLoading(true);
       setError("");
       try {
-        const res = await api.get(`/plans/network/${selectedNetwork.code}`);
+        const rawCode = String(selectedNetwork.code || "").trim();
+        const code = rawCode.toLowerCase();
+        const candidates = [];
+        if (code) candidates.push(code);
+        // Some backends store 9mobile plans under "etisalat". Try both.
+        if (code.includes("9mobile") && !candidates.includes("etisalat")) candidates.push("etisalat");
+        if (code.includes("etisalat") && !candidates.includes("9mobile")) candidates.push("9mobile");
+
+        let res = null;
+        let lastErr = null;
+        for (const candidate of candidates) {
+          try {
+            // eslint-disable-next-line no-await-in-loop
+            res = await api.get(`/plans/network/${encodeURIComponent(candidate)}`);
+            lastErr = null;
+            break;
+          } catch (e) {
+            lastErr = e;
+          }
+        }
+        if (!res) throw lastErr || new Error("Could not load plans");
         if (!live) return;
         const rawPlans = Array.isArray(res.data?.plans) ? res.data.plans : [];
         const normalizedPlans = rawPlans
@@ -55,7 +75,12 @@ const SelectPlanScreen = () => {
         setPlans(normalizedPlans);
       } catch (err) {
         if (!live) return;
-        setError(err?.response?.data?.msg || "Could not load plans");
+        setError(
+          err?.response?.data?.error ||
+            err?.response?.data?.message ||
+            err?.response?.data?.msg ||
+            "Could not load plans"
+        );
       } finally {
         if (live) setLoading(false);
       }
