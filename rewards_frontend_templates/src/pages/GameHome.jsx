@@ -97,12 +97,16 @@ export default function GameHome() {
   const isComplete = filledCount === 9;
 
   const onPick = (letter) => {
-    if (activeCell === null) return;
     setGrid((prev) => {
       const next = [...prev];
-      next[activeCell] = letter;
+      const targetIndex = activeCell === null ? next.findIndex((v) => !v) : activeCell;
+      if (targetIndex === -1) return prev;
+      next[targetIndex] = letter;
       return next;
     });
+    if (activeCell === null) {
+      setStatus((s) => (s.error ? { ...s, error: "" } : s));
+    }
     setActiveCell(null);
   };
 
@@ -185,7 +189,7 @@ export default function GameHome() {
                 <button
                   key={idx}
                   className={`cell ${activeCell === idx ? "active" : ""}`}
-                  onClick={() => setActiveCell(idx)}
+                  onClick={() => setActiveCell((cur) => (cur === idx ? null : idx))}
                   type="button"
                 >
                   {v || "?"}
@@ -195,10 +199,12 @@ export default function GameHome() {
 
             <div className="panel">
               <div className="panelTitle">Pick a letter</div>
-              <div className="panelSub">{activeCell === null ? "Tap a box to choose." : `Choosing for box #${activeCell + 1}`}</div>
+              <div className="panelSub">
+                {activeCell === null ? "Tap letters to fill boxes (left to right), or tap a box to replace it." : `Replacing box #${activeCell + 1}`}
+              </div>
               <div className="letters">
                 {LETTERS.map((l) => (
-                  <button key={l} type="button" className="letterBtn" onClick={() => onPick(l)} disabled={activeCell === null}>
+                  <button key={l} type="button" className="letterBtn" onClick={() => onPick(l)}>
                     {l}
                   </button>
                 ))}
@@ -246,4 +252,3 @@ export default function GameHome() {
     </div>
   );
 }
-
