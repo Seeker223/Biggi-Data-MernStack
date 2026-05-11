@@ -75,8 +75,8 @@ export default function GameHome() {
         const letters = Array.isArray(data?.result?.letters)
           ? data.result.letters
           : Array.isArray(data?.letters)
-          ? data.letters
-          : [];
+            ? data.letters
+            : [];
         if (letters.length) {
           setResult({ weekKey, revealAt: data?.result?.revealAt || null, letters, source: "backend" });
           return;
@@ -123,7 +123,6 @@ export default function GameHome() {
       await submitRewardsGame({ letters: grid, weekKey }, token);
       setStatus({ loading: false, error: "", ok: "Entry submitted." });
     } catch {
-      // fallback local
       localStorage.setItem(`br_play_${weekKey}`, JSON.stringify({ letters: grid, weekKey, createdAt: new Date().toISOString() }));
       setStatus({ loading: false, error: "", ok: "Entry saved locally." });
     }
@@ -136,7 +135,9 @@ export default function GameHome() {
     <div className="appShell">
       <header className="topbar">
         <div className="topLeft">
-          <div className="brandMini">BR</div>
+          <div className="brandMini">
+            <img src="/biggi-data-logo.png" alt="Biggi Data" />
+          </div>
           <div>
             <div className="topTitle">Biggi Rewards</div>
             <div className="topSub">Results: Sundays · 22:00</div>
@@ -146,7 +147,7 @@ export default function GameHome() {
           {user ? (
             <>
               <div className="chip">{user.username || user.name || "User"}</div>
-              <button className="btn ghost" onClick={logout}>
+              <button className="btn ghost" onClick={logout} type="button">
                 Logout
               </button>
             </>
@@ -210,8 +211,16 @@ export default function GameHome() {
                   {status.loading ? "Submitting..." : "Submit Entry"}
                 </button>
               </div>
-              {status.error ? <div className="error" style={{ marginTop: 10 }}>{status.error}</div> : null}
-              {status.ok ? <div className="ok" style={{ marginTop: 10 }}>{status.ok}</div> : null}
+              {status.error ? (
+                <div className="error" style={{ marginTop: 10 }}>
+                  {status.error}
+                </div>
+              ) : null}
+              {status.ok ? (
+                <div className="ok" style={{ marginTop: 10 }}>
+                  {status.ok}
+                </div>
+              ) : null}
             </div>
           </div>
 
@@ -225,18 +234,15 @@ export default function GameHome() {
               ))}
             </div>
             {canReveal ? (
-              <div className={`resultBanner ${win ? "win" : "lose"}`}>{isComplete ? (win ? "WINNER" : "NOT A WIN") : "Fill your grid to qualify"}</div>
+              <div className={`resultBanner ${win ? "win" : "lose"}`}>{win ? "WINNER" : "NOT A WIN"}</div>
             ) : (
-              <div className="resultBanner">Results locked until Sunday 22:00</div>
+              <div className="finePrint">Results unlock at Sunday 22:00.</div>
             )}
-            <div className="finePrint">Source: {result.source}</div>
+            <div className="finePrint">Result source: {result.source}</div>
           </div>
         </div>
+        <div className="footer">© {new Date().getFullYear()} Biggi Rewards</div>
       </main>
-
-      <footer className="footer">
-        <div>© {new Date().getFullYear()} Biggi Rewards</div>
-      </footer>
     </div>
   );
 }

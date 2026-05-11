@@ -1,9 +1,10 @@
 :root {
-  --bg: #0b1220;
-  --surface: #0f172a;
+  --bg: #0b0b0f;
+  --surface: #121217;
   --paper: #ffffff;
-  --brand: #2563eb;
-  --brand2: #9333ea;
+  --brand: #ff7a00;
+  --brand2: #111111;
+  --brand-rgb: 255, 122, 0;
   --danger: #dc2626;
   --ok: #16a34a;
 
@@ -18,8 +19,8 @@
 
 body {
   margin: 0;
-  background: #eef2ff;
-  color: #0b1220;
+  background: #ffffff;
+  color: #111111;
 }
 
 a {
@@ -34,9 +35,9 @@ a {
 }
 
 .authBrand {
-  background: radial-gradient(1200px 700px at 20% 20%, rgba(37, 99, 235, 0.35), transparent 55%),
-    radial-gradient(900px 520px at 80% 40%, rgba(147, 51, 234, 0.25), transparent 55%),
-    linear-gradient(180deg, #0b1220, #0f172a);
+  background: radial-gradient(1100px 650px at 20% 18%, rgba(var(--brand-rgb), 0.28), transparent 55%),
+    radial-gradient(900px 520px at 80% 45%, rgba(255, 255, 255, 0.08), transparent 60%),
+    linear-gradient(180deg, #0b0b0f, #111116);
   color: white;
   padding: 56px 44px;
 }
@@ -49,12 +50,21 @@ a {
   width: 54px;
   height: 54px;
   border-radius: 16px;
-  background: linear-gradient(135deg, var(--brand), var(--brand2));
+  background: rgba(255, 255, 255, 0.06);
   display: grid;
   place-items: center;
   font-weight: 900;
   letter-spacing: 1px;
-  box-shadow: 0 18px 30px rgba(37, 99, 235, 0.25);
+  box-shadow: 0 18px 30px rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.brandMark img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: transparent;
 }
 
 .brandTitle {
@@ -98,7 +108,7 @@ a {
   display: grid;
   place-items: center;
   padding: 36px 18px;
-  background: #f8fafc;
+  background: #ffffff;
 }
 
 .authCard {
@@ -119,7 +129,7 @@ a {
   font-size: 12px;
   letter-spacing: 0.9px;
   text-transform: uppercase;
-  color: rgba(37, 99, 235, 0.9);
+  color: rgba(var(--brand-rgb), 0.95);
 }
 
 .authTitle {
@@ -159,8 +169,8 @@ input {
 }
 
 input:focus {
-  border-color: rgba(37, 99, 235, 0.55);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  border-color: rgba(var(--brand-rgb), 0.65);
+  box-shadow: 0 0 0 3px rgba(var(--brand-rgb), 0.14);
 }
 
 .btn {
@@ -177,7 +187,7 @@ input:focus {
 }
 
 .btn.primary {
-  background: linear-gradient(135deg, var(--brand), var(--brand2));
+  background: var(--brand);
   color: white;
 }
 
@@ -271,7 +281,15 @@ input:focus {
   place-items: center;
   font-weight: 900;
   color: white;
-  background: linear-gradient(135deg, var(--brand), var(--brand2));
+  background: white;
+  border: 1px solid rgba(2, 6, 23, 0.1);
+  overflow: hidden;
+}
+
+.brandMini img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .topTitle {
@@ -319,7 +337,7 @@ input:focus {
 
 .heroKicker {
   font-weight: 900;
-  color: rgba(37, 99, 235, 0.9);
+  color: rgba(var(--brand-rgb), 0.95);
   letter-spacing: 0.6px;
   text-transform: uppercase;
   font-size: 12px;
@@ -339,7 +357,7 @@ input:focus {
 .countdown {
   border-radius: 18px;
   border: 1px solid rgba(2, 6, 23, 0.08);
-  background: rgba(99, 102, 241, 0.06);
+  background: rgba(var(--brand-rgb), 0.08);
   padding: 14px;
   min-width: 240px;
 }
@@ -388,9 +406,9 @@ input:focus {
 }
 
 .cell.active {
-  outline: 3px solid rgba(37, 99, 235, 0.25);
-  border-color: rgba(37, 99, 235, 0.55);
-  background: rgba(37, 99, 235, 0.06);
+  outline: 3px solid rgba(var(--brand-rgb), 0.22);
+  border-color: rgba(var(--brand-rgb), 0.62);
+  background: rgba(var(--brand-rgb), 0.08);
 }
 
 .panel {
@@ -512,4 +530,3 @@ input:focus {
     grid-template-columns: repeat(6, 1fr);
   }
 }
-

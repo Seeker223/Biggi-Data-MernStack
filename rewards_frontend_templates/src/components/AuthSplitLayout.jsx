@@ -7,11 +7,11 @@ export default function AuthSplitLayout({ title, subtitle, children }) {
     <div className="authShell">
       <aside className="authBrand">
         <div className="authBrandInner">
-          <div className="brandMark">BR</div>
+          <div className="brandMark">
+            <img src="/biggi-data-logo.png" alt="Biggi Data" />
+          </div>
           <h1 className="brandTitle">BIGGI REWARDS</h1>
-          <p className="brandSub">
-            Predict letters, win rewards. Results every Sunday 22:00.
-          </p>
+          <p className="brandSub">Predict letters, win rewards. Results every Sunday 22:00.</p>
           <div className="brandCard">
             <div className="brandCardTitle">How it works</div>
             <ul className="brandList">
