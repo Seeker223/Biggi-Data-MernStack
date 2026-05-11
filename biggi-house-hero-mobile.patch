@@ -1,0 +1,74 @@
+diff --git a/src/pages/Home.jsx b/src/pages/Home.jsx
+index 0f9e9c8..b2c3d4e 100644
+--- a/src/pages/Home.jsx
++++ b/src/pages/Home.jsx
+@@ -27,18 +27,37 @@ const HeroGrid = styled(Container)`
+   display: grid;
+   grid-template-columns: repeat(2, minmax(0, 1fr));
+   gap: 32px;
+   align-items: center;
+ 
+   @media (max-width: 900px) {
+     grid-template-columns: 1fr;
+     gap: 22px;
++    grid-template-areas:
++      "image"
++      "copy";
+   }
++`;
++
++const HeroCopy = styled.div`
++  min-width: 0;
++
++  @media (max-width: 900px) {
++    grid-area: copy;
++  }
++`;
+ 
+-const HeroCopy = styled.div`
+-  min-width: 0;
++const HeroCard = styled.div`
++  background: ${({ theme }) => theme.colors.surface};
++  border-radius: ${({ theme }) => theme.radius.lg};
++  padding: 26px;
++  box-shadow: ${({ theme }) => theme.shadows.soft};
++  border: 1px solid ${({ theme }) => theme.colors.border};
++
++  @media (max-width: 900px) {
++    grid-area: image;
++  }
++
++  @media (max-width: 640px) {
++    padding: 0;
++    border-radius: 18px;
++    border: none;
++    box-shadow: none;
++    background: transparent;
++  }
+ `;
+ 
+-const HeroCard = styled.div`
+-  background: ${({ theme }) => theme.colors.surface};
+-  border-radius: ${({ theme }) => theme.radius.lg};
+-  padding: 26px;
+-  box-shadow: ${({ theme }) => theme.shadows.soft};
+-  border: 1px solid ${({ theme }) => theme.colors.border};
+-
+-  @media (max-width: 640px) {
+-    padding: 16px;
+-    border-radius: 18px;
+-  }
+-`;
+-
+ const Mockup = styled.img`
+   width: 100%;
++  display: block;
++  height: auto;
+   border-radius: 22px;
+   border: 1px solid ${({ theme }) => theme.colors.border};
+   box-shadow: ${({ theme }) => theme.shadows.soft};
++
++  @media (max-width: 640px) {
++    border-radius: 18px;
++  }
+ `;
