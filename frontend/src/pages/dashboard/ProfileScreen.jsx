@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
-import { User, Settings, Headset, LogOut, ChevronRight, ReceiptText, Copy, Shield } from "lucide-react";
+import { User, Settings, Headset, LogOut, ChevronRight, ReceiptText, Copy, Shield, LayoutDashboard } from "lucide-react";
 import FloatingBottomNav from "../../components/FloatingBottomNav";
 import { AuthContext } from "../../context/AuthContext";
 import {
@@ -154,6 +154,11 @@ const ProfileScreen = () => {
       icon: <ReceiptText size={20} color="#fff" />,
       label: "Transaction History",
       onClick: () => navigate("/transactions"),
+    },
+    {
+      icon: <LayoutDashboard size={20} color="#fff" />,
+      label: "User Dashboard",
+      onClick: () => navigate("/user-dashboard"),
     },
     {
       icon: <Headset size={20} color="#fff" />,

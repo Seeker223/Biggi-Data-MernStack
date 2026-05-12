@@ -47,6 +47,7 @@ import SupportScreen from './pages/dashboard/SupportScreen';
 import AdminScreen from './pages/dashboard/AdminScreen';
 import ReferralScreen from './pages/dashboard/ReferralScreen';
 import TopPurchasersScreen from './pages/dashboard/TopPurchasersScreen';
+import UserDashboardScreen from './pages/dashboard/UserDashboardScreen';
 
 function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -112,6 +113,9 @@ function App() {
             </Route>
             <Route element={<ProtectedRoute />}>
               <Route path="/profile" element={<ProfileScreen />} />
+            </Route>
+            <Route element={<ProtectedRoute />}>
+              <Route path="/user-dashboard" element={<UserDashboardScreen />} />
             </Route>
             <Route element={<ProtectedRoute />}>
               <Route path="/edit-profile" element={<EditProfileScreen />} />
