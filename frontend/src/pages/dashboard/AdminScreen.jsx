@@ -583,7 +583,20 @@ const AdminScreen = () => {
       setPlanFormOpen(false);
       await loadPlans();
     } catch (err) {
-      setPlanFormError(err?.response?.data?.msg || err?.response?.data?.message || "Failed to save plan.");
+      const msg = err?.response?.data?.msg || err?.response?.data?.message || "Failed to save plan.";
+      setPlanFormError(msg);
+
+      // If the plan already exists, it may be hidden by "Active only" filter.
+      // Auto-switch filters to reveal it (show all + search by plan id).
+      if (/already exists/i.test(String(msg || ""))) {
+        const id = String(planForm.plan_id || "").trim();
+        const network = String(planForm.network || "").trim();
+        if (id) setPlanQ(id);
+        if (network) setPlanNetwork(network);
+        setPlanActive("");
+        // Keep the modal open, but refresh list so admin can find and edit/reactivate.
+        await loadPlans();
+      }
     } finally {
       setPlanFormLoading(false);
     }
