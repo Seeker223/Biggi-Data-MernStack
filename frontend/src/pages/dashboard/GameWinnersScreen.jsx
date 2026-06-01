@@ -303,7 +303,7 @@ export default function GameWinnersScreen() {
         visible: true,
         title: "No Raffle Tickets",
         message:
-          "You have no unplayed raffle tickets for this month yet. Every 5 successful data purchases earns 1 ticket.",
+          "You have no unsubmitted monthly sets yet. Each data purchase unlocks one set.",
         buttonText: "Close",
       });
       return;
@@ -350,7 +350,7 @@ export default function GameWinnersScreen() {
       setInfoModal({
         visible: true,
         title: "Failed to Play Ticket",
-        message: errorMessage || "Could not play raffle ticket. Please try again.",
+        message: errorMessage || "Could not submit monthly set. Please try again.",
         buttonText: "Close",
       });
     } finally {
@@ -364,7 +364,7 @@ export default function GameWinnersScreen() {
         visible: true,
         title: "Not Eligible",
         message:
-          "Only the selected winning raffle ticket owner can claim the monthly reward.",
+          "Only the owner of a winning monthly set can claim the monthly reward.",
         buttonText: "Close",
       });
       return;
@@ -518,12 +518,12 @@ export default function GameWinnersScreen() {
   const handleMonthlyInfo = () => {
     setActionModal({
       visible: true,
-      title: "Monthly Draw (Raffle Tickets)",
+      title: "Monthly Draw (Card Sets)",
       message:
-        `Every 5 successful data purchases in ${monthlyBoardMonth || "this month"} earns 1 raffle ticket (6-character code).\n\n` +
-        `Play a ticket to enter the monthly draw list. Each played ticket is one entry, so you can appear multiple times.\n\n` +
-        `Results are out at month end. The system randomly selects 1 played ticket as the winner.\n\n` +
-        `Unplayed tickets this month: ${unplayedMonthlyTickets.length}`,
+        `Each data purchase unlocks one 3-letter set in ${monthlyBoardMonth || "this month"}.\n\n` +
+        `Play a set to enter the monthly result list. Each submitted set is one entry, so you can appear multiple times.\n\n` +
+        `Results are out at month end. Any matching set counts as a win.\n\n` +
+        `Unsubmitted sets this month: ${unplayedMonthlyTickets.length}`,
       confirmText: "Buy Data",
       cancelText: "Close",
       onConfirm: () => navigate("/buy-data"),
@@ -702,10 +702,10 @@ export default function GameWinnersScreen() {
         <ModalOverlay>
           <ModalCard style={{ maxWidth: 360, textAlign: "left" }}>
             <ModalTitle style={{ textAlign: "left" }}>
-              Play Monthly Raffle Ticket
+              Play Monthly Card Set
             </ModalTitle>
             <ModalMessage style={{ textAlign: "left" }}>
-              Select one unplayed ticket to enter the monthly draw list.
+              Select one unsubmitted set to enter the monthly result list.
             </ModalMessage>
 
             <TicketList>
@@ -734,7 +734,7 @@ export default function GameWinnersScreen() {
               onClick={handlePlaySelectedTicket}
               disabled={playingTicket || !raffleModal.selectedTicketId}
             >
-              {playingTicket ? "Entering..." : "Enter Monthly Draw"}
+              {playingTicket ? "Entering..." : "Submit Monthly Set"}
             </ModalButton>
             <ModalButton
               $secondary
@@ -766,7 +766,7 @@ export default function GameWinnersScreen() {
             </ModalMessage>
             <ModalSubText>
               {monthlyLimitHit
-                ? "Monthly limit reached: only one weekly reward can be claimed per month."
+                ? "Monthly limit reached: only one monthly reward can be claimed per month."
                 : "You can redeem your rewards anytime from your wallet."}
             </ModalSubText>
 
@@ -1202,3 +1202,5 @@ const TicketChip = styled.button`
   font-size: 12px;
   cursor: pointer;
 `;
+
+
