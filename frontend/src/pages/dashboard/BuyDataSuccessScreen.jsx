@@ -70,7 +70,7 @@ const BuyDataSuccessScreen = () => {
           ) : (
             <RaffleHint>
               You have unlocked <strong>{raffleProgress.ticketsEarned}</strong> set
-              {raffleProgress.ticketsEarned === 1 ? "" : "s"} this month. Next ticket in{" "}
+              {raffleProgress.ticketsEarned === 1 ? "" : "s"} this month. Next set in{" "}
               <strong>{raffleProgress.nextIn}</strong> purchase{raffleProgress.nextIn === 1 ? "" : "s"}.
             </RaffleHint>
           )}
@@ -93,7 +93,7 @@ const BuyDataSuccessScreen = () => {
           <ModalCard>
             <ModalTitle>Monthly Card Game</ModalTitle>
             <ModalText>
-              Congratulations! You stand a chance to predict and win our monthly reward.
+              Congratulations! You can now fill your monthly card sets and stand a chance to win the monthly reward.
             </ModalText>
             <ModalText>
               Purchases this month: <strong>{weeklyCardProgress.purchases}</strong>
@@ -101,12 +101,12 @@ const BuyDataSuccessScreen = () => {
             {weeklyCardProgress.qualifyIn > 0 ? (
               <ModalText>
                 Buy <strong>{weeklyCardProgress.qualifyIn}</strong> more purchase
-                {weeklyCardProgress.qualifyIn === 1 ? "" : "s"} to earn 1 monthly card ticket.
+                {weeklyCardProgress.qualifyIn === 1 ? "" : "s"} to unlock the next monthly set.
               </ModalText>
             ) : (
               <ModalText>
-                You have earned <strong>{weeklyCardProgress.ticketsEarned}</strong> ticket
-                {weeklyCardProgress.ticketsEarned === 1 ? "" : "s"}. Next ticket in{" "}
+                You have unlocked <strong>{weeklyCardProgress.ticketsEarned}</strong> set
+                {weeklyCardProgress.ticketsEarned === 1 ? "" : "s"}. Next set in{" "}
                 <strong>{weeklyCardProgress.nextIn}</strong> purchase
                 {weeklyCardProgress.nextIn === 1 ? "" : "s"}.
               </ModalText>
@@ -115,7 +115,7 @@ const BuyDataSuccessScreen = () => {
               <ModalProgressFill $pct={Math.min(100, weeklyCardProgress.progressPct)} />
             </ModalProgress>
             <ModalNote>
-              Every {isMember ? 25 : 5} data purchases this month gives 1 monthly game ticket.
+              Every data purchase unlocks one monthly card set.
             </ModalNote>
             <ModalBtn onClick={() => setShowWeeklyModal(false)}>Continue</ModalBtn>
           </ModalCard>

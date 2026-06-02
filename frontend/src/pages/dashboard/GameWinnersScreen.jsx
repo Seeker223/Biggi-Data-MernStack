@@ -301,7 +301,7 @@ export default function GameWinnersScreen() {
     if (unplayedMonthlyTickets.length === 0) {
       setInfoModal({
         visible: true,
-        title: "No Raffle Tickets",
+        title: "No Monthly Sets",
         message:
           "You have no unsubmitted monthly sets yet. Each data purchase unlocks one set.",
         buttonText: "Close",
@@ -328,8 +328,8 @@ export default function GameWinnersScreen() {
 
       setInfoModal({
         visible: true,
-        title: "Ticket Entered",
-        message: `Ticket ${raffleModal.selectedTicketCode} has been entered. Status: Pending until month end.`,
+        title: "Set Submitted",
+        message: `Set ${raffleModal.selectedTicketCode} has been submitted. Status: Pending until month end.`,
         buttonText: "OK",
       });
 
@@ -349,7 +349,7 @@ export default function GameWinnersScreen() {
 
       setInfoModal({
         visible: true,
-        title: "Failed to Play Ticket",
+        title: "Failed to Submit Set",
         message: errorMessage || "Could not submit monthly set. Please try again.",
         buttonText: "Close",
       });

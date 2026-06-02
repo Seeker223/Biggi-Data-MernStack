@@ -414,8 +414,8 @@ const HomeScreen = () => {
         `Purchases this month: ${monthlyEligibility.purchases}\n` +
           `Sets unlocked: ${monthlyEligibility.raffleTicketsTotal}\n` +
           `Unsubmitted sets: ${monthlyEligibility.raffleTicketsUnplayed}\n\n` +
-          `Play a set to enter the monthly result board. Each submitted set is one entry.\n\n` +
-          `Result: Pending until month end (${monthlyEligibility.daysLeft} days left).`,
+          `Complete 5 sets of 3 letters. Each submitted set becomes one monthly entry.\n\n` +
+          `Result: 5 winning 3-letter sets are revealed at month end (${monthlyEligibility.daysLeft} days left).`,
         true
       );
       return;
@@ -425,7 +425,7 @@ const HomeScreen = () => {
       "No Monthly Sets Yet",
       `Each data purchase unlocks one 3-letter set in the monthly game.\n\n` +
         `Purchases this month: ${monthlyEligibility.purchases}\n` +
-        `Progress to next ticket: ${Math.round(monthlyEligibility.progress)}%\n\n` +
+        `Progress to next set: ${Math.round(monthlyEligibility.progress)}%\n\n` +
         `Buy more bundles to unlock the next monthly set, then submit it in Monthly Card Game.`,
       false
     );
