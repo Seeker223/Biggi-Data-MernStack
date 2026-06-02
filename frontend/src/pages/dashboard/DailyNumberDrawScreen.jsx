@@ -279,11 +279,10 @@ const DailyNumberDrawScreen = () => {
             <PromoBrand>BIGGI DATA BUNDLE SERVICES</PromoBrand>
             <PromoTitle>MONTHLY CARD GAME</PromoTitle>
             <PromoSubtitle>
-              Complete 5 entries of 3 letters. Each data purchase unlocks one entry. Results are released at month end.
+              5 rows · 3 letters each · Results out at month end.
             </PromoSubtitle>
             <PromoSubtitle>
-              Entries unlocked: {monthlyUnlockedCount}/{MONTHLY_CARD_SET_COUNT}. Completed: {monthlyCompletedCount}/
-              {MONTHLY_CARD_SET_COUNT}.
+              Unlock one row per data purchase. Completed: {monthlyCompletedCount}/{MONTHLY_CARD_SET_COUNT}.
             </PromoSubtitle>
 
             {resultLoading ? (
