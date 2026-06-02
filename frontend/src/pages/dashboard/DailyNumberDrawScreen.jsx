@@ -321,24 +321,6 @@ const DailyNumberDrawScreen = () => {
                     $active={setIndex === activeMonthlySet}
                     onClick={() => handleMonthlySetFocus(setIndex)}
                   >
-                    <MonthlySetHeader>
-                      <MonthlySetTitle>
-                        <MonthlySetName>Row {setIndex}</MonthlySetName>
-                        <MonthlySetSubtext>
-                          {played
-                            ? "Submitted for this month."
-                            : locked
-                            ? `Unlocks after ${setIndex} data purchase${setIndex === 1 ? "" : "s"}.`
-                            : setIndex === activeMonthlySet
-                            ? "Tap to work on this row."
-                            : "Ready"}
-                        </MonthlySetSubtext>
-                      </MonthlySetTitle>
-                      <MonthlySetStatus $done={played} $locked={locked}>
-                        {played ? "Submitted" : locked ? "Locked" : setIndex === activeMonthlySet ? "Active" : "Ready"}
-                      </MonthlySetStatus>
-                    </MonthlySetHeader>
-
                     <MonthlySetBoxes>
                       {Array.from({ length: MONTHLY_CARD_SET_LENGTH }, (_, boxIndex) => (
                         <MonthlySetBox
@@ -654,41 +636,6 @@ const MonthlySetCard = styled.div`
   background: ${(p) => (p.$active ? "#fffaf4" : "#ffffff")};
   box-shadow: none;
   cursor: pointer;
-`;
-
-const MonthlySetHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 8px;
-  margin-bottom: 6px;
-`;
-
-const MonthlySetTitle = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  color: #111;
-`;
-
-const MonthlySetName = styled.span`
-  font-size: 12px;
-  font-weight: 900;
-`;
-
-const MonthlySetSubtext = styled.span`
-  font-size: 9px;
-  color: #666;
-  line-height: 1.35;
-`;
-
-const MonthlySetStatus = styled.span`
-  border-radius: 999px;
-  padding: 3px 7px;
-  background: ${(p) => (p.$done ? "rgba(76, 217, 100, 0.14)" : p.$locked ? "rgba(0, 0, 0, 0.08)" : "rgba(255, 140, 0, 0.14)")};
-  color: ${(p) => (p.$done ? "#208f3d" : p.$locked ? "#666" : "#b85d00")};
-  font-size: 10px;
-  font-weight: 800;
 `;
 
 const MonthlySetBoxes = styled.div`
