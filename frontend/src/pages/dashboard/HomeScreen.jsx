@@ -858,7 +858,7 @@ const HomeScreen = () => {
                     </SubtitleRow>
                     <SubtitleRow>
                       <SubtitleIcon as={Ticket} size={16} />
-                      <span>Unlock 1 row per data purchase</span>
+                      <span>1 purchase unlocks 1 row</span>
                     </SubtitleRow>
                     <SubtitleRow>
                       <SubtitleIcon as={Ticket} size={16} />
@@ -1029,14 +1029,14 @@ const HomeScreen = () => {
                   </SubtitleRow>
                   <SubtitleRow>
                     <SubtitleIcon as={Ticket} size={16} />
-                    <span>Unlock 1 row per data purchase</span>
+                    <span>1 purchase unlocks 1 row</span>
                   </SubtitleRow>
                   <SubtitleRow>
                     <SubtitleIcon as={Ticket} size={16} />
                     <span>
-                      Earn 1 row per 25 purchases{" "}
+                      Earn 1 row per 1 purchase{" "}
                       {merchantWeeklyRemaining > 0
-                        ? `• ${merchantWeeklyRemaining} purchases to next row`
+                        ? `• ${privateCardRemaining} purchases to next row`
                         : "• Row ready"}
                     </span>
                   </SubtitleRow>
