@@ -44,7 +44,7 @@ const getAuthErrorMessage = (error, fallbackMessage) => {
     if (firstMsg) return firstMsg.msg; 
   } 
   if (error?.code === "ERR_NETWORK") { 
-    return "Network error: API request failed from this browser. Open /api/v1/auth/ping on this same domain to verify routing."; 
+    return "Network error: cannot reach the local API. Make sure the backend is running on port 5000 and restart the frontend."; 
   } 
   if (error?.code === "ECONNABORTED") {
     return "Request timeout: server took too long to respond.";

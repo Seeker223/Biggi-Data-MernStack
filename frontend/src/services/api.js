@@ -5,8 +5,9 @@ const envBaseUrl = import.meta.env.VITE_BASE_URL?.trim();
 const isLocalHost =
   typeof window !== "undefined" &&
   (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
-// Prefer explicit env base URL in any environment, otherwise fall back to localhost or same-origin.
-const API_ORIGIN = envBaseUrl || (isLocalHost ? "http://localhost:5000" : "");
+// Prefer same-origin proxy on localhost so Vite can forward `/api` requests to the backend.
+// This avoids CORS/network issues during local development.
+const API_ORIGIN = isLocalHost ? "" : envBaseUrl || "";
 const API_BASE_URL = API_ORIGIN ? `${API_ORIGIN}/api/v1` : "/api/v1";
 
 console.log("API Base URL:", API_BASE_URL);
