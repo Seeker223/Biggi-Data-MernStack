@@ -298,29 +298,23 @@ const DailyNumberDrawScreen = () => {
               Sets unlocked: {monthlyUnlockedCount}/{MONTHLY_SET_COUNT}. Completed: {monthlyPlayedCount}/{MONTHLY_SET_COUNT}.
             </PromoSubtitle>
 
-            <ResultTitle>Monthly result sets</ResultTitle>
-            <MonthlyResultList aria-label="Monthly result sets">
+            <ResultTitle>Monthly result status</ResultTitle>
+            <PromoHint>
+              At month end, the system reveals 5 winning 3-letter sets. Complete all 5 of your monthly sets, and
+              matching any one set counts as a win.
+            </PromoHint>
+            <MonthlyStatusRow aria-label="Monthly result progress">
               {Array.from({ length: MONTHLY_SET_COUNT }, (_, setIndex) => {
                 const resultSet = monthlyResultSets[setIndex] || [];
+                const revealed = resultRevealReady && resultSet.length === MONTHLY_SET_SIZE;
                 return (
-                  <MonthlyResultCard key={`result-set-${setIndex}`}>
-                    <MonthlyResultHeader>
-                      <span>Set {setIndex + 1}</span>
-                      <MonthlyResultBadge $ready={resultRevealReady}>
-                        {resultRevealReady ? "Revealed" : "Locked"}
-                      </MonthlyResultBadge>
-                    </MonthlyResultHeader>
-                    <MonthlyResultGrid>
-                      {Array.from({ length: MONTHLY_SET_SIZE }, (_, letterIndex) => (
-                        <ResultBox key={`result-${setIndex}-${letterIndex}`} aria-hidden="true">
-                          {resultRevealReady ? resultSet[letterIndex] || "?" : "?"}
-                        </ResultBox>
-                      ))}
-                    </MonthlyResultGrid>
-                  </MonthlyResultCard>
+                  <MonthlyStatusChip key={`result-status-${setIndex}`} $revealed={revealed}>
+                    <span>Set {setIndex + 1}</span>
+                    <strong>{revealed ? "Revealed" : "Hidden"}</strong>
+                  </MonthlyStatusChip>
                 );
               })}
-            </MonthlyResultList>
+            </MonthlyStatusRow>
 
             {resultLoading ? (
               <PromoHint>Loading monthly card...</PromoHint>
@@ -695,6 +689,30 @@ const ResultBox = styled.div`
   font-size: 16px;
   font-weight: 900;
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+`;
+
+const MonthlyStatusRow = styled.div`
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0 14px;
+`;
+
+const MonthlyStatusChip = styled.div`
+  border-radius: 999px;
+  padding: 8px 10px;
+  text-align: center;
+  background: ${({ $revealed }) => ($revealed ? "rgba(76, 217, 100, 0.18)" : "rgba(255, 255, 255, 0.08)")};
+  border: 1px solid ${({ $revealed }) => ($revealed ? "rgba(76, 217, 100, 0.34)" : "rgba(255,255,255,0.12)")};
+  color: ${({ $revealed }) => ($revealed ? "#bff4c8" : "rgba(255,255,255,0.8)")};
+  display: grid;
+  gap: 2px;
+  font-size: 11px;
+  strong {
+    font-size: 10px;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+  }
 `;
 
 const MonthlyResultList = styled.div`
