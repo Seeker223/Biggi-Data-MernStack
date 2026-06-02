@@ -58,18 +58,18 @@ const BuyDataSuccessScreen = () => {
         {reference ? <Meta>Ref: {reference}</Meta> : null}
 
         <RaffleCard>
-          <RaffleTitle>Monthly Raffle Progress</RaffleTitle>
+          <RaffleTitle>Monthly Card Progress</RaffleTitle>
           <RaffleLine>
             Purchases this month: <strong>{raffleProgress.purchases}</strong>
           </RaffleLine>
           {raffleProgress.purchases < 5 ? (
             <RaffleHint>
               You need <strong>{raffleProgress.qualifyIn}</strong> more purchase
-              {raffleProgress.qualifyIn === 1 ? "" : "s"} to earn your first raffle ticket.
+              {raffleProgress.qualifyIn === 1 ? "" : "s"} to unlock your first set.
             </RaffleHint>
           ) : (
             <RaffleHint>
-              You have earned <strong>{raffleProgress.ticketsEarned}</strong> raffle ticket
+              You have unlocked <strong>{raffleProgress.ticketsEarned}</strong> set
               {raffleProgress.ticketsEarned === 1 ? "" : "s"} this month. Next ticket in{" "}
               <strong>{raffleProgress.nextIn}</strong> purchase{raffleProgress.nextIn === 1 ? "" : "s"}.
             </RaffleHint>
@@ -77,7 +77,7 @@ const BuyDataSuccessScreen = () => {
           <ProgressBar aria-label="Monthly raffle progress">
             <ProgressFill $pct={Math.min(100, raffleProgress.progressPct)} />
           </ProgressBar>
-          <RaffleFoot>Raffle ticket is issued for every 5 data purchases.</RaffleFoot>
+          <RaffleFoot>A new set is unlocked with each data purchase.</RaffleFoot>
         </RaffleCard>
 
         <Btn onClick={() => navigate("/")}>Go Home</Btn>
@@ -296,3 +296,4 @@ const ModalBtn = styled.button`
   font-weight: 700;
   cursor: pointer;
 `;
+

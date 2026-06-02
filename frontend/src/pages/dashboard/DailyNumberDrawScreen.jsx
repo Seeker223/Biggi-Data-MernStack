@@ -11,18 +11,33 @@ import { isBiggiHouseMember } from "../../utils/biggiHouse";
 
 const REQUIRED_PICKS = 5;
 const MONTHLY_TICKET_CAP = 8;
+const MONTHLY_SET_COUNT = 5;
+const MONTHLY_SET_SIZE = 3;
 
 const DailyNumberDrawScreen = () => {
   const navigate = useNavigate();
   const { user, refreshUser } = useContext(AuthContext);
   const [selectedLetters, setSelectedLetters] = useState([]);
   const [resultLetters, setResultLetters] = useState([]);
+  const [monthlyResultSets, setMonthlyResultSets] = useState([]);
   const [resultRevealReady, setResultRevealReady] = useState(false);
   const [resultRevealAt, setResultRevealAt] = useState("");
   const [resultLoading, setResultLoading] = useState(false);
   const [resultError, setResultError] = useState("");
   const [monthlyPurchases, setMonthlyPurchases] = useState(0);
-  const [monthlyRequired, setMonthlyRequired] = useState(25);
+  const [monthlyRequired, setMonthlyRequired] = useState(5);
+  const [monthlySets, setMonthlySets] = useState(
+    Array.from({ length: MONTHLY_SET_COUNT }, (_, index) => ({
+      setIndex: index + 1,
+      unlocked: false,
+      played: false,
+      locked: true,
+      playedAt: null,
+      code: "",
+    }))
+  );
+  const [activeMonthlySet, setActiveMonthlySet] = useState(0);
+  const [monthlySetLoading, setMonthlySetLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [successModal, setSuccessModal] = useState(false);
   const [noTicketModal, setNoTicketModal] = useState(false);
@@ -92,6 +107,84 @@ const DailyNumberDrawScreen = () => {
   const handleSubmit = () => submitLetters(selectedLetters, REQUIRED_PICKS);
   const handleClear = () => setSelectedLetters([]);
 
+  const getActiveMonthlySet = () => monthlySets[activeMonthlySet] || monthlySets[0];
+
+  const selectMonthlySet = (index) => {
+    const set = monthlySets[index];
+    if (!set) return;
+    if (set.locked) {
+      setNoTicketModal(true);
+      return;
+    }
+    setActiveMonthlySet(index);
+  };
+
+  const pickMonthlyLetter = (letter) => {
+    setMonthlySets((prev) => {
+      const next = prev.map((set) => ({ ...set, letters: [...(set.letters || [])] }));
+      const current = next[activeMonthlySet];
+      if (!current || current.locked || current.played) return prev;
+      const targetIndex = current.letters.findIndex((item) => !item);
+      if (targetIndex === -1) return prev;
+      current.letters[targetIndex] = letter;
+      return next;
+    });
+  };
+
+  const clearMonthlySet = (index) => {
+    setMonthlySets((prev) =>
+      prev.map((set, setIndex) =>
+        setIndex === index
+          ? { ...set, letters: Array(MONTHLY_SET_SIZE).fill(""), code: "", played: false }
+          : set
+      )
+    );
+  };
+
+  const monthlyUnlockedCount = monthlySets.filter((item) => item.unlocked).length;
+  const monthlyPlayedCount = monthlySets.filter((item) => item.played).length;
+  const activeMonthlySetData = getActiveMonthlySet();
+
+  const submitMonthlySet = async (index) => {
+    const set = monthlySets[index];
+    if (!set || set.locked) {
+      setNoTicketModal(true);
+      return;
+    }
+    const code = (set.letters || []).join("").toUpperCase();
+    if (code.length !== MONTHLY_SET_SIZE || code.includes("")) {
+      showToast(`Select exactly ${MONTHLY_SET_SIZE} letters for set ${index + 1}`);
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const res = await api.post("/monthly-game/play", {
+        setIndex: index + 1,
+        code,
+      });
+      if (res?.data?.success) {
+        setMonthlySets((prev) =>
+          prev.map((item, setIndex) =>
+            setIndex === index
+              ? { ...item, played: true, playedAt: new Date().toISOString(), code }
+              : item
+          )
+        );
+        await refreshUser?.();
+        setSuccessModal(true);
+        setShowConfetti(true);
+        window.setTimeout(() => setShowConfetti(false), 1800);
+      } else {
+        showToast(res?.data?.message || res?.data?.msg || "Submission failed");
+      }
+    } catch (err) {
+      showToast(err?.response?.data?.message || err?.response?.data?.msg || "Unable to submit");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const fallbackResultLetters = useMemo(() => ["A", "C", "E", "G", "I", "K", "M", "O", "Q"], []);
   const displayResultLetters = resultLetters.length ? resultLetters : fallbackResultLetters;
   const monthlyTowardNext = monthlyRequired > 0 ? monthlyPurchases % monthlyRequired : 0;
@@ -103,28 +196,53 @@ const DailyNumberDrawScreen = () => {
     let mounted = true;
     setResultLoading(true);
     setResultError("");
+    setMonthlySetLoading(true);
 
-    Promise.allSettled([api.get("/daily-game/merchant-card"), api.get("/monthly-game/eligibility")])
+    Promise.allSettled([
+      api.get("/monthly-game/eligibility"),
+      api.get("/monthly-game/tickets"),
+      api.get("/monthly-game/winners"),
+    ])
       .then((results) => {
         if (!mounted) return;
 
-        const merchantCardRes = results?.[0]?.status === "fulfilled" ? results[0].value : null;
-        const eligibilityRes = results?.[1]?.status === "fulfilled" ? results[1].value : null;
-
-        const payload = merchantCardRes?.data || {};
-        const letters = Array.isArray(payload.letters)
-          ? payload.letters
-              .map((value) => numberToLetter(value))
-              .map((letter) => String(letter || "").toUpperCase())
-          : [];
-
-        setResultLetters(letters);
-        setResultRevealReady(Boolean(payload.revealReady));
-        setResultRevealAt(payload.revealAt || "");
+        const eligibilityRes = results?.[0]?.status === "fulfilled" ? results[0].value : null;
+        const ticketsRes = results?.[1]?.status === "fulfilled" ? results[1].value : null;
+        const winnersRes = results?.[2]?.status === "fulfilled" ? results[2].value : null;
 
         const eligibility = eligibilityRes?.data?.eligibility || {};
         setMonthlyPurchases(Number(eligibility.purchases || 0));
-        setMonthlyRequired(25);
+        setMonthlyRequired(Number(eligibility.required || MONTHLY_SET_COUNT));
+        setResultRevealAt(eligibility?.resultRevealAt || eligibility?.drawAt || "");
+
+        const ticketRows = Array.isArray(ticketsRes?.data?.tickets) ? ticketsRes.data.tickets : [];
+        const normalizedSets = Array.from({ length: MONTHLY_SET_COUNT }, (_, index) => {
+          const row = ticketRows.find((item) => Number(item.setIndex) === index + 1) || {};
+          const code = String(row.code || "").toUpperCase();
+          const unlocked =
+            row.locked === undefined ? index < Number(eligibility?.setsUnlocked || 0) : !row.locked;
+          return {
+            setIndex: index + 1,
+            unlocked,
+            locked: Boolean(row.locked),
+            played: Boolean(row.played),
+            playedAt: row.playedAt || null,
+            code,
+            letters: code ? code.split("").slice(0, MONTHLY_SET_SIZE) : Array(MONTHLY_SET_SIZE).fill(""),
+          };
+        });
+        setMonthlySets(normalizedSets);
+
+        const draw = winnersRes?.data?.draw || {};
+        const resultSets = Array.isArray(draw.winningSets) ? draw.winningSets : [];
+        setMonthlyResultSets(resultSets.slice(0, MONTHLY_SET_COUNT).map((set) => set.map((letter) => String(letter || "").toUpperCase())));
+        setResultRevealReady(resultSets.length === MONTHLY_SET_COUNT);
+        setResultLetters([]);
+        setResultError("");
+        if (normalizedSets.find((item) => item.unlocked && !item.played)) {
+          const firstUnlocked = normalizedSets.findIndex((item) => item.unlocked && !item.played);
+          setActiveMonthlySet(firstUnlocked >= 0 ? firstUnlocked : 0);
+        }
       })
       .catch((err) => {
         if (!mounted) return;
@@ -133,6 +251,7 @@ const DailyNumberDrawScreen = () => {
       .finally(() => {
         if (!mounted) return;
         setResultLoading(false);
+        setMonthlySetLoading(false);
       });
     return () => {
       mounted = false;
@@ -173,21 +292,29 @@ const DailyNumberDrawScreen = () => {
             <PromoBrand>BIGGI DATA BUNDLE SERVICES</PromoBrand>
             <PromoTitle>MONTHLY CARD GAME</PromoTitle>
             <PromoSubtitle>
-              Select exactly 5 letters (A - Z). Uses 1 ticket per play. Results are released at month end.
+              Complete 5 sets of 3 letters. Each data purchase unlocks one set. Results are released at month end.
             </PromoSubtitle>
             <PromoSubtitle>
-              Tickets available: {MONTHLY_TICKET_CAP}. Earn 1 ticket per 25 purchases • {monthlyToNextTicket} to next
-              ticket.
+              Sets unlocked: {monthlyUnlockedCount}/{MONTHLY_SET_COUNT}. Completed: {monthlyPlayedCount}/{MONTHLY_SET_COUNT}.
             </PromoSubtitle>
 
-            <ResultTitle>Monthly result (9 letters)</ResultTitle>
-            <ResultGrid aria-label="Monthly result letters">
-              {Array.from({ length: 9 }, (_, idx) => (
-                <ResultBox key={`result-${idx}`} aria-hidden="true">
-                  {resultRevealReady ? displayResultLetters[idx] : "?"}
-                </ResultBox>
-              ))}
-            </ResultGrid>
+            <ResultTitle>Monthly result status</ResultTitle>
+            <PromoHint>
+              At month end, the system reveals 5 winning 3-letter sets. Complete all 5 of your monthly sets, and
+              matching any one set counts as a win.
+            </PromoHint>
+            <MonthlyStatusRow aria-label="Monthly result progress">
+              {Array.from({ length: MONTHLY_SET_COUNT }, (_, setIndex) => {
+                const resultSet = monthlyResultSets[setIndex] || [];
+                const revealed = resultRevealReady && resultSet.length === MONTHLY_SET_SIZE;
+                return (
+                  <MonthlyStatusChip key={`result-status-${setIndex}`} $revealed={revealed}>
+                    <span>Set {setIndex + 1}</span>
+                    <strong>{revealed ? "Revealed" : "Hidden"}</strong>
+                  </MonthlyStatusChip>
+                );
+              })}
+            </MonthlyStatusRow>
 
             {resultLoading ? (
               <PromoHint>Loading monthly card...</PromoHint>
@@ -205,12 +332,102 @@ const DailyNumberDrawScreen = () => {
               </PromoHint>
             )}
 
-            <ChooseText $promo>Choose 5 letters</ChooseText>
+            <ChooseText $promo>
+              {activeMonthlySetData?.played
+                ? `Set ${activeMonthlySetData.setIndex} already submitted`
+                : `Choose 3 letters for Set ${activeMonthlySetData?.setIndex || 1}`}
+            </ChooseText>
+
+            <MonthlyBoard>
+              {monthlySets.map((set, index) => {
+                const lettersForSet = Array.isArray(set.letters)
+                  ? set.letters
+                  : Array(MONTHLY_SET_SIZE).fill("");
+                const selected = activeMonthlySet === index;
+                return (
+                  <MonthlySetCard
+                    key={`monthly-set-${set.setIndex}`}
+                    $selected={selected}
+                    $locked={!set.unlocked}
+                    $played={set.played}
+                    type="button"
+                    onClick={() => selectMonthlySet(index)}
+                  >
+                    <MonthlySetHeader>
+                      <div>
+                        <MonthlySetTitle>Set {set.setIndex}</MonthlySetTitle>
+                        <MonthlySetMeta>
+                          {set.played ? "Submitted" : set.unlocked ? "Unlocked" : "Locked"}
+                        </MonthlySetMeta>
+                      </div>
+                      <MonthlySetBadge $locked={!set.unlocked} $played={set.played}>
+                        {set.played ? "Done" : set.unlocked ? "Open" : "Locked"}
+                      </MonthlySetBadge>
+                    </MonthlySetHeader>
+
+                    <MonthlySetGrid>
+                      {Array.from({ length: MONTHLY_SET_SIZE }, (_, letterIndex) => (
+                        <MonthlySetBox
+                          key={`monthly-set-${set.setIndex}-box-${letterIndex}`}
+                          $filled={Boolean(lettersForSet[letterIndex])}
+                          $active={selected}
+                          $locked={!set.unlocked || set.played}
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            if (!set.unlocked || set.played) return;
+                            setActiveMonthlySet(index);
+                          }}
+                        >
+                          {lettersForSet[letterIndex] || "?"}
+                        </MonthlySetBox>
+                      ))}
+                    </MonthlySetGrid>
+
+                    <MonthlySetActions>
+                      <MonthlySetAction
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          clearMonthlySet(index);
+                        }}
+                        disabled={set.played || !lettersForSet.some(Boolean) || submitting}
+                      >
+                        Clear
+                      </MonthlySetAction>
+                      <MonthlySetAction
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          submitMonthlySet(index);
+                        }}
+                        disabled={
+                          set.played ||
+                          !set.unlocked ||
+                          lettersForSet.filter(Boolean).length !== MONTHLY_SET_SIZE ||
+                          submitting
+                        }
+                      >
+                        {set.played
+                          ? "Submitted"
+                          : submitting && activeMonthlySet === index
+                          ? "Submitting..."
+                          : "Submit"}
+                      </MonthlySetAction>
+                    </MonthlySetActions>
+                  </MonthlySetCard>
+                );
+              })}
+            </MonthlyBoard>
+
+            <ChooseText $promo style={{ marginTop: 10 }}>
+              Tap a set to work on it, then choose 3 letters from A-Z below.
+            </ChooseText>
             <Grid>
               {letters.map((letter) => {
-                const selected = selectedLetters.includes(letter);
+                const selected = (activeMonthlySetData?.letters || []).includes(letter);
                 return (
-                  <LetterBox key={letter} $selected={selected} onClick={() => toggleLetter(letter)}>
+                  <LetterBox key={letter} $selected={selected} onClick={() => pickMonthlyLetter(letter)}>
                     {letter}
                   </LetterBox>
                 );
@@ -220,22 +437,37 @@ const DailyNumberDrawScreen = () => {
             <PromoActions>
               <PromoTicketRow>
                 <Ticket size={18} color="#f7c59f" />
-                <span>{tickets} Tickets Left</span>
+                <span>{tickets} Purchases Available</span>
               </PromoTicketRow>
               <PromoSelectedRow>
                 <span>
-                  Selected ({selectedLetters.length}/{REQUIRED_PICKS}):{" "}
-                  {selectedLetters.length ? selectedLetters.join(" ") : "-"}
+                  Active Set {activeMonthlySetData?.setIndex || 1}:{" "}
+                  {activeMonthlySetData?.letters?.some(Boolean) ? activeMonthlySetData.letters.join(" ") : "-"}
                 </span>
-                <PromoClear type="button" onClick={handleClear} disabled={!selectedLetters.length || submitting}>
+                <PromoClear
+                  type="button"
+                  onClick={() => clearMonthlySet(activeMonthlySet)}
+                  disabled={
+                    !activeMonthlySetData ||
+                    activeMonthlySetData.played ||
+                    !(activeMonthlySetData?.letters || []).some(Boolean) ||
+                    submitting
+                  }
+                >
                   Clear
                 </PromoClear>
               </PromoSelectedRow>
               <PromoSubmit
-                onClick={handleSubmit}
-                disabled={submitting || selectedLetters.length !== REQUIRED_PICKS}
+                onClick={() => submitMonthlySet(activeMonthlySet)}
+                disabled={
+                  submitting ||
+                  !activeMonthlySetData ||
+                  activeMonthlySetData.played ||
+                  !activeMonthlySetData.unlocked ||
+                  (activeMonthlySetData?.letters || []).filter(Boolean).length !== MONTHLY_SET_SIZE
+                }
               >
-                {submitting ? "Submitting..." : "Submit Entry"}
+                {submitting ? "Submitting..." : "Submit Set"}
               </PromoSubmit>
             </PromoActions>
           </PromoCard>
@@ -281,7 +513,7 @@ const DailyNumberDrawScreen = () => {
           <ModalCard>
             <CheckCircle2 size={64} color="#4cd964" />
             <ModalTitle>Submitted</ModalTitle>
-            <ModalMessage>Your entry was submitted. Monthly results are released at month end.</ModalMessage>
+            <ModalMessage>Your set was submitted. Monthly results are released at month end.</ModalMessage>
             <ModalButton onClick={() => setSuccessModal(false)}>OK</ModalButton>
           </ModalCard>
         </Overlay>
@@ -291,8 +523,8 @@ const DailyNumberDrawScreen = () => {
         <Overlay>
           <ModalCard>
             <TriangleAlert size={62} color="#ff3b30" />
-            <ModalTitle>No Tickets</ModalTitle>
-            <ModalMessage>You need at least 1 ticket to play.</ModalMessage>
+            <ModalTitle>Set Locked</ModalTitle>
+            <ModalMessage>You need the next data purchase to unlock this set.</ModalMessage>
             <ModalButton onClick={() => setNoTicketModal(false)}>Close</ModalButton>
           </ModalCard>
         </Overlay>
@@ -457,6 +689,156 @@ const ResultBox = styled.div`
   font-size: 16px;
   font-weight: 900;
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+`;
+
+const MonthlyStatusRow = styled.div`
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0 14px;
+`;
+
+const MonthlyStatusChip = styled.div`
+  border-radius: 999px;
+  padding: 8px 10px;
+  text-align: center;
+  background: ${({ $revealed }) => ($revealed ? "rgba(76, 217, 100, 0.18)" : "rgba(255, 255, 255, 0.08)")};
+  border: 1px solid ${({ $revealed }) => ($revealed ? "rgba(76, 217, 100, 0.34)" : "rgba(255,255,255,0.12)")};
+  color: ${({ $revealed }) => ($revealed ? "#bff4c8" : "rgba(255,255,255,0.8)")};
+  display: grid;
+  gap: 2px;
+  font-size: 11px;
+  strong {
+    font-size: 10px;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+  }
+`;
+
+const MonthlyResultList = styled.div`
+  display: grid;
+  gap: 12px;
+  margin-bottom: 14px;
+`;
+
+const MonthlyResultCard = styled.div`
+  border-radius: 18px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+`;
+
+const MonthlyResultHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+`;
+
+const MonthlyResultBadge = styled.span`
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: ${({ $ready }) => ($ready ? "rgba(51, 214, 159, 0.16)" : "rgba(255, 255, 255, 0.12)")};
+  color: ${({ $ready }) => ($ready ? "#8ef0c8" : "rgba(255, 255, 255, 0.72)")};
+  font-size: 11px;
+  font-weight: 700;
+`;
+
+const MonthlyResultGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+`;
+
+const MonthlyBoard = styled.div`
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+`;
+
+const MonthlySetCard = styled.button`
+  width: 100%;
+  text-align: left;
+  border: 1px solid
+    ${({ $selected, $locked, $played }) =>
+      $played ? "rgba(88, 196, 136, 0.45)" : $selected ? "#ffb15b" : $locked ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.16)"};
+  background: ${({ $played, $locked }) =>
+    $played ? "rgba(54, 163, 103, 0.12)" : $locked ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.08)"};
+  border-radius: 18px;
+  padding: 14px;
+  color: #fff;
+  cursor: pointer;
+  opacity: ${({ $locked }) => ($locked ? 0.72 : 1)};
+  box-shadow: ${({ $selected }) => ($selected ? "0 0 0 2px rgba(255, 177, 91, 0.18)" : "none")};
+`;
+
+const MonthlySetHeader = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+`;
+
+const MonthlySetTitle = styled.div`
+  font-size: 15px;
+  font-weight: 800;
+`;
+
+const MonthlySetMeta = styled.div`
+  margin-top: 2px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.72);
+`;
+
+const MonthlySetBadge = styled.span`
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: ${({ $played, $locked }) =>
+    $played ? "rgba(88, 196, 136, 0.18)" : $locked ? "rgba(255,255,255,0.12)" : "rgba(255, 177, 91, 0.18)"};
+  color: ${({ $played, $locked }) => ($played ? "#aef0c8" : $locked ? "rgba(255,255,255,0.72)" : "#ffd19d")};
+  font-size: 11px;
+  font-weight: 700;
+`;
+
+const MonthlySetGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+`;
+
+const MonthlySetBox = styled.button`
+  height: 52px;
+  border-radius: 14px;
+  border: 1px solid
+    ${({ $locked, $active, $filled }) =>
+      $locked ? "rgba(255,255,255,0.14)" : $active ? "#ffb15b" : $filled ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.18)"};
+  background: ${({ $locked, $filled }) =>
+    $locked ? "rgba(255,255,255,0.04)" : $filled ? "rgba(255, 177, 91, 0.12)" : "rgba(255,255,255,0.08)"};
+  color: ${({ $locked }) => ($locked ? "rgba(255,255,255,0.45)" : "#fff")};
+  font-size: 18px;
+  font-weight: 900;
+  cursor: ${({ $locked }) => ($locked ? "not-allowed" : "pointer")};
+`;
+
+const MonthlySetActions = styled.div`
+  margin-top: 12px;
+  display: flex;
+  gap: 10px;
+`;
+
+const MonthlySetAction = styled.button`
+  flex: 1;
+  border: none;
+  border-radius: 999px;
+  padding: 10px 12px;
+  background: ${({ disabled }) => (disabled ? "rgba(255,255,255,0.1)" : "linear-gradient(135deg, #ffb15b, #ff7a00)")};
+  color: ${({ disabled }) => (disabled ? "rgba(255,255,255,0.5)" : "#111")};
+  font-weight: 800;
+  cursor: ${({ disabled }) => (disabled ? "not-allowed" : "pointer")};
 `;
 
 const PromoHint = styled.p`

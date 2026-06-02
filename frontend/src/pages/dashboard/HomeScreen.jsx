@@ -1,4 +1,4 @@
-ï»¿// frontend/src/pages/dashboard/HomeScreen.jsx
+// frontend/src/pages/dashboard/HomeScreen.jsx
 import React, { useContext, useCallback, useMemo, useState, useRef, useEffect } from 'react'; 
 import { useNavigate } from 'react-router-dom';
 import styled, { keyframes, css } from 'styled-components';
@@ -58,7 +58,7 @@ const HomeScreen = () => {
 
   const [ticketModalVisible, setTicketModalVisible] = useState(false); 
   const [ticketModalMessage, setTicketModalMessage] = useState(
-    "You need at least 1 ticket to play this game."
+    "You need at least 1 data purchase to unlock this set."
   );
   const [previewVisible, setPreviewVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
@@ -178,7 +178,7 @@ const HomeScreen = () => {
       });
       setEligibilityError("");
     } catch {
-      setEligibilityError("Tap to retry loading your ticket status.");
+      setEligibilityError("Tap to retry loading your monthly set status.");
     }
   }, []);
 
@@ -410,11 +410,11 @@ const HomeScreen = () => {
   const handleMonthlyGame = () => {
     if (monthlyEligibility.isEligible) {
       showMonthlyGameModal(
-        "Monthly Draw Tickets",
+        "Monthly Card Sets",
         `Purchases this month: ${monthlyEligibility.purchases}\n` +
-          `Raffle tickets earned: ${monthlyEligibility.raffleTicketsTotal}\n` +
-          `Unplayed tickets: ${monthlyEligibility.raffleTicketsUnplayed}\n\n` +
-          `Play a ticket to enter the monthly draw list. Each played ticket is one entry.\n\n` +
+          `Sets unlocked: ${monthlyEligibility.raffleTicketsTotal}\n` +
+          `Unsubmitted sets: ${monthlyEligibility.raffleTicketsUnplayed}\n\n` +
+          `Play a set to enter the monthly result board. Each submitted set is one entry.\n\n` +
           `Result: Pending until month end (${monthlyEligibility.daysLeft} days left).`,
         true
       );
@@ -422,11 +422,11 @@ const HomeScreen = () => {
     }
 
     showMonthlyGameModal(
-      "No Monthly Raffle Tickets Yet",
-      `Every 5 successful data purchases in a month earns you 1 raffle ticket.\n\n` +
+      "No Monthly Sets Yet",
+      `Each data purchase unlocks one 3-letter set in the monthly game.\n\n` +
         `Purchases this month: ${monthlyEligibility.purchases}\n` +
         `Progress to next ticket: ${Math.round(monthlyEligibility.progress)}%\n\n` +
-        `Buy more bundles to earn a raffle ticket, then play it in Monthly Draw.`,
+        `Buy more bundles to unlock the next monthly set, then submit it in Monthly Card Game.`,
       false
     );
   };
@@ -591,7 +591,7 @@ const HomeScreen = () => {
                           <>
                             <AccountLineRow>
                               <AccountLine>
-                                {virtualAccount.bankName} â€¢ {virtualAccount.accountNumber}
+                                {virtualAccount.bankName} • {virtualAccount.accountNumber}
                               </AccountLine>
                               <CopyButton onClick={handleCopyAccount} aria-label="Copy account details">
                                 <Copy size={14} />
@@ -605,7 +605,7 @@ const HomeScreen = () => {
                                 Updated:{" "}
                                 {virtualUpdatedAt
                                   ? new Date(virtualUpdatedAt).toLocaleString()
-                                  : "â€”"}
+                                  : "—"}
                               </AccountUpdated>
                               <RefreshButton
                                 type="button"
@@ -627,7 +627,7 @@ const HomeScreen = () => {
                                 Updated:{" "}
                                 {virtualUpdatedAt
                                   ? new Date(virtualUpdatedAt).toLocaleString()
-                                  : "â€”"}
+                                  : "—"}
                               </AccountUpdated>
                               <RefreshButton
                                 type="button"
@@ -741,7 +741,7 @@ const HomeScreen = () => {
                       </TicketBadge>
                     </TicketIconContainer>
 
-                    <SpecialTicketIconContainer aria-label="Monthly raffle tickets">
+                    <SpecialTicketIconContainer aria-label="Monthly card sets">
                       <SpecialTicketGlow />
                       <LottieWrap aria-hidden="true">
                         <Lottie
@@ -761,7 +761,7 @@ const HomeScreen = () => {
                       </SpecialTicketBadge>
                     </SpecialTicketIconContainer>
                   </TicketIconsRow>
-                  <BundleDesc>Use tickets for Weekly Draw. Earn raffle tickets for Monthly Draw.</BundleDesc>
+                  <BundleDesc>Use tickets for Weekly Draw. Unlock monthly sets with data purchases.</BundleDesc>
                 </BundleRight>
               )}
             </BundleCard>
@@ -863,10 +863,10 @@ const HomeScreen = () => {
                     <SubtitleRow>
                       <SubtitleIcon as={Ticket} size={16} />
                       <span>
-                        Earn 1 ticket per 5 purchases{" "}
+                        Unlock 1 set per purchase{" "}
                         {privateCardRemaining > 0
-                          ? `â€¢ ${privateCardRemaining} to next ticket`
-                          : "â€¢ Ticket ready"}
+                          ? `• ${privateCardRemaining} to next ticket`
+                          : "• Ticket ready"}
                       </span>
                     </SubtitleRow>
                   </GameSubtitle>
@@ -937,7 +937,7 @@ const HomeScreen = () => {
                   <MonthlyHeader>
                     <TrophyIcon size={24} />
                     <MonthlyTitle>Monthly Draw</MonthlyTitle>
-                    <RaffleTicketPill aria-label="Monthly raffle tickets">
+                    <RaffleTicketPill aria-label="Monthly card sets">
                       <RaffleTicketGlow />
                       <RaffleTicketIcon size={16} />
                       <RaffleTicketText>Tickets</RaffleTicketText>
@@ -1036,8 +1036,8 @@ const HomeScreen = () => {
                     <span>
                       Earn 1 ticket per 25 purchases{" "}
                       {merchantWeeklyRemaining > 0
-                        ? `â€¢ ${merchantWeeklyRemaining} to next ticket`
-                        : "â€¢ Ticket ready"}
+                        ? `• ${merchantWeeklyRemaining} to next ticket`
+                        : "• Ticket ready"}
                     </span>
                   </SubtitleRow>
                 </GameSubtitle>
@@ -1259,10 +1259,10 @@ const HomeScreen = () => {
               <ModalTitle>Referral Leaderboard Requirements</ModalTitle>
               <ModalMsg>
                 To participate in the monthly referral leaderboard:
-                {"\n"}â€¢ Share your referral code with friends
-                {"\n"}â€¢ At least 1 successful referral this month
-                {"\n"}â€¢ Make at least 1 data purchase this month
-                {"\n"}â€¢ Rankings reset every month
+                {"\n"}• Share your referral code with friends
+                {"\n"}• At least 1 successful referral this month
+                {"\n"}• Make at least 1 data purchase this month
+                {"\n"}• Rankings reset every month
               </ModalMsg>
               <ModalBtn onClick={() => navigate("/profile")}>
                 <ModalBtnText>View My Referral Code</ModalBtnText>
@@ -1282,9 +1282,9 @@ const HomeScreen = () => {
               <ModalTitle>Top Purchasers Requirements</ModalTitle>
               <ModalMsg>
                 To appear on the Top Sellers board:
-                {"\n"}â€¢ Make at least 1 data purchase this month
-                {"\n"}â€¢ Top 10 users are ranked by total purchases
-                {"\n"}â€¢ Rankings reset every month
+                {"\n"}• Make at least 1 data purchase this month
+                {"\n"}• Top 10 users are ranked by total purchases
+                {"\n"}• Rankings reset every month
               </ModalMsg>
               <ModalBtn onClick={() => navigate("/buy-data")}>
                 <ModalBtnText>Buy Data</ModalBtnText>
@@ -1304,11 +1304,11 @@ const HomeScreen = () => {
               <ModalTitle>Top Random Picks Requirements</ModalTitle>
               <ModalMsg>
                 To participate in Top Random Weekly Picks:
-                {"\n"}â€¢ Make at least 1 data purchase this week
+                {"\n"}• Make at least 1 data purchase this week
                 {isMerchantRole
-                  ? "\nâ€¢ Biggi House members need 7+ purchases to qualify"
+                  ? "\n• Biggi House members need 7+ purchases to qualify"
                   : ""}
-                {"\n"}â€¢ Winners are selected at week end
+                {"\n"}• Winners are selected at week end
               </ModalMsg>
               <ModalBtn onClick={() => navigate("/buy-data")}>
                 <ModalBtnText>Buy Data</ModalBtnText>
@@ -2978,4 +2978,6 @@ const PreviewBtns = styled.div`
     gap: 12px;
   }
 `;
+
+
 
