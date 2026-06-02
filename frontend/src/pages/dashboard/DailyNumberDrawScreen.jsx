@@ -680,13 +680,13 @@ const ResultGrid = styled.div`
 `;
 
 const ResultBox = styled.div`
-  height: 48px;
-  border-radius: 12px;
+  height: 40px;
+  border-radius: 10px;
   background: rgba(255, 255, 255, 0.92);
   color: #111;
   display: grid;
   place-items: center;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 900;
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
 `;
@@ -694,13 +694,13 @@ const ResultBox = styled.div`
 const MonthlyStatusRow = styled.div`
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 8px;
-  margin: 12px 0 14px;
+  gap: 6px;
+  margin: 10px 0 12px;
 `;
 
 const MonthlyStatusChip = styled.div`
   border-radius: 999px;
-  padding: 8px 10px;
+  padding: 7px 8px;
   text-align: center;
   background: ${({ $revealed }) => ($revealed ? "rgba(76, 217, 100, 0.18)" : "rgba(255, 255, 255, 0.08)")};
   border: 1px solid ${({ $revealed }) => ($revealed ? "rgba(76, 217, 100, 0.34)" : "rgba(255,255,255,0.12)")};
@@ -717,13 +717,13 @@ const MonthlyStatusChip = styled.div`
 
 const MonthlyResultList = styled.div`
   display: grid;
-  gap: 12px;
-  margin-bottom: 14px;
+  gap: 10px;
+  margin-bottom: 12px;
 `;
 
 const MonthlyResultCard = styled.div`
-  border-radius: 18px;
-  padding: 12px;
+  border-radius: 14px;
+  padding: 10px;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.12);
 `;
@@ -750,13 +750,13 @@ const MonthlyResultBadge = styled.span`
 const MonthlyResultGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 6px;
 `;
 
 const MonthlyBoard = styled.div`
   display: grid;
-  gap: 12px;
-  margin-top: 14px;
+  gap: 8px;
+  margin-top: 10px;
 `;
 
 const MonthlySetCard = styled.button`
@@ -767,8 +767,8 @@ const MonthlySetCard = styled.button`
       $played ? "rgba(88, 196, 136, 0.45)" : $selected ? "#ffb15b" : $locked ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.16)"};
   background: ${({ $played, $locked }) =>
     $played ? "rgba(54, 163, 103, 0.12)" : $locked ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.08)"};
-  border-radius: 18px;
-  padding: 14px;
+  border-radius: 14px;
+  padding: 8px;
   color: #fff;
   cursor: pointer;
   opacity: ${({ $locked }) => ($locked ? 0.72 : 1)};
@@ -780,7 +780,7 @@ const MonthlySetHeader = styled.div`
   align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 `;
 
 const MonthlySetTitle = styled.div`
@@ -807,25 +807,25 @@ const MonthlySetBadge = styled.span`
 const MonthlySetGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 6px;
 `;
 
 const MonthlySetBox = styled.button`
-  height: 52px;
-  border-radius: 14px;
+  height: 38px;
+  border-radius: 10px;
   border: 1px solid
     ${({ $locked, $active, $filled }) =>
       $locked ? "rgba(255,255,255,0.14)" : $active ? "#ffb15b" : $filled ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.18)"};
   background: ${({ $locked, $filled }) =>
     $locked ? "rgba(255,255,255,0.04)" : $filled ? "rgba(255, 177, 91, 0.12)" : "rgba(255,255,255,0.08)"};
   color: ${({ $locked }) => ($locked ? "rgba(255,255,255,0.45)" : "#fff")};
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 900;
   cursor: ${({ $locked }) => ($locked ? "not-allowed" : "pointer")};
 `;
 
 const MonthlySetActions = styled.div`
-  margin-top: 12px;
+  margin-top: 8px;
   display: flex;
   gap: 10px;
 `;

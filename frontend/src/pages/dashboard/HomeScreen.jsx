@@ -410,23 +410,23 @@ const HomeScreen = () => {
   const handleMonthlyGame = () => {
     if (monthlyEligibility.isEligible) {
       showMonthlyGameModal(
-        "Monthly Card Sets",
+        "Monthly Card Game",
         `Purchases this month: ${monthlyEligibility.purchases}\n` +
-          `Sets unlocked: ${monthlyEligibility.raffleTicketsTotal}\n` +
-          `Unsubmitted sets: ${monthlyEligibility.raffleTicketsUnplayed}\n\n` +
-          `Complete 5 sets of 3 letters. Each submitted set becomes one monthly entry.\n\n` +
-          `Result: 5 winning 3-letter sets are revealed at month end (${monthlyEligibility.daysLeft} days left).`,
+          `Entries unlocked: ${monthlyEligibility.raffleTicketsTotal}\n` +
+          `Unsubmitted entries: ${monthlyEligibility.raffleTicketsUnplayed}\n\n` +
+          `Complete 5 predictions of 3 letters each. Each submitted prediction becomes one monthly entry.\n\n` +
+          `Result: 5 winning 3-letter predictions are revealed at month end (${monthlyEligibility.daysLeft} days left).`,
         true
       );
       return;
     }
 
     showMonthlyGameModal(
-      "No Monthly Sets Yet",
-      `Each data purchase unlocks one 3-letter set in the monthly game.\n\n` +
+      "No Monthly Entries Yet",
+      `Each data purchase unlocks one 3-letter prediction in the monthly game.\n\n` +
         `Purchases this month: ${monthlyEligibility.purchases}\n` +
-        `Progress to next set: ${Math.round(monthlyEligibility.progress)}%\n\n` +
-        `Buy more bundles to unlock the next monthly set, then submit it in Monthly Card Game.`,
+        `Progress to next entry: ${Math.round(monthlyEligibility.progress)}%\n\n` +
+        `Buy more bundles to unlock the next prediction, then submit it in Monthly Card Game.`,
       false
     );
   };
@@ -761,7 +761,7 @@ const HomeScreen = () => {
                       </SpecialTicketBadge>
                     </SpecialTicketIconContainer>
                   </TicketIconsRow>
-                  <BundleDesc>Use tickets for Weekly Draw. Unlock monthly sets with data purchases.</BundleDesc>
+                  <BundleDesc>Use tickets for Weekly Draw. Unlock monthly predictions with data purchases.</BundleDesc>
                 </BundleRight>
               )}
             </BundleCard>
@@ -863,7 +863,7 @@ const HomeScreen = () => {
                     <SubtitleRow>
                       <SubtitleIcon as={Ticket} size={16} />
                       <span>
-                        Unlock 1 set per purchase{" "}
+                        Unlock 1 prediction per purchase{" "}
                         {privateCardRemaining > 0
                           ? `• ${privateCardRemaining} to next ticket`
                           : "• Ticket ready"}
