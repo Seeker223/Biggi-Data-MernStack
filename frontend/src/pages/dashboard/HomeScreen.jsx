@@ -850,7 +850,7 @@ const HomeScreen = () => {
                   <GameSubtitle>
                     <SubtitleRow>
                       <SubtitleIcon as={Ticket} size={16} />
-                      <span>Uses 1 ticket per play</span>
+                      <span>5 rows • 3 letters each</span>
                     </SubtitleRow>
                     <SubtitleRow>
                       <SubtitleIcon as={Calendar} size={16} />
@@ -858,15 +858,15 @@ const HomeScreen = () => {
                     </SubtitleRow>
                     <SubtitleRow>
                       <SubtitleIcon as={Ticket} size={16} />
-                      <span>Tickets available: {tickets}</span>
+                      <span>Unlock 1 row per data purchase</span>
                     </SubtitleRow>
                     <SubtitleRow>
                       <SubtitleIcon as={Ticket} size={16} />
                       <span>
-                        Unlock 1 prediction per purchase{" "}
+                        5 completed rows needed to play{" "}
                         {privateCardRemaining > 0
-                          ? `• ${privateCardRemaining} to next ticket`
-                          : "• Ticket ready"}
+                          ? `• ${privateCardRemaining} purchases to next row`
+                          : "• Row ready"}
                       </span>
                     </SubtitleRow>
                   </GameSubtitle>
@@ -1021,7 +1021,7 @@ const HomeScreen = () => {
                 <GameSubtitle>
                   <SubtitleRow>
                     <SubtitleIcon as={Ticket} size={16} />
-                    <span>Uses 1 ticket per play</span>
+                    <span>5 rows • 3 letters each</span>
                   </SubtitleRow>
                   <SubtitleRow>
                     <SubtitleIcon as={Calendar} size={16} />
@@ -1029,15 +1029,15 @@ const HomeScreen = () => {
                   </SubtitleRow>
                   <SubtitleRow>
                     <SubtitleIcon as={Ticket} size={16} />
-                    <span>Tickets available: {tickets}</span>
+                    <span>Unlock 1 row per data purchase</span>
                   </SubtitleRow>
                   <SubtitleRow>
                     <SubtitleIcon as={Ticket} size={16} />
                     <span>
-                      Earn 1 ticket per 25 purchases{" "}
+                      Earn 1 row per 25 purchases{" "}
                       {merchantWeeklyRemaining > 0
-                        ? `• ${merchantWeeklyRemaining} to next ticket`
-                        : "• Ticket ready"}
+                        ? `• ${merchantWeeklyRemaining} purchases to next row`
+                        : "• Row ready"}
                     </span>
                   </SubtitleRow>
                 </GameSubtitle>
