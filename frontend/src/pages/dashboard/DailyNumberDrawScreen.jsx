@@ -302,14 +302,6 @@ const DailyNumberDrawScreen = () => {
               </PromoHint>
             )}
 
-            <MonthlyInfoRow>
-              <span>Tap an unlocked entry below, then choose 3 letters.</span>
-              <span>
-                Active Entry {activeMonthlySet}
-                {activeMonthlyEntry?.played ? " · Submitted" : activeMonthlyEntry?.locked ? " · Locked" : ""}
-              </span>
-            </MonthlyInfoRow>
-
             <MonthlySetDeck>
               {(monthlyEntries.length ? monthlyEntries : Array.from({ length: MONTHLY_CARD_SET_COUNT }, (_, idx) => ({
                 setIndex: idx + 1,
@@ -332,15 +324,15 @@ const DailyNumberDrawScreen = () => {
                   >
                     <MonthlySetHeader>
                       <MonthlySetTitle>
-                        <MonthlySetName>Entry {setIndex}</MonthlySetName>
+                        <MonthlySetName>Row {setIndex}</MonthlySetName>
                         <MonthlySetSubtext>
                           {played
                             ? "Submitted for this month."
                             : locked
                             ? `Unlocks after ${setIndex} data purchase${setIndex === 1 ? "" : "s"}.`
                             : setIndex === activeMonthlySet
-                            ? "Tap letters below to fill this entry."
-                            : "Ready to play."}
+                            ? "Tap to work on this row."
+                            : "Ready"}
                         </MonthlySetSubtext>
                       </MonthlySetTitle>
                       <MonthlySetStatus $done={played} $locked={locked}>
@@ -359,30 +351,6 @@ const DailyNumberDrawScreen = () => {
                         </MonthlySetBox>
                       ))}
                     </MonthlySetBoxes>
-
-                    <MonthlySetActions>
-                      <MonthlyActionButton
-                        type="button"
-                        disabled={submitting || locked || played}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          clearMonthlyDraft(setIndex);
-                        }}
-                      >
-                        Clear
-                      </MonthlyActionButton>
-                      <MonthlyActionButton
-                        type="button"
-                        $primary
-                        disabled={submitting || locked || played || (monthlyDrafts[setIndex - 1] || []).length !== MONTHLY_CARD_SET_LENGTH}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          submitMonthlyEntry(setIndex);
-                        }}
-                      >
-                        {submitting && setIndex === activeMonthlySet ? "Submitting..." : "Submit"}
-                      </MonthlyActionButton>
-                    </MonthlySetActions>
                   </MonthlySetCard>
                 );
               })}
@@ -674,18 +642,18 @@ const MonthlyResultBox = styled.div`
 `;
 
 const MonthlySetDeck = styled.div`
-  width: min(520px, 100%);
-  margin: 12px auto 8px;
+  width: min(500px, 100%);
+  margin: 10px auto 6px;
   display: grid;
-  gap: 8px;
+  gap: 6px;
 `;
 
 const MonthlySetCard = styled.div`
-  border-radius: 14px;
-  padding: 10px;
+  border-radius: 10px;
+  padding: 8px 9px 9px;
   border: 1px solid ${(p) => (p.$active ? "#ff8c00" : "rgba(0, 0, 0, 0.08)")};
-  background: ${(p) => (p.$active ? "linear-gradient(180deg, #fff8ef 0%, #ffffff 100%)" : "#ffffff")};
-  box-shadow: ${(p) => (p.$active ? "0 10px 18px rgba(255, 140, 0, 0.10)" : "0 8px 16px rgba(0, 0, 0, 0.05)")};
+  background: ${(p) => (p.$active ? "#fffaf4" : "#ffffff")};
+  box-shadow: none;
   cursor: pointer;
 `;
 
@@ -693,8 +661,8 @@ const MonthlySetHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 10px;
-  margin-bottom: 8px;
+  gap: 8px;
+  margin-bottom: 6px;
 `;
 
 const MonthlySetTitle = styled.div`
@@ -710,35 +678,35 @@ const MonthlySetName = styled.span`
 `;
 
 const MonthlySetSubtext = styled.span`
-  font-size: 10px;
+  font-size: 9px;
   color: #666;
   line-height: 1.35;
 `;
 
 const MonthlySetStatus = styled.span`
   border-radius: 999px;
-  padding: 4px 8px;
+  padding: 3px 7px;
   background: ${(p) => (p.$done ? "rgba(76, 217, 100, 0.14)" : p.$locked ? "rgba(0, 0, 0, 0.08)" : "rgba(255, 140, 0, 0.14)")};
   color: ${(p) => (p.$done ? "#208f3d" : p.$locked ? "#666" : "#b85d00")};
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
 `;
 
 const MonthlySetBoxes = styled.div`
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
+  gap: 5px;
 `;
 
 const MonthlySetBox = styled.div`
-  min-height: 34px;
-  border-radius: 8px;
+  min-height: 32px;
+  border-radius: 7px;
   border: 1px solid ${(p) => (p.$active ? "#ff8c00" : "rgba(0, 0, 0, 0.08)")};
   background: ${(p) => (p.$filled ? "#fff" : "#fafafa")};
   display: grid;
   place-items: center;
   color: #111;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 900;
 `;
 
@@ -774,26 +742,26 @@ const MonthlyInfoRow = styled.div`
 `;
 
 const PromoHint = styled.p`
-  margin: 0 0 10px;
+  margin: 0 0 8px;
   text-align: center;
   color: #444;
-  font-size: 12px;
+  font-size: 11.5px;
   line-height: 1.45;
 `;
 
 const PromoActions = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
   align-items: center;
 `;
 
 const PromoTicketRow = styled.div`
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   color: #111;
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 700;
 `;
 
@@ -802,9 +770,9 @@ const PromoSelectedRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
   color: #111;
-  font-size: 12px;
+  font-size: 11.5px;
 
   span {
     overflow: hidden;
@@ -817,7 +785,7 @@ const PromoClear = styled.button`
   border: 1px solid rgba(0, 0, 0, 0.12);
   background: #fff;
   color: #111;
-  padding: 8px 12px;
+  padding: 7px 11px;
   border-radius: 999px;
   font-weight: 700;
   cursor: ${(p) => (p.disabled ? "not-allowed" : "pointer")};
@@ -827,12 +795,12 @@ const PromoClear = styled.button`
 const PromoSubmit = styled.button`
   border: none;
   border-radius: 999px;
-  padding: 10px 28px;
+  padding: 9px 24px;
   width: min(300px, 100%);
   background: ${(p) => (p.disabled ? "#a1a1a1" : "#ff8c00")};
   color: #111;
   font-weight: 800;
-  font-size: 14px;
+  font-size: 13px;
   cursor: ${(p) => (p.disabled ? "not-allowed" : "pointer")};
   box-shadow: ${(p) => (p.disabled ? "none" : "0 10px 24px rgba(255, 140, 0, 0.28)")};
 `;
@@ -966,4 +934,5 @@ const ModalButton = styled.button`
   padding: 10px 40px;
   cursor: pointer;
 `;
+
 
