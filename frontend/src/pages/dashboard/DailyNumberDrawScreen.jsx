@@ -660,7 +660,7 @@ const PromoSubtitle = styled.p`
   margin: 0 0 18px;
   text-align: center;
   color: rgba(255, 255, 255, 0.78);
-  font-size: 14px;
+  font-size: 13px;
 `;
 
 const ResultTitle = styled.p`
@@ -676,17 +676,17 @@ const ResultGrid = styled.div`
   margin: 0 auto 14px;
   display: grid;
   grid-template-columns: repeat(3, minmax(44px, 1fr));
-  gap: 10px;
+  gap: 5px;
 `;
 
 const ResultBox = styled.div`
-  height: 40px;
+  height: 34px;
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.92);
   color: #111;
   display: grid;
   place-items: center;
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 900;
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
 `;
@@ -694,13 +694,13 @@ const ResultBox = styled.div`
 const MonthlyStatusRow = styled.div`
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 6px;
-  margin: 10px 0 12px;
+  gap: 4px;
+  margin: 8px 0 10px;
 `;
 
 const MonthlyStatusChip = styled.div`
   border-radius: 999px;
-  padding: 7px 8px;
+  padding: 6px 7px;
   text-align: center;
   background: ${({ $revealed }) => ($revealed ? "rgba(76, 217, 100, 0.18)" : "rgba(255, 255, 255, 0.08)")};
   border: 1px solid ${({ $revealed }) => ($revealed ? "rgba(76, 217, 100, 0.34)" : "rgba(255,255,255,0.12)")};
@@ -717,13 +717,13 @@ const MonthlyStatusChip = styled.div`
 
 const MonthlyResultList = styled.div`
   display: grid;
-  gap: 10px;
-  margin-bottom: 12px;
+  gap: 5px;
+  margin-bottom: 10px;
 `;
 
 const MonthlyResultCard = styled.div`
   border-radius: 14px;
-  padding: 10px;
+  padding: 7px;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.12);
 `;
@@ -750,13 +750,13 @@ const MonthlyResultBadge = styled.span`
 const MonthlyResultGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
+  gap: 4px;
 `;
 
 const MonthlyBoard = styled.div`
   display: grid;
-  gap: 8px;
-  margin-top: 10px;
+  gap: 5px;
+  margin-top: 8px;
 `;
 
 const MonthlySetCard = styled.button`
@@ -779,12 +779,12 @@ const MonthlySetHeader = styled.div`
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 10px;
+  gap: 5px;
   margin-bottom: 8px;
 `;
 
 const MonthlySetTitle = styled.div`
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 800;
 `;
 
@@ -807,11 +807,11 @@ const MonthlySetBadge = styled.span`
 const MonthlySetGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
+  gap: 4px;
 `;
 
 const MonthlySetBox = styled.button`
-  height: 38px;
+  height: 32px;
   border-radius: 10px;
   border: 1px solid
     ${({ $locked, $active, $filled }) =>
@@ -819,7 +819,7 @@ const MonthlySetBox = styled.button`
   background: ${({ $locked, $filled }) =>
     $locked ? "rgba(255,255,255,0.04)" : $filled ? "rgba(255, 177, 91, 0.12)" : "rgba(255,255,255,0.08)"};
   color: ${({ $locked }) => ($locked ? "rgba(255,255,255,0.45)" : "#fff")};
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 900;
   cursor: ${({ $locked }) => ($locked ? "not-allowed" : "pointer")};
 `;
@@ -827,7 +827,7 @@ const MonthlySetBox = styled.button`
 const MonthlySetActions = styled.div`
   margin-top: 8px;
   display: flex;
-  gap: 10px;
+  gap: 5px;
 `;
 
 const MonthlySetAction = styled.button`
@@ -851,14 +851,14 @@ const PromoHint = styled.p`
 const PromoActions = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 5px;
   align-items: center;
 `;
 
 const PromoTicketRow = styled.div`
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 5px;
   color: rgba(255, 255, 255, 0.86);
   font-size: 13px;
 `;
@@ -868,7 +868,7 @@ const PromoSelectedRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 5px;
   color: rgba(255, 255, 255, 0.82);
   font-size: 12px;
 
@@ -897,7 +897,7 @@ const PromoSubmit = styled.button`
   background: ${(p) => (p.disabled ? "#6f6f6f" : "linear-gradient(135deg, #f1b67a, #d86b5f)")};
   color: #101010;
   font-weight: 800;
-  font-size: 15px;
+  font-size: 13px;
   cursor: ${(p) => (p.disabled ? "not-allowed" : "pointer")};
   box-shadow: ${(p) => (p.disabled ? "none" : "0 10px 24px rgba(241, 182, 122, 0.35)")};
 `;
@@ -927,12 +927,12 @@ const TicketRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  margin-top: 10px;
+  gap: 5px;
+  margin-top: 8px;
 `;
 
 const TicketText = styled.span`
-  font-size: 15px;
+  font-size: 13px;
   color: #000;
   font-weight: 700;
 `;
@@ -941,22 +941,22 @@ const ChooseText = styled.p`
   margin: 12px 0;
   text-align: center;
   color: #666;
-  font-size: 14px;
+  font-size: 13px;
 `;
 
 const Grid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
-  gap: 8px;
+  gap: 5px;
 `;
 
 const LetterBox = styled.button`
-  height: 40px;
+  height: 34px;
   border-radius: 10px;
   border: 1px solid ${(p) => (p.$selected ? "#ff8c00" : "#ccc")};
   background: ${(p) => (p.$selected ? "#ff8c00" : "#fff")};
   color: ${(p) => (p.$selected ? "#fff" : "#111")};
-  font-size: 14px;
+  font-size: 13px;
   font-weight: ${(p) => (p.$selected ? 800 : 600)};
   cursor: pointer;
 `;
